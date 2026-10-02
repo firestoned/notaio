@@ -1,0 +1,164 @@
+name: Build
+
+on:
+  # Deliberately NO `paths:` filter on `pull_request`. A workflow that never
+  # triggers reports no status at all, so a required check would stay pending
+  # forever. The path filter lives in `make ci-code-changed` and the `changes`
+  # job applies it per job, so a docs-only PR skips the expensive work and
+  # still reports.
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+# Top-level GITHUB_TOKEN is read-only (OpenSSF Scorecard Token-Permissions).
+# A job that needs more declares it at the job level.
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+# Every `run:` is a Makefile target (.claude/rules/github-workflows.md), so each
+# job runs identically on a laptop: `make lint`, `make test`, and so on.
+#
+# Not here yet, on purpose:
+#   - license-check (SPDX headers): the licence is still marked "assumed" in
+#     Cargo.toml and no file carries a header. Add the job with the headers.
+#   - image build, signing, SBOM and provenance: ROADMAP M2. The e2e image is
+#     built by e2e.yaml from the same Dockerfile.
+
+jobs:
+  changes:
+    name: 🔀 Detect Relevant Changes
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.detect.outputs.code }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Detect build-relevant changes
+        id: detect
+        env:
+          BASE_REF: origin/${{ github.base_ref }}
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "code=$(make ci-code-changed)" >> "$GITHUB_OUTPUT"
+          fi
+
+  verify-commits:
+    name: 🔐 Verify Signed Commits
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Verify commits (PR)
+        if: github.event_name == 'pull_request'
+        uses: firestoned/github-actions/security/verify-signed-commits@d0d51c638a90bffc2a1567fe7af112b37fe8854c # v1.3.7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          base-ref: origin/${{ github.base_ref }}
+          verify-mode: pr
+
+      - name: Verify commits (push to main)
+        if: github.event_name == 'push'
+        uses: firestoned/github-actions/security/verify-signed-commits@d0d51c638a90bffc2a1567fe7af112b37fe8854c # v1.3.7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          verify-mode: push
+
+  lint:
+    name: 🎨 Format + Clippy
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    needs: [changes, verify-commits]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable (moving ref, re-pin quarterly)
+        with:
+          components: clippy, rustfmt
+
+      - name: Cache cargo dependencies
+        uses: firestoned/github-actions/rust/cache-cargo@d0d51c638a90bffc2a1567fe7af112b37fe8854c # v1.3.7
+
+      - name: Check formatting
+        run: make fmt-check
+
+      - name: Run clippy
+        run: make clippy
+
+  test:
+    name: 🧪 Test + Generated Files
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    needs: [changes, verify-commits]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable (moving ref, re-pin quarterly)
+
+      - name: Cache cargo dependencies
+        uses: firestoned/github-actions/rust/cache-cargo@d0d51c638a90bffc2a1567fe7af112b37fe8854c # v1.3.7
+
+      - name: Run tests
+        run: make test
+
+      # deploy/crds and deploy/profiles are generated from the Rust types and
+      # must never drift from them.
+      - name: Check generated manifests
+        run: make manifests-check
+
+      - name: Install PyYAML
+        run: pip install pyyaml
+
+      - name: Check the AIR framework mapping
+        run: make air-check
+
+  security:
+    name: 🛡️ Security Vulnerability Scan
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    needs: [changes, verify-commits]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable (moving ref, re-pin quarterly)
+
+      - name: Run security scan
+        uses: firestoned/github-actions/rust/security-scan@d0d51c638a90bffc2a1567fe7af112b37fe8854c # v1.3.7
+        with:
+          cargo-audit-version: "0.22.0"
+
+  cargo-deny:
+    name: 🧪 cargo-deny (License + Advisory + Sources)
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    needs: [changes, verify-commits]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Same check as `make deny`; the action brings its own cargo-deny binary.
+      - name: Run cargo-deny
+        uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2.1.1
+        with:
+          log-level: warn
+          command: check

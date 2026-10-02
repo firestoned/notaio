@@ -1,0 +1,303 @@
+source:
+  repo: https://github.com/finos/ai-governance-framework
+  commit: aabbffbe02a4aae8e6d5f8534d63edf9248fa302
+  commit_date: '2026-09-09'
+  licence: CC-BY-4.0
+  note: Titles, ids, types and the mitigates relation only. Text belongs to FINOS. The site labels this release v2.
+risks:
+- id: AIR-RC-001
+  ref: ri-1
+  type: RC
+  title: Information Leaked To Hosted Model
+- id: AIR-SEC-002
+  ref: ri-2
+  type: SEC
+  title: Information Leaked to Vector Store
+- id: AIR-OP-004
+  ref: ri-4
+  type: OP
+  title: Hallucination and Inaccurate Outputs
+- id: AIR-OP-005
+  ref: ri-5
+  type: OP
+  title: Foundation Model Versioning
+- id: AIR-OP-006
+  ref: ri-6
+  type: OP
+  title: Non-Deterministic Behaviour
+- id: AIR-OP-007
+  ref: ri-7
+  type: OP
+  title: Availability of Foundational Model
+- id: AIR-SEC-008
+  ref: ri-8
+  type: SEC
+  title: Tampering With the Foundational Model
+- id: AIR-SEC-009
+  ref: ri-9
+  type: SEC
+  title: Data Poisoning
+- id: AIR-SEC-010
+  ref: ri-10
+  type: SEC
+  title: Prompt Injection
+- id: AIR-OP-014
+  ref: ri-14
+  type: OP
+  title: Inadequate System Alignment
+- id: AIR-OP-016
+  ref: ri-16
+  type: OP
+  title: Bias and Discrimination
+- id: AIR-OP-017
+  ref: ri-17
+  type: OP
+  title: Lack of Explainability
+- id: AIR-OP-018
+  ref: ri-18
+  type: OP
+  title: Model Overreach / Expanded Use
+- id: AIR-OP-019
+  ref: ri-19
+  type: OP
+  title: Data Quality and Drift
+- id: AIR-OP-020
+  ref: ri-20
+  type: OP
+  title: Reputational Risk
+- id: AIR-RC-022
+  ref: ri-22
+  type: RC
+  title: Regulatory Compliance and Oversight
+- id: AIR-RC-023
+  ref: ri-23
+  type: RC
+  title: Intellectual Property (IP) and Copyright
+- id: AIR-SEC-024
+  ref: ri-24
+  type: SEC
+  title: Agent Action Authorization Bypass
+- id: AIR-SEC-025
+  ref: ri-25
+  type: SEC
+  title: Tool Chain Manipulation and Injection
+- id: AIR-SEC-026
+  ref: ri-26
+  type: SEC
+  title: MCP Server Supply Chain Compromise
+- id: AIR-SEC-027
+  ref: ri-27
+  type: SEC
+  title: Agent State Persistence Poisoning
+- id: AIR-OP-028
+  ref: ri-28
+  type: OP
+  title: Multi-Agent Trust Boundary Violations
+- id: AIR-SEC-029
+  ref: ri-29
+  type: SEC
+  title: Agent-Mediated Credential Discovery and Harvesting
+mitigations:
+- id: AIR-DET-001
+  ref: mi-1
+  type: DET
+  title: AI Data Leakage Prevention and Detection
+  mitigates:
+  - ri-1
+- id: AIR-PREV-002
+  ref: mi-2
+  type: PREV
+  title: Data Filtering From External Knowledge Bases
+  mitigates:
+  - ri-1
+  - ri-9
+- id: AIR-PREV-003
+  ref: mi-3
+  type: PREV
+  title: User/App/Model Firewalling/Filtering
+  mitigates:
+  - ri-7
+  - ri-10
+  - ri-18
+  - ri-20
+- id: AIR-DET-004
+  ref: mi-4
+  type: DET
+  title: AI System Observability
+  mitigates:
+  - ri-1
+  - ri-5
+  - ri-6
+  - ri-7
+  - ri-14
+  - ri-18
+  - ri-19
+  - ri-24
+  - ri-25
+  - ri-26
+  - ri-27
+  - ri-28
+  - ri-29
+- id: AIR-PREV-005
+  ref: mi-5
+  type: PREV
+  title: System Acceptance Testing
+  mitigates:
+  - ri-4
+  - ri-5
+  - ri-6
+  - ri-14
+  - ri-16
+  - ri-22
+- id: AIR-PREV-006
+  ref: mi-6
+  type: PREV
+  title: Data Quality & Classification/Sensitivity
+  mitigates:
+  - ri-1
+  - ri-2
+  - ri-4
+  - ri-9
+  - ri-16
+  - ri-19
+  - ri-22
+  - ri-23
+- id: AIR-PREV-007
+  ref: mi-7
+  type: PREV
+  title: Legal and Contractual Frameworks for AI Systems
+  mitigates:
+  - ri-1
+  - ri-8
+  - ri-20
+  - ri-22
+  - ri-23
+- id: AIR-PREV-008
+  ref: mi-8
+  type: PREV
+  title: Quality of Service (QoS) and DDoS Prevention for AI Systems
+  mitigates:
+  - ri-7
+- id: AIR-DET-009
+  ref: mi-9
+  type: DET
+  title: AI System Alerting and Denial of Wallet (DoW) / Spend Monitoring
+  mitigates:
+  - ri-7
+- id: AIR-PREV-010
+  ref: mi-10
+  type: PREV
+  title: AI Model Version Pinning
+  mitigates:
+  - ri-5
+  - ri-6
+- id: AIR-DET-011
+  ref: mi-11
+  type: DET
+  title: Human Feedback Loop for AI Systems
+  mitigates:
+  - ri-5
+  - ri-6
+  - ri-14
+  - ri-16
+  - ri-18
+  - ri-20
+- id: AIR-PREV-012
+  ref: mi-12
+  type: PREV
+  title: Role-Based Access Control for AI Data
+  mitigates:
+  - ri-1
+  - ri-8
+  - ri-9
+- id: AIR-DET-013
+  ref: mi-13
+  type: DET
+  title: Providing Citations and Source Traceability for AI-Generated Information
+  mitigates:
+  - ri-4
+  - ri-17
+  - ri-20
+  - ri-22
+- id: AIR-PREV-014
+  ref: mi-14
+  type: PREV
+  title: Encryption of AI Data at Rest
+  mitigates:
+  - ri-2
+  - ri-22
+- id: AIR-DET-015
+  ref: mi-15
+  type: DET
+  title: Using Large Language Models for Automated Evaluation (LLM-as-a-Judge)
+  mitigates:
+  - ri-1
+  - ri-4
+  - ri-5
+  - ri-6
+  - ri-14
+  - ri-16
+  - ri-19
+- id: AIR-DET-016
+  ref: mi-16
+  type: DET
+  title: Preserving Source Data Access Controls in AI Systems
+  mitigates:
+  - ri-2
+  - ri-22
+- id: AIR-PREV-017
+  ref: mi-17
+  type: PREV
+  title: AI Firewall Implementation and Management
+  mitigates:
+  - ri-7
+  - ri-10
+  - ri-18
+  - ri-20
+- id: AIR-PREV-018
+  ref: mi-18
+  type: PREV
+  title: Agent Authority Least Privilege Framework
+  mitigates:
+  - ri-24
+  - ri-18
+- id: AIR-PREV-019
+  ref: mi-19
+  type: PREV
+  title: Tool Chain Validation and Sanitization
+  mitigates:
+  - ri-25
+  - ri-10
+  - ri-24
+- id: AIR-PREV-020
+  ref: mi-20
+  type: PREV
+  title: MCP Server Security Governance
+  mitigates:
+  - ri-26
+  - ri-8
+  - ri-1
+- id: AIR-DET-021
+  ref: mi-21
+  type: DET
+  title: Agent Decision Audit and Explainability
+  mitigates:
+  - ri-24
+  - ri-25
+  - ri-22
+- id: AIR-PREV-022
+  ref: mi-22
+  type: PREV
+  title: Multi-Agent Isolation and Segmentation
+  mitigates:
+  - ri-28
+  - ri-24
+  - ri-27
+- id: AIR-PREV-023
+  ref: mi-23
+  type: PREV
+  title: Agentic System Credential Protection Framework
+  mitigates:
+  - ri-29
+  - ri-24
+  - ri-26

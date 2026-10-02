@@ -1,0 +1,30 @@
+# Direct edits to policy objects are refused: changes arrive only through review and GitOps
+# (threat model T8.2, scenario S6). Notaio's own writes go to the /status subresource, which
+# this policy does not match. Replace the allowed user with your GitOps reconciler.
+#
+# Needs Kubernetes 1.30 or later (ValidatingAdmissionPolicy is GA). Tested on kind by the
+# `e2e_admission` suite (`make kind-e2e-admission`).
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: sandbox-policy-gitops-only
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: ["sandbox.firestoned.io"]
+        apiVersions: ["*"]
+        operations: ["CREATE", "UPDATE", "DELETE"]
+        resources: ["sandboxprofiles", "sandboxpolicies", "knobgrants"]
+  validations:
+    - expression: "request.userInfo.username in ['system:serviceaccount:flux-system:kustomize-controller']"
+      message: "SandboxProfile, SandboxPolicy and KnobGrant may only be changed by the GitOps reconciler, through a reviewed change."
+      reason: Forbidden
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: sandbox-policy-gitops-only
+spec:
+  policyName: sandbox-policy-gitops-only
+  validationActions: ["Deny"]

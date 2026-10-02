@@ -1,0 +1,259 @@
+# One entry per item in docs/air/catalogue.yaml. Judgments are the author's and need review by
+# someone who owns the framework at your organisation.
+#
+# status:
+#   implemented   this repo validates or computes it (lint, ceilings, bundle, status, admission)
+#   declared      this repo carries the setting in the signed bundle; enforcement is downstream
+#   partial       some of the above, with a named gap
+#   gap           in scope for a sandbox policy layer, nothing here yet
+#   out_of_scope  not a sandbox policy concern; `where` says who owns it, if anyone
+# knobs: ids from crates/sandboxpolicy-core/src/registry.rs
+# lint:  ids from crates/sandboxpolicy-core/src/lint.rs
+# other: named features that are not a knob or lint rule
+
+risks:
+  ri-1:
+    status: partial
+    knobs: [K4.1, K4.3, K4.4, K1.4]
+    lint: [L007, L003]
+    other: [DataScope]
+    note: >
+      Egress allowlist decides which model endpoints the sandbox can reach, volume caps and output
+      export bound what leaves. Nothing classifies the data sent to a model.
+    gap: No data classification of prompt content. Audience classification is ROADMAP M4.
+  ri-2:
+    status: out_of_scope
+    note: No vector store is part of the sandbox.
+  ri-4:
+    status: out_of_scope
+    note: Model output quality.
+  ri-5:
+    status: gap
+    knobs: [K8.1]
+    note: K8.1 pins the image, and with it the agent CLI. The model an agent may call is not in the spec.
+    gap: A model allowlist or pin could be a policy field rendered into managed settings.
+  ri-6:
+    status: out_of_scope
+    note: Model behaviour.
+  ri-7:
+    status: partial
+    knobs: [K2.4, K4.3, K7.3]
+    lint: [L009]
+    other: [Budgets, ceilings]
+    note: Tool call, wall clock and egress byte budgets and lease ceilings cap consumption.
+    gap: No token or spend budget, so Denial of Wallet is only bounded by time and call count.
+  ri-8:
+    status: partial
+    knobs: [K8.1, K1.3]
+    lint: [L008]
+    note: Image source and tool pinning protect what runs in the sandbox.
+    gap: Hosted model weights and provider tampering are outside this project.
+  ri-9:
+    status: out_of_scope
+    note: Training and fine-tuning data.
+  ri-10:
+    status: partial
+    knobs: [K1.1, K1.2, K1.3, K3.3, K4.1, K1.4]
+    lint: [L003]
+    note: >
+      L003 refuses the combination of sensitive data, untrusted content and an outbound channel, so
+      a successful injection has no path out. Injection itself is not prevented.
+    where: Guard hook in mediatore-guest renders K3.3.
+  ri-14:
+    status: out_of_scope
+    note: RAG response alignment.
+  ri-16:
+    status: out_of_scope
+    note: Model fairness.
+  ri-17:
+    status: partial
+    knobs: [K8.3]
+    note: K8.3 sets how much is logged.
+    gap: Reasoning capture is undefined. See AIR-DET-021 for the tiering that K8.3 steps should map to.
+  ri-18:
+    status: partial
+    knobs: [K7.2, K1.3]
+    lint: [L011, L012, L013, L010]
+    other: [KnobGrant, SandboxProfile]
+    note: >
+      Scope is a reviewed profile, widening it is a time-boxed, approved, one-step KnobGrant.
+      This bounds how far a sandbox policy can drift, not how a business team uses the output.
+    gap: How the output is used in the business is outside the policy.
+  ri-19:
+    status: out_of_scope
+    note: Model data freshness.
+  ri-20:
+    status: out_of_scope
+    note: Consequence of other risks. Containment reduces it indirectly.
+  ri-22:
+    status: partial
+    knobs: [K8.3, K8.2]
+    lint: [L013]
+    other: [signed bundle, KnobGrant, gitops-only admission]
+    note: >
+      Every policy version is signed, numbered and traceable to a grant with named approvers,
+      K8.3 has a Compliance approver role.
+    gap: No retention period or records-class field, so the record-keeping obligations the framework names are not expressed.
+  ri-23:
+    status: out_of_scope
+    note: Copyright in model output. Egress and export controls only help with trade secret leakage.
+  ri-24:
+    status: implemented
+    knobs: [K5.1, K5.2, K5.3, K5.4, K5.5, K3.2, K2.1, K7.4]
+    lint: [L005, L006, L007, L008, L009, L011, L012, L013]
+    other: [ceilings, status.maxExposure, KnobGrant]
+    note: >
+      Policy side: deny by default, read-only tokens, no wildcard audiences, expiring relaxations,
+      computed maximum exposure. Enforcement is in mediatore, guest and gateway.
+    where: mediatore, mediatore-guest, gateway. Not verified here.
+  ri-25:
+    status: partial
+    knobs: [K1.3, K3.3, K2.1]
+    lint: [L008]
+    note: Tools are pinned by digest and the guard strictness is carried in the bundle.
+    gap: Parameter and call-sequence rules are not modelled.
+  ri-26:
+    status: partial
+    knobs: [K1.3]
+    lint: [L008]
+    note: MCP servers must be pinned by manifest digest.
+    gap: No vetting workflow or evidence of review is recorded.
+  ri-27:
+    status: partial
+    knobs: [K6.1, K1.2]
+    note: Tenancy tier and project instruction loading. One VM per lease that is destroyed afterwards is a banlieue and mediatore rule.
+    gap: Nothing in the spec says whether a workspace may persist between leases.
+  ri-28:
+    status: partial
+    knobs: [K6.1, K5.6]
+    note: One identity and one VM per subject, carried as settings.
+    where: banlieue, mediatore
+  ri-29:
+    status: partial
+    knobs: [K3.1, K5.1, K5.2, K5.3, K5.4]
+    lint: [L005, L006]
+    note: Short, read-only, audience-bound tokens and credential delivery mode.
+    where: mediatore-guest delivers credentials.
+    gap: No detection of credential discovery behaviour.
+
+mitigations:
+  mi-1:
+    status: partial
+    knobs: [K4.3, K4.4, K1.4]
+    lint: [L009]
+    note: Volume caps bound exfiltration. TLS inspection is the only content inspection hook, and its loosest step is R1.
+    gap: No data loss detection rules.
+  mi-2:
+    status: out_of_scope
+    note: Knowledge base ingestion.
+  mi-3:
+    status: declared
+    knobs: [K4.1, K4.2, K4.4]
+    lint: [L007]
+    where: gateway
+    note: Allowlist entries are validated here, filtering is done by the gateway.
+  mi-4:
+    status: partial
+    other: [status conditions, KnobGrant status]
+    note: Controller status shows version, digest, exposure and lint conditions.
+    gap: No metrics endpoint or events until ROADMAP M2. Decision audit is mediatore's.
+  mi-5:
+    status: gap
+    note: Knob prerequisites are not proven by control tests. Grants record approvals, not test results.
+  mi-6:
+    status: partial
+    other: [DataScope]
+    note: Two data scopes, LabOnly and Internal.
+    gap: Audience classification is ROADMAP M4.
+  mi-7:
+    status: out_of_scope
+    note: Contracts and legal review.
+  mi-8:
+    status: partial
+    knobs: [K7.3]
+    lint: [L009]
+    note: Lease concurrency and duration ceilings.
+    where: Rate limiting at the gateway.
+  mi-9:
+    status: partial
+    other: [Budgets]
+    lint: [L009]
+    note: Budgets cap use.
+    gap: No spend or token dimension, no alerting until ROADMAP M2.
+  mi-10:
+    status: gap
+    note: See AIR-OP-005. A model pin is not a policy field.
+  mi-11:
+    status: out_of_scope
+    note: K3.2 is approval of actions, not a feedback loop on output quality.
+  mi-12:
+    status: partial
+    knobs: [K7.2, K5.2, K5.3]
+    lint: [L005, L006, L010]
+    note: Subjects, eligibility and audience scoping.
+    gap: Scoping stops at the audience and token. Access control inside the downstream data store is that system's.
+  mi-13:
+    status: out_of_scope
+    note: Output citation.
+  mi-14:
+    status: out_of_scope
+    where: banlieue installMode Deferred with vTPM and LUKS, see the banlieue design.
+    note: Disk encryption is a VM concern.
+  mi-15:
+    status: out_of_scope
+    note: Model evaluation.
+  mi-16:
+    status: partial
+    knobs: [K5.6]
+    note: Identity type is carried. Token delegation chain is mediatore's.
+    where: mediatore
+  mi-17:
+    status: declared
+    knobs: [K4.1, K4.4]
+    lint: [L007]
+    where: gateway
+    note: Same as AIR-PREV-003.
+  mi-18:
+    status: implemented
+    knobs: [K5.1, K5.2, K5.3, K5.5, K7.3, K7.4, K3.2]
+    lint: [L005, L006, L009, L011, L012, L013]
+    other: [SandboxProfile, SandboxPolicy, KnobGrant, ceilings, status.maxExposure]
+    note: >
+      Role and privilege definition is the profile and policy, dynamic privilege is the expiring
+      grant with renewal re-evaluation, approval workflow is K3.2 and grant approvals, exposure
+      is computed. Enforcement at the API and tool layer is downstream.
+    where: mediatore, mediatore-guest, gateway. Not verified here.
+    gap: Agent behaviour monitoring is not modelled.
+  mi-19:
+    status: partial
+    knobs: [K1.3, K3.3]
+    lint: [L008]
+    note: Tool selection is limited to pinned tools.
+    gap: Parameter validation and sequence validation rules are not in the spec.
+  mi-20:
+    status: partial
+    knobs: [K1.3, K4.1]
+    lint: [L008]
+    note: >
+      Pre-approved servers pinned by digest, with egress through the gateway. That resembles the
+      framework's pre-approved tier, it has not been checked against that tier's requirements.
+    gap: No vetting, onboarding or incident response content.
+  mi-21:
+    status: partial
+    knobs: [K8.3]
+    other: [signed bundle version]
+    note: The policy version is stamped into tokens so decisions can be traced to a policy.
+    gap: K8.3 steps are not mapped to the framework's retention tiers, and reasoning capture is undefined.
+    where: Audit events come from mediatore and the guest hook.
+  mi-22:
+    status: partial
+    knobs: [K6.1, K5.6]
+    note: Tenancy tier and identity type are carried.
+    where: banlieue VM per identity, mediatore attestation.
+  mi-23:
+    status: partial
+    knobs: [K3.1, K5.1, K5.2, K5.3, K5.4]
+    lint: [L005, L006]
+    note: Just-in-time, short-lived, scoped credentials are policy. Delivery and environment isolation are downstream.
+    where: mediatore-guest
+    gap: No behavioural detection.

@@ -1,0 +1,24 @@
+# Keep the Docker build context to what the Dockerfile actually consumes: only
+# `binaries/<TARGETARCH>/notaio` is COPYed. Without this file the whole repo,
+# including .git and target/, is sent to the daemon on every build, and one
+# future `COPY .` would bake it all into the image.
+
+# VCS and metadata
+.git/
+.github/
+.gitignore
+.wolf/
+.claude/
+.opencode/
+
+# Build outputs and local state
+target/
+.kind-kubeconfig-*
+
+# Sources the image does not need
+crates/
+docs/
+*.md
+deploy/
+examples/
+scripts/

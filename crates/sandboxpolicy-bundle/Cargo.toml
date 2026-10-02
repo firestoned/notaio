@@ -1,0 +1,21 @@
+[package]
+name = "sandboxpolicy-bundle"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+base64 = "0.23.1"
+chrono = { version = "0.4.45", features = ["serde"] }
+ed25519-dalek = "3.0.0"
+sandboxpolicy-types = { version = "0.0.1", path = "../sandboxpolicy-types" }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+sha2 = "0.11.0"
+thiserror = "2.0.21"
+
+[lints]
+workspace = true

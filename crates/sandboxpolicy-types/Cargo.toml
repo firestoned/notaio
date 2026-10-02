@@ -1,0 +1,17 @@
+[package]
+name = "sandboxpolicy-types"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+chrono = { version = "0.4.45", features = ["serde"] }
+schemars = { version = "1.2.2", features = ["chrono04"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+
+[lints]
+workspace = true

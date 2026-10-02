@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: notaio-system
+  labels:
+    app.kubernetes.io/name: notaio
+    # Management cluster only (ADR-0001 of the AgentSandbox threat model): this controller is part of
+    # the trusted control plane and must never be deployed to a general-purpose cluster.
+    pod-security.kubernetes.io/enforce: restricted

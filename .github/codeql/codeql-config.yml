@@ -1,0 +1,16 @@
+# CodeQL config consumed by .github/workflows/codeql.yaml. Keeps generated
+# output and test code out of the scanning database.
+
+name: "notaio CodeQL Config"
+
+paths-ignore:
+  # Rust build output.
+  - target/**
+  # Generated manifests (crdgen). Never hand edited, see `make manifests`.
+  - deploy/crds/**
+  - deploy/profiles/**
+  # Test code: unit `*_tests.rs` files and `crates/*/tests/` (integration and
+  # e2e). Never built into a shipped binary. In banlieue, scanning these only
+  # produced `rust/cleartext-logging` false positives on `metadata.uid`.
+  - "**/*_tests.rs"
+  - crates/*/tests/**

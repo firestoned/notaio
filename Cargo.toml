@@ -1,0 +1,25 @@
+[workspace]
+resolver = "2"
+members = [
+  "crates/sandboxpolicy-types",
+  "crates/sandboxpolicy-api",
+  "crates/sandboxpolicy-core",
+  "crates/sandboxpolicy-bundle",
+  "crates/notaio",
+]
+
+[workspace.package]
+version = "0.0.1"
+edition = "2021"
+rust-version = "1.89"
+# Assumed, confirm before the first public push.
+license = "Apache-2.0"
+repository = "https://github.com/firestoned/notaio"
+publish = false
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+unwrap_used = "warn"
+expect_used = "warn"

@@ -1,0 +1,55 @@
+# Dependency update automation (Scorecard Dependency-Update-Tool). Weekly is
+# frequent enough to stay current without drowning a pre-1.0 repo in PR noise.
+#
+# Every entry carries a `cooldown`: Dependabot waits N days after a version is
+# published before proposing it. This is the standard defence against a
+# compromised-maintainer or typo-squat release being auto-merged within hours
+# of publication, the window in which such a release is normally caught and
+# yanked. Registry ecosystems (cargo, actions) use 7 days.
+version: 2
+updates:
+  # GitHub Actions: keeps the SHA-pinned actions current.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # Rust workspace: one weekly PR for the kube ecosystem (which must move as a
+  # unit) and one for everything else, instead of a PR per crate.
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    groups:
+      # kube and k8s-openapi are tightly version-coupled: kube 4.x requires
+      # k8s-openapi 0.28. Bumping either alone produces two incompatible
+      # k8s-openapi copies, which breaks the build. Group them, including
+      # majors, so they always move together. Must precede the catch-all.
+      kube-ecosystem:
+        patterns: ["kube", "kube-*", "k8s-openapi"]
+        update-types: ["major", "minor", "patch"]
+      rust-dependencies:
+        patterns: ["*"]
+        update-types: ["major", "minor", "patch"]
+
+  # Container base image (/Dockerfile, used by the kind e2e image).
+  #
+  # Shorter cooldown than the registry ecosystems, deliberately: this is a
+  # first-party distroless base whose rebuilds exist to ship OS security
+  # patches (glibc, zlib). Holding those for a week is the larger risk.
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 2
+    groups:
+      base-images:
+        patterns: ["*"]

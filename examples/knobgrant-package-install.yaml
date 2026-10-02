@@ -1,0 +1,18 @@
+# Relax K2.3 (package installation) from R0 to R1 for one policy, for 30 days. R1 grants last at most
+# 90 days. The register requires the platform owner's approval, recorded with a reference to the
+# reviewed change. A grant must be exactly one step above the profile, never a jump.
+apiVersion: sandbox.firestoned.io/v1alpha1
+kind: KnobGrant
+metadata:
+  name: agent-default-pkg-mirror
+  namespace: sandboxes
+spec:
+  policyRef: agent-default
+  knob: K2.3
+  step: R1
+  owner: team-algo-platform
+  reason: Build toolchain needs the internal package mirror.
+  expiresAt: "2026-10-30T00:00:00Z"
+  approvals:
+    - role: PlatformOwner
+      reference: https://github.com/firestoned/notaio/pull/1

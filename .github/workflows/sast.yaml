@@ -1,0 +1,68 @@
+# SAST (Semgrep OSS), always-on. Runs on every PR and every push to main
+# with no `paths:` filter so Scorecard's SAST check records every commit
+# as covered (a path-gated Semgrep job in build.yaml would produce
+# uncovered-commit events on dependabot and docs-only PRs).
+#
+# Runs the community Rust / security-audit / secrets / OWASP Top Ten
+# rulesets and uploads SARIF to the Code Scanning dashboard under the
+# `semgrep` category. No token required, this is the free OSS Community
+# Edition.
+
+name: SAST
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  semgrep:
+    name: 🔎 SAST (Semgrep)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      # Required by github/codeql-action/upload-sarif to fetch workflow-run
+      # metadata for SARIF fingerprinting. Without it the upload fails with
+      # "Resource not accessible by integration" on the get-a-workflow-run API.
+      actions: read
+    container:
+      # Pinned to a version tag AND its digest. Was a bare `returntocorp/semgrep`
+      # -- no tag, so implicitly `:latest` -- which is a floating third-party
+      # container that runs with the repo checkout and `security-events: write`.
+      # `returntocorp/*` is also the deprecated namespace (it still mirrors, but
+      # `semgrep/semgrep` is the maintained one). The tag is what Dependabot's
+      # docker ecosystem bumps; the digest is what actually gets pulled.
+      image: semgrep/semgrep:1.176.1@sha256:34ab619bf1391a24bfda3f05debd0d8a6ce3093c2d5f9d39cfc00f83c1397823
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # `unsafe-usage` is an audit note on every `unsafe` keyword, not a
+      # finding, and `// nosemgrep` does not keep it out of the SARIF upload.
+      # The audit is enforced at compile time instead: crates that use
+      # `unsafe` deny `clippy::undocumented_unsafe_blocks`, so a block without
+      # a `// SAFETY:` justification fails the Clippy job.
+      - name: Run Semgrep
+        run: |
+          semgrep scan \
+            --config=p/rust \
+            --config=p/security-audit \
+            --config=p/secrets \
+            --config=p/owasp-top-ten \
+            --sarif --output=semgrep.sarif \
+            --exclude-rule=rust.lang.security.unsafe-usage.unsafe-usage \
+            --metrics=off \
+            --error || true
+
+      - name: Upload Semgrep SARIF to Code Scanning
+        uses: github/codeql-action/upload-sarif@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep

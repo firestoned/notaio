@@ -1,0 +1,542 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: sandboxprofiles.sandbox.firestoned.io
+spec:
+  group: sandbox.firestoned.io
+  names:
+    kind: SandboxProfile
+    plural: sandboxprofiles
+    shortNames:
+    - sbprofile
+    singular: sandboxprofile
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.dataScope
+      name: Scope
+      type: string
+    - jsonPath: .status.conditions[?(@.type=="Valid")].status
+      name: Valid
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Auto-generated derived type for SandboxProfileSpec via `CustomResource`
+        properties:
+          spec:
+            description: |-
+              A named bundle of knob steps (Fortress, Hardened, Standard, Lab). Cluster-scoped and
+              platform-owned: teams pick a profile, they do not edit one.
+            properties:
+              dataScope:
+                description: |-
+                  `LabOnly` profiles hold no sensitive data, which is what allows them to combine untrusted
+                  content with an open outbound channel.
+                enum:
+                - LabOnly
+                - Internal
+                type: string
+              description:
+                default: ''
+                type: string
+              knobs:
+                additionalProperties:
+                  description: A relaxation step for a knob. `R0` is the locked default; higher steps are progressively looser.
+                  enum:
+                  - R0
+                  - R1
+                  - R2
+                  - R3
+                  type: string
+                default: {}
+                description: Step per knob id. A knob that is absent stays at R0, the locked default.
+                type: object
+            required:
+            - dataScope
+            type: object
+          status:
+            nullable: true
+            properties:
+              conditions:
+                default: []
+                items:
+                  description: |-
+                    A minimal condition type. Kept local so the CRD schema does not depend on the time
+                    representation used by `k8s-openapi`.
+                  properties:
+                    lastTransitionTime:
+                      format: date-time
+                      type: string
+                    message:
+                      type: string
+                    observedGeneration:
+                      format: int64
+                      nullable: true
+                      type: integer
+                    reason:
+                      type: string
+                    status:
+                      description: '`True`, `False` or `Unknown`.'
+                      type: string
+                    type:
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              digest:
+                description: Digest of the validated spec. Recorded in every bundle so a change to the profile is visible.
+                nullable: true
+                type: string
+              observedGeneration:
+                format: int64
+                nullable: true
+                type: integer
+            type: object
+        required:
+        - spec
+        title: SandboxProfile
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: sandboxpolicies.sandbox.firestoned.io
+spec:
+  group: sandbox.firestoned.io
+  names:
+    kind: SandboxPolicy
+    plural: sandboxpolicies
+    shortNames:
+    - sbpolicy
+    singular: sandboxpolicy
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.profileRef
+      name: Profile
+      type: string
+    - jsonPath: .status.bundleVersion
+      name: Version
+      type: integer
+    - jsonPath: .status.conditions[?(@.type=="Ready")].status
+      name: Ready
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Auto-generated derived type for SandboxPolicySpec via `CustomResource`
+        properties:
+          spec:
+            description: |-
+              Binds subjects to a profile and adds the concrete audiences, egress entries and tools. The
+              controller checks all of it against the profile's knob ceilings and compiles a signed bundle.
+            properties:
+              audiences:
+                default: []
+                items:
+                  description: One downstream audience the sandbox may obtain tokens for.
+                  properties:
+                    access:
+                      default: Read
+                      enum:
+                      - Read
+                      - Write
+                      type: string
+                    name:
+                      type: string
+                    scopes:
+                      default: []
+                      items:
+                        type: string
+                      type: array
+                    ttlSeconds:
+                      description: Requested token lifetime. Defaults to the K5.1 ceiling when omitted.
+                      format: uint32
+                      minimum: 0.0
+                      nullable: true
+                      type: integer
+                  required:
+                  - name
+                  type: object
+                type: array
+              budgets:
+                description: Budgets. Defaults to the ceilings for the profile when omitted.
+                nullable: true
+                properties:
+                  maxEgressBytes:
+                    format: uint64
+                    minimum: 0.0
+                    type: integer
+                  maxToolCalls:
+                    format: uint32
+                    minimum: 0.0
+                    type: integer
+                  maxWallClockSeconds:
+                    format: uint32
+                    minimum: 0.0
+                    type: integer
+                required:
+                - maxEgressBytes
+                - maxToolCalls
+                - maxWallClockSeconds
+                type: object
+              egress:
+                default: []
+                items:
+                  description: One egress allowlist entry, enforced at the gateway and in the host or network layer.
+                  properties:
+                    host:
+                      type: string
+                    methods:
+                      description: Method restriction. Only accepted at K4.1 R2 and above.
+                      items:
+                        type: string
+                      type: array
+                    paths:
+                      description: Path restriction. Only accepted at K4.1 R2 and above.
+                      items:
+                        type: string
+                      type: array
+                    port:
+                      format: uint16
+                      maximum: 65535.0
+                      minimum: 0.0
+                      type: integer
+                  required:
+                  - host
+                  - port
+                  type: object
+                type: array
+              lease:
+                description: Lease limits. Defaults to the K7.3 ceiling for the profile when omitted.
+                nullable: true
+                properties:
+                  maxConcurrent:
+                    format: uint8
+                    maximum: 255.0
+                    minimum: 0.0
+                    type: integer
+                  maxDurationSeconds:
+                    format: uint32
+                    minimum: 0.0
+                    type: integer
+                required:
+                - maxConcurrent
+                - maxDurationSeconds
+                type: object
+              profileRef:
+                description: Name of a cluster-scoped SandboxProfile.
+                type: string
+              subjects:
+                default:
+                  groups: []
+                properties:
+                  groups:
+                    default: []
+                    description: Identity provider group ids allowed to claim a sandbox under this policy.
+                    items:
+                      type: string
+                    type: array
+                type: object
+              tools:
+                default: []
+                items:
+                  description: A tool or MCP server the agent may use, pinned by manifest digest.
+                  properties:
+                    manifestDigest:
+                      description: '`sha256:<hex>` of the tool manifest.'
+                      type: string
+                    name:
+                      type: string
+                  required:
+                  - manifestDigest
+                  - name
+                  type: object
+                type: array
+            required:
+            - profileRef
+            type: object
+          status:
+            nullable: true
+            properties:
+              activeGrants:
+                default: []
+                description: Names of the KnobGrants currently applied to this policy.
+                items:
+                  type: string
+                type: array
+              bundleDigest:
+                description: '`sha256:<hex>` of the canonical bundle content.'
+                nullable: true
+                type: string
+              bundleNotAfter:
+                format: date-time
+                nullable: true
+                type: string
+              bundleVersion:
+                description: Monotonic version of the compiled content. Bumps only when the content changes.
+                format: uint64
+                minimum: 0.0
+                nullable: true
+                type: integer
+              conditions:
+                default: []
+                items:
+                  description: |-
+                    A minimal condition type. Kept local so the CRD schema does not depend on the time
+                    representation used by `k8s-openapi`.
+                  properties:
+                    lastTransitionTime:
+                      format: date-time
+                      type: string
+                    message:
+                      type: string
+                    observedGeneration:
+                      format: int64
+                      nullable: true
+                      type: integer
+                    reason:
+                      type: string
+                    status:
+                      description: '`True`, `False` or `Unknown`.'
+                      type: string
+                    type:
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              maxExposure:
+                description: |-
+                  What a fully compromised sandbox under this policy could reach (objective O3): computed, not
+                  asserted.
+                nullable: true
+                properties:
+                  audiences:
+                    items:
+                      description: One audience in the computed maximum exposure.
+                      properties:
+                        access:
+                          enum:
+                          - Read
+                          - Write
+                          type: string
+                        name:
+                          type: string
+                        ttlSeconds:
+                          format: uint32
+                          minimum: 0.0
+                          type: integer
+                      required:
+                      - access
+                      - name
+                      - ttlSeconds
+                      type: object
+                    type: array
+                  egressHosts:
+                    items:
+                      type: string
+                    type: array
+                  leaseMaxSeconds:
+                    format: uint32
+                    minimum: 0.0
+                    type: integer
+                  tools:
+                    items:
+                      type: string
+                    type: array
+                  writeCapable:
+                    type: boolean
+                required:
+                - audiences
+                - egressHosts
+                - leaseMaxSeconds
+                - tools
+                - writeCapable
+                type: object
+              nextGrantExpiry:
+                format: date-time
+                nullable: true
+                type: string
+              observedGeneration:
+                format: int64
+                nullable: true
+                type: integer
+              profileDigest:
+                nullable: true
+                type: string
+            type: object
+        required:
+        - spec
+        title: SandboxPolicy
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: knobgrants.sandbox.firestoned.io
+spec:
+  group: sandbox.firestoned.io
+  names:
+    kind: KnobGrant
+    plural: knobgrants
+    shortNames:
+    - knobgrant
+    singular: knobgrant
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.policyRef
+      name: Policy
+      type: string
+    - jsonPath: .spec.knob
+      name: Knob
+      type: string
+    - jsonPath: .spec.step
+      name: Step
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .spec.expiresAt
+      name: Expires
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Auto-generated derived type for KnobGrantSpec via `CustomResource`
+        properties:
+          spec:
+            description: |-
+              A time-boxed relaxation of one knob for one policy. Every relaxation has an owner, a reason, an
+              approver and an expiry, so the knob dashboard is a query over this kind.
+            properties:
+              approvals:
+                default: []
+                items:
+                  description: |-
+                    A recorded approval by a role named in the knob register. `reference` points at the reviewed
+                    change (a pull request URL, for example), because policy changes only arrive through review.
+                  properties:
+                    reference:
+                      type: string
+                    role:
+                      description: Approver roles named in the knob register.
+                      enum:
+                      - Security
+                      - PlatformOwner
+                      - DataOwner
+                      - Compliance
+                      - ToolOwner
+                      - RiskOwner
+                      type: string
+                  required:
+                  - reference
+                  - role
+                  type: object
+                type: array
+              expiresAt:
+                format: date-time
+                type: string
+              knob:
+                description: |-
+                  Identifier of a knob in the register, for example `K4.1`. Validated against the registry by the
+                  linter, not at deserialisation time, so an unknown id produces a finding instead of a parse error.
+                type: string
+              owner:
+                type: string
+              policyRef:
+                description: SandboxPolicy in the same namespace.
+                type: string
+              reason:
+                type: string
+              step:
+                description: Target step. Must be exactly one step above the profile's step for this knob.
+                enum:
+                - R0
+                - R1
+                - R2
+                - R3
+                type: string
+            required:
+            - expiresAt
+            - knob
+            - owner
+            - policyRef
+            - reason
+            - step
+            type: object
+          status:
+            nullable: true
+            properties:
+              conditions:
+                default: []
+                items:
+                  description: |-
+                    A minimal condition type. Kept local so the CRD schema does not depend on the time
+                    representation used by `k8s-openapi`.
+                  properties:
+                    lastTransitionTime:
+                      format: date-time
+                      type: string
+                    message:
+                      type: string
+                    observedGeneration:
+                      format: int64
+                      nullable: true
+                      type: integer
+                    reason:
+                      type: string
+                    status:
+                      description: '`True`, `False` or `Unknown`.'
+                      type: string
+                    type:
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              observedGeneration:
+                format: int64
+                nullable: true
+                type: integer
+              phase:
+                default: Pending
+                enum:
+                - Pending
+                - Active
+                - Rejected
+                - Expired
+                type: string
+            type: object
+        required:
+        - spec
+        title: KnobGrant
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

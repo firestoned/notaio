@@ -1,0 +1,113 @@
+# End-to-end verification against a real API server in a kind cluster.
+#
+# What this proves that unit tests structurally cannot: that the API server
+# ACCEPTS what notaio builds and that the deployed manifests are as narrow as
+# the threat model says. The controller runs from deploy/ with its real image,
+# RBAC, NetworkPolicy and restricted PSA; the suites then check the built-in
+# profiles, a signed bundle a consumer can verify, the controller's RBAC
+# through SubjectAccessReview, and the GitOps-only admission policy.
+#
+# No secrets, no registry: the image is built on the runner and side-loaded,
+# and the signing key is a throwaway development seed created in the cluster.
+# So this runs on fork PRs.
+#
+# One job per suite, each on its own kind cluster, so a red X names the
+# contract that broke and the suites run in parallel. They share nothing.
+#
+# All logic lives in Makefile targets (.claude/rules/github-workflows.md); this
+# file only calls `make kind-e2e-ci E2E_SUITE=<suite>`. The same targets run
+# locally: `make kind-e2e-<suite>`, or `make kind-e2e` for all of them.
+
+name: E2E
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'crates/**'
+      - 'deploy/**'
+      - 'examples/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'Dockerfile'
+      - 'Makefile'
+      - '.github/workflows/e2e.yaml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'crates/**'
+      - 'deploy/**'
+      - 'examples/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'Dockerfile'
+      - 'Makefile'
+      - '.github/workflows/e2e.yaml'
+  # Reusable: dependabot-auto-merge.yaml gates every Dependabot PR on it.
+  workflow_call:
+    inputs:
+      kind_node_image:
+        description: 'kind node image (pins the Kubernetes version under test)'
+        required: false
+        type: string
+        default: 'kindest/node:v1.31.0'
+  workflow_dispatch:
+    inputs:
+      kind_node_image:
+        description: 'kind node image (pins the Kubernetes version under test)'
+        required: false
+        type: string
+        default: 'kindest/node:v1.31.0'
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  e2e:
+    name: 🧪 ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    # A cold Rust build plus a kind cluster; each wait has a 120s budget.
+    timeout-minutes: 45
+
+    strategy:
+      # One suite failing must not cancel the rest: knowing that ONLY the
+      # admission contract broke is most of the diagnosis.
+      fail-fast: false
+      matrix:
+        # `suite` is the `make kind-e2e-<suite>` target; keep this list in sync
+        # with E2E_SUITES in the Makefile.
+        include:
+          - suite: install
+            name: Install and built-in profiles
+          - suite: bundle
+            name: Signed bundle round trip
+          - suite: rbac
+            name: Controller RBAC
+          - suite: admission
+            name: GitOps-only admission
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable (moving ref, re-pin quarterly)
+
+      - name: Cache cargo dependencies
+        uses: firestoned/github-actions/rust/cache-cargo@d0d51c638a90bffc2a1567fe7af112b37fe8854c # v1.3.7
+
+      # `make kind-load` builds natively for the runner (linux/amd64) and
+      # side-loads the image, so no registry and no cross-toolchain is needed.
+      # Each job gets its own cluster name so nothing is ever shared.
+      - name: Run e2e suite ${{ matrix.suite }}
+        env:
+          KIND_NODE_IMAGE: ${{ inputs.kind_node_image || 'kindest/node:v1.31.0' }}
+          KIND_CLUSTER_NAME: notaio-e2e-${{ matrix.suite }}
+          E2E_SUITE: ${{ matrix.suite }}
+        run: make kind-e2e-ci

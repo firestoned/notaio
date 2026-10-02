@@ -1,0 +1,17 @@
+apiVersion: sandbox.firestoned.io/v1alpha1
+kind: SandboxPolicy
+metadata:
+  name: agent-default
+  namespace: sandboxes
+spec:
+  profileRef: hardened
+  subjects:
+    groups: ["00000000-0000-0000-0000-000000000000"]
+  # Hardened is K5.3 R1: at most one audience, read-only (K5.2 R0), 5 minute tokens (K5.1 R0).
+  audiences:
+    - name: internal-git
+      access: Read
+      scopes: ["repo:read"]
+  # Hardened is K4.1 R0: no egress entries. All calls are brokered.
+  egress: []
+  tools: []

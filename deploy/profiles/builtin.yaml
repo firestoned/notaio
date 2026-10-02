@@ -1,0 +1,180 @@
+---
+apiVersion: sandbox.firestoned.io/v1alpha1
+kind: SandboxProfile
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: notaio
+  name: fortress
+spec:
+  description: Analysis of sensitive material with no outbound path
+  dataScope: Internal
+  knobs:
+    K1.1: R0
+    K1.2: R0
+    K1.3: R0
+    K1.4: R0
+    K2.1: R0
+    K2.2: R0
+    K2.3: R0
+    K2.4: R0
+    K2.5: R0
+    K3.1: R0
+    K3.2: R0
+    K3.3: R0
+    K4.1: R0
+    K4.2: R0
+    K4.3: R0
+    K4.4: R0
+    K4.5: R0
+    K5.1: R0
+    K5.2: R0
+    K5.3: R0
+    K5.4: R0
+    K5.5: R0
+    K5.6: R0
+    K6.1: R0
+    K6.2: R0
+    K6.3: R0
+    K7.1: R0
+    K7.2: R0
+    K7.3: R0
+    K7.4: R0
+    K8.1: R0
+    K8.2: R0
+    K8.3: R0
+    K8.4: R0
+---
+apiVersion: sandbox.firestoned.io/v1alpha1
+kind: SandboxProfile
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: notaio
+  name: hardened
+spec:
+  description: Code and document work against internal systems, read-only
+  dataScope: Internal
+  knobs:
+    K1.1: R0
+    K1.2: R1
+    K1.3: R1
+    K1.4: R1
+    K2.1: R1
+    K2.2: R1
+    K2.3: R0
+    K2.4: R1
+    K2.5: R0
+    K3.1: R0
+    K3.2: R1
+    K3.3: R0
+    K4.1: R0
+    K4.2: R0
+    K4.3: R0
+    K4.4: R0
+    K4.5: R0
+    K5.1: R0
+    K5.2: R0
+    K5.3: R1
+    K5.4: R0
+    K5.5: R0
+    K5.6: R0
+    K6.1: R1
+    K6.2: R0
+    K6.3: R0
+    K7.1: R0
+    K7.2: R0
+    K7.3: R0
+    K7.4: R0
+    K8.1: R0
+    K8.2: R0
+    K8.3: R0
+    K8.4: R0
+---
+apiVersion: sandbox.firestoned.io/v1alpha1
+kind: SandboxProfile
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: notaio
+  name: standard
+spec:
+  description: Everyday engineering work
+  dataScope: Internal
+  knobs:
+    K1.1: R1
+    K1.2: R1
+    K1.3: R1
+    K1.4: R2
+    K2.1: R2
+    K2.2: R1
+    K2.3: R1
+    K2.4: R1
+    K2.5: R1
+    K3.1: R1
+    K3.2: R1
+    K3.3: R1
+    K4.1: R1
+    K4.2: R0
+    K4.3: R1
+    K4.4: R0
+    K4.5: R0
+    K5.1: R1
+    K5.2: R1
+    K5.3: R1
+    K5.4: R0
+    K5.5: R0
+    K5.6: R0
+    K6.1: R1
+    K6.2: R0
+    K6.3: R0
+    K7.1: R1
+    K7.2: R1
+    K7.3: R1
+    K7.4: R0
+    K8.1: R1
+    K8.2: R0
+    K8.3: R0
+    K8.4: R0
+---
+apiVersion: sandbox.firestoned.io/v1alpha1
+kind: SandboxProfile
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: notaio
+  name: lab
+spec:
+  description: Experiments and tool evaluation on non-production data
+  dataScope: LabOnly
+  knobs:
+    K1.1: R3
+    K1.2: R2
+    K1.3: R3
+    K1.4: R3
+    K2.1: R3
+    K2.2: R2
+    K2.3: R2
+    K2.4: R2
+    K2.5: R2
+    K3.1: R2
+    K3.2: R2
+    K3.3: R2
+    K4.1: R3
+    K4.2: R2
+    K4.3: R2
+    K4.4: R1
+    K4.5: R1
+    K5.1: R2
+    K5.2: R2
+    K5.3: R2
+    K5.4: R2
+    K5.5: R1
+    K5.6: R1
+    K6.1: R2
+    K6.2: R1
+    K6.3: R1
+    K7.1: R1
+    K7.2: R2
+    K7.3: R2
+    K7.4: R1
+    K8.1: R2
+    K8.2: R1
+    K8.3: R1
+    K8.4: R0

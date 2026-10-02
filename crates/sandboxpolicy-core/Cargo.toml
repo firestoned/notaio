@@ -1,0 +1,22 @@
+[package]
+name = "sandboxpolicy-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+chrono = { version = "0.4.45", features = ["serde"] }
+hex = "0.4.3"
+sandboxpolicy-api = { version = "0.0.1", path = "../sandboxpolicy-api" }
+sandboxpolicy-bundle = { version = "0.0.1", path = "../sandboxpolicy-bundle" }
+sandboxpolicy-types = { version = "0.0.1", path = "../sandboxpolicy-types" }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+sha2 = "0.11.0"
+thiserror = "2.0.21"
+
+[lints]
+workspace = true

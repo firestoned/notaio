@@ -1,0 +1,64 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: notaio
+  namespace: notaio-system
+---
+# Cluster scope is read-only for the policy kinds, plus status writes. Nothing here can create,
+# update or delete a SandboxProfile, SandboxPolicy or KnobGrant: those arrive through review and
+# GitOps only (threat model T8.2).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: notaio
+rules:
+  - apiGroups: ["sandbox.firestoned.io"]
+    resources: ["sandboxprofiles", "sandboxpolicies", "knobgrants"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["sandbox.firestoned.io"]
+    resources: ["sandboxprofiles/status", "sandboxpolicies/status", "knobgrants/status"]
+    verbs: ["get", "patch"]
+  # Needed when the OwnerReferencesPermissionEnforcement admission plugin is on, because the
+  # published bundle carries an ownerReference with blockOwnerDeletion to its SandboxPolicy.
+  - apiGroups: ["sandbox.firestoned.io"]
+    resources: ["sandboxpolicies/finalizers"]
+    verbs: ["update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: notaio
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: notaio
+subjects:
+  - kind: ServiceAccount
+    name: notaio
+    namespace: notaio-system
+---
+# ConfigMap write access is per namespace, never cluster wide. Copy this Role and RoleBinding to
+# every namespace that holds SandboxPolicy objects. `sandboxes` is an example name.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: notaio-bundles
+  namespace: sandboxes
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "create", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: notaio-bundles
+  namespace: sandboxes
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: notaio-bundles
+subjects:
+  - kind: ServiceAccount
+    name: notaio
+    namespace: notaio-system

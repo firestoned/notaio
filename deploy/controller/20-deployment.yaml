@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notaio
+  namespace: notaio-system
+  labels:
+    app.kubernetes.io/name: notaio
+spec:
+  # One replica until leader election lands (ROADMAP M2).
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: notaio
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: notaio
+    spec:
+      serviceAccountName: notaio
+      automountServiceAccountToken: true
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: notaio
+          # Placeholder. Pin by digest once images are published and signed.
+          image: ghcr.io/firestoned/notaio:0.0.1
+          env:
+            - name: RUST_LOG
+              value: info
+            - name: NOTAIO_LOG_JSON
+              value: "1"
+            - name: NOTAIO_BUNDLE_LIFETIME_SECONDS
+              value: "3600"
+            # Development signer only. Remove both lines and the volume below when a KMS, HSM or TPM
+            # backed signer exists. Without a key the controller validates but publishes nothing.
+            - name: NOTAIO_SIGNING_KEY_FILE
+              value: /var/run/notaio/signing/seed
+            - name: NOTAIO_KEY_ID
+              value: dev
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+          volumeMounts:
+            - name: signing
+              mountPath: /var/run/notaio/signing
+              readOnly: true
+      volumes:
+        - name: signing
+          secret:
+            secretName: notaio-dev-signing-key
+            optional: true

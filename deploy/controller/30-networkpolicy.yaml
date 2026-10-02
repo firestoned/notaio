@@ -1,0 +1,25 @@
+# Notaio takes no inbound connections and makes outbound calls only to DNS and the Kubernetes
+# API server. Narrow the API server rule to your control plane CIDR.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: notaio
+  namespace: notaio-system
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: notaio
+  policyTypes: ["Ingress", "Egress"]
+  ingress: []
+  egress:
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - { protocol: UDP, port: 53 }
+        - { protocol: TCP, port: 53 }
+    - ports:
+        - { protocol: TCP, port: 443 }
+        - { protocol: TCP, port: 6443 }
