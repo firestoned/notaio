@@ -12,7 +12,8 @@ RUST_LOG         ?= info
 .PHONY: help build test lint fmt fmt-check clippy deny manifests manifests-check air air-check \
         ci-code-changed kind-install kind-create kind-delete kind-kubeconfig kind-load \
         kind-deploy kind-e2e kind-e2e-ci kind-e2e-logs \
-        kind-e2e-install kind-e2e-bundle kind-e2e-rbac kind-e2e-admission
+        kind-e2e-install kind-e2e-bundle kind-e2e-rbac kind-e2e-admission \
+        docs docs-serve docs-clean docs-linkcheck
 
 help: ## Show this help
 	@echo 'Usage: make [target] [VAR=value ...]'
@@ -62,6 +63,33 @@ air: ## Regenerate docs/framework-mapping.md from docs/air/*.yaml
 
 air-check: ## Fail if docs/framework-mapping.md drifted from docs/air/*.yaml
 	python3 scripts/check_air_mapping.py --check
+
+# ----- docs ------------------------------------------------------------------
+#
+# MkDocs Material, built with Poetry from docs/pyproject.toml. The site pulls the
+# canonical documents in with snippets (docs/README.md), so `make air` and
+# `make manifests` must have run first for the published pages to be current.
+
+POETRY_HINT = Poetry not found. Install: curl -sSL https://install.python-poetry.org | python3 -
+
+docs: ## Build the documentation site into docs/site/ (strict)
+	@command -v poetry >/dev/null 2>&1 || { echo "Error: $(POETRY_HINT)"; exit 1; }
+	@cd docs && poetry install --no-interaction --quiet
+	@cd docs && poetry run mkdocs build --strict
+	@echo "✓ Documentation built at docs/site/index.html"
+
+docs-serve: ## Serve the documentation with live reload at http://127.0.0.1:8000
+	@command -v poetry >/dev/null 2>&1 || { echo "Error: $(POETRY_HINT)"; exit 1; }
+	@cd docs && poetry install --no-interaction --quiet
+	@cd docs && poetry run mkdocs serve --livereload
+
+docs-linkcheck: ## Check docs/site/ for broken links (run `make docs` first)
+	@npm --prefix .github/tools/linkinator ci --silent
+	@.github/tools/linkinator/node_modules/.bin/linkinator docs/site/ --recurse --verbosity error
+
+docs-clean: ## Remove docs/site/ and docs/.venv/
+	@rm -rf docs/site/ docs/.venv/
+	@echo "✓ Documentation artefacts cleaned"
 
 # ----- CI gating -------------------------------------------------------------
 #

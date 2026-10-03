@@ -1,0 +1,1 @@
+--8<-- "threat-model-mapping.md"
