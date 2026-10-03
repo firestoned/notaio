@@ -1,0 +1,1 @@
+--8<-- "adr/0001-separate-project.md"

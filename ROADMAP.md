@@ -54,3 +54,7 @@ Not done: nothing has run on a cluster.
 
 A separate, status-labelled edition of the docs (implemented, planned, proposed), a SECURITY.md, and
 a licence review. Confirm employer sign-off first.
+
+Done: `SECURITY.md` (private vulnerability reporting), and a MkDocs site (`make docs`, published to
+GitHub Pages from `main`) that pulls in the canonical docs. Still open: status labels on every page,
+the licence review and a `LICENSE` file, employer sign-off.

@@ -5,7 +5,7 @@
 # published before proposing it. This is the standard defence against a
 # compromised-maintainer or typo-squat release being auto-merged within hours
 # of publication, the window in which such a release is normally caught and
-# yanked. Registry ecosystems (cargo, actions) use 7 days.
+# yanked. Registry ecosystems (cargo, pip, npm, actions) use 7 days.
 version: 2
 updates:
   # GitHub Actions: keeps the SHA-pinned actions current.
@@ -53,3 +53,21 @@ updates:
     groups:
       base-images:
         patterns: ["*"]
+
+  # Docs site (Poetry, docs/pyproject.toml).
+  - package-ecosystem: "pip"
+    directory: "/docs"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+
+  # Hash-pinned CI tools (.github/tools/*/package-lock.json). Poetry itself is
+  # hash-pinned in .github/requirements/poetry.txt and bumped by hand (see
+  # docs.yaml), as in banlieue.
+  - package-ecosystem: "npm"
+    directory: "/.github/tools/linkinator"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7

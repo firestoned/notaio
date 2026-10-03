@@ -1,0 +1,149 @@
+# notaio documentation: MkDocs Material configuration
+
+site_name: notaio, the AgentSandbox policy compiler
+site_url: https://firestoned.github.io/notaio/
+site_description: Compiles small, reviewable SandboxPolicy objects into signed, versioned bundles that mediatore, mediatore-guest and the egress gateway enforce, and refuses any policy that breaks the AgentSandbox threat model.
+site_author: Erick Bourgeois
+
+repo_url: https://github.com/firestoned/notaio
+repo_name: firestoned/notaio
+edit_uri: edit/main/docs/
+
+docs_dir: src
+site_dir: site
+
+# A broken link, a missing nav target or an unresolved include fails the build.
+strict: true
+
+copyright: Copyright &copy; 2026 Erick Bourgeois
+
+theme:
+  name: material
+  language: en
+  # primary and accent are "custom": the palette lives in stylesheets/extra.css.
+  palette:
+    - scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  font:
+    text: Roboto
+    code: Roboto Mono
+  features:
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.path
+    - navigation.indexes
+    - navigation.top
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - search.share
+    - header.autohide
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - content.tooltips
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search:
+      lang: en
+      separator: '[\s\-,:!=\[\]()"/]+|(?!\b)(?=[A-Z][a-z])|\.(?!\d)|&[lg]t;'
+  - git-revision-date-localized:
+      # No creation date: on uncommitted pages it is a fallback timestamp that can land
+      # after the "updated" one and fail a strict build at random.
+      enable_creation_date: false
+      type: timeago
+      fallback_to_build_date: true
+      enable_git_follow: false
+      # Uncommitted pages have no history yet; that must not fail a strict build.
+      strict: false
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      permalink_title: Anchor link to this section
+      toc_depth: 3
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  # Pulls the canonical documents into the site so each exists once (docs/README.md).
+  # Paths resolve against docs/ first, then the repository root.
+  - pymdownx.snippets:
+      base_path: [".", ".."]
+      check_paths: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_div_format
+  - pymdownx.tabbed:
+      alternate_style: true
+      combine_header_slug: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+extra_css:
+  - stylesheets/extra.css
+
+extra_javascript:
+  - https://unpkg.com/mermaid@11.12.2/dist/mermaid.min.js
+  - javascripts/mermaid-init.js
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/firestoned/notaio
+      name: notaio on GitHub
+  generator: true
+
+nav:
+  - Home:
+      - index.md
+      - Architecture: architecture.md
+      - Roadmap: roadmap.md
+  - Security:
+      - Overview: security/index.md
+      - Threat Model Mapping: security/threat-model-mapping.md
+      - AI Governance Framework Mapping: security/framework-mapping.md
+  - Decisions:
+      - Overview: adr/index.md
+      - "ADR-0001: Separate project": adr/0001-separate-project.md
+      - "ADR-0002: Bundle contract": adr/0002-bundle-contract.md
+  - Reference:
+      - Built-in Profiles: reference/profiles.md
+  - Developer:
+      - Local Development: developer/index.md

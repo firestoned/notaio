@@ -20,6 +20,19 @@ configuration, deployment and architecture changes all have a docs half.
 | Examples | `examples/*.yaml` |
 | Change log | `.claude/CHANGELOG.md` |
 | Generated manifests | `deploy/crds/`, `deploy/profiles/` (`make manifests`, never hand edited) |
+| Security policy | `SECURITY.md` |
+| Documentation site | `docs/mkdocs.yml`, `docs/src/` (`make docs`, published to GitHub Pages from `main`) |
+
+### The documentation site
+
+The site under `docs/src/` does not copy the documents above: it pulls them in
+with `pymdownx.snippets` stubs (`--8<-- "architecture.md"`), so each exists
+once. Edit the canonical file, never the stub. A new ADR needs a stub in
+`docs/src/adr/`, a row in `docs/src/adr/index.md` and a `nav` entry in
+`docs/mkdocs.yml`. A new canonical doc needs the same. `make docs` is
+`--strict`: a broken link, a missing nav target or an unresolved include fails
+the build, and the Documentation workflow runs it on every PR that touches
+the docs.
 
 ---
 
@@ -104,5 +117,6 @@ rg -n '—' <files you touched>
 - [ ] Affected docs and ADRs updated
 - [ ] Examples match the CRDs (`make kind-e2e-install` dry-runs them)
 - [ ] `make manifests-check` and `make air-check` pass
+- [ ] `make docs` passes (strict) if anything under `docs/`, `ROADMAP.md` or `deploy/profiles/` changed
 - [ ] `ROADMAP.md` updated for anything that completed
 - [ ] No em-dashes in what you wrote

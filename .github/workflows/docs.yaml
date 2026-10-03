@@ -1,0 +1,113 @@
+# Documentation: builds the MkDocs site on every relevant PR and push, and
+# publishes it to GitHub Pages on every push to main.
+#
+# Differs from banlieue's docs.yaml in two deliberate ways:
+#   - no CALM jobs: notaio has no CALM model yet (.claude/rules/
+#     architecture-driven-development.md);
+#   - no `workflow_run` release chain: notaio cuts no releases yet, so docs
+#     ship on merge to main. Add the chain with the release pipeline (M2).
+#
+# The site pulls in canonical files from outside docs/ (ROADMAP.md, the
+# generated profiles), hence the extra paths below.
+
+name: Documentation
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+      - 'ROADMAP.md'
+      - 'deploy/profiles/**'
+      - '.github/workflows/docs.yaml'
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'ROADMAP.md'
+      - 'deploy/profiles/**'
+      - '.github/workflows/docs.yaml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Never cancel a deploy in progress; do cancel superseded PR builds.
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    name: 📚 Build Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0  # Full history for git-revision-date-localized
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.11'
+
+      - name: Install Poetry
+        # Hash-locked install: every transitive dependency carries sha256
+        # hashes in .github/requirements/poetry.txt (Scorecard
+        # Pinned-Dependencies). Bump POETRY_VERSION in poetry.in and
+        # regenerate with:
+        #   uv pip compile --python-version 3.11 --python-platform linux --generate-hashes \
+        #     --output-file=.github/requirements/poetry.txt .github/requirements/poetry.in
+        run: |
+          python3 -m pip install --user --require-hashes -r .github/requirements/poetry.txt
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Configure Poetry
+        working-directory: docs
+        run: poetry config virtualenvs.in-project true
+
+      - name: Cache Poetry dependencies
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: docs/.venv
+          key: ${{ runner.os }}-poetry-${{ hashFiles('docs/poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-
+
+      - name: Build documentation
+        run: make docs
+
+      - name: Check for broken links
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        # Hash-pinned via .github/tools/linkinator/package-lock.json. Bump with:
+        #   npm --prefix .github/tools/linkinator install linkinator@<version>
+        # linkinator 8.x needs Node >= 22, the runner's default.
+        run: make docs-linkcheck
+
+      - name: Setup Pages
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+
+      - name: Upload Pages artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: docs/site
+
+  deploy:
+    name: 🚀 Deploy to GitHub Pages
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

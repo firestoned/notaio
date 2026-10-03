@@ -1,0 +1,1 @@
+--8<-- "adr/0002-bundle-contract.md"
