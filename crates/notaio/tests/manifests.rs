@@ -14,9 +14,7 @@ fn read(path: &str) -> String {
 }
 
 fn docs<T: for<'de> Deserialize<'de>>(text: &str) -> Vec<T> {
-    serde_yaml_ng::Deserializer::from_str(text)
-        .map(|d| T::deserialize(d).unwrap())
-        .collect()
+    serde_saphyr::from_multiple(text).unwrap()
 }
 
 #[test]

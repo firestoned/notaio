@@ -18,8 +18,8 @@ sandboxpolicy-bundle = { version = "0.0.1", path = "../sandboxpolicy-bundle" }
 sandboxpolicy-core = { version = "0.0.1", path = "../sandboxpolicy-core" }
 sandboxpolicy-types = { version = "0.0.1", path = "../sandboxpolicy-types" }
 serde = { version = "1.0.229", features = ["derive"] }
+serde-saphyr = "2.0.0"
 serde_json = "1.0.151"
-serde_yaml_ng = "0.10.0"
 thiserror = "2.0.21"
 tokio = { version = "1.53.1", features = ["macros", "rt-multi-thread", "signal", "time"] }
 tracing = "0.1.44"
