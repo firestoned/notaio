@@ -18,9 +18,9 @@ use common::{client, condition_true, controller_namespace, wait_for};
 /// Names of the built-in profiles, read from the generated manifest the Makefile applied.
 fn builtin_profile_names() -> Vec<String> {
     let raw = include_str!("../../../deploy/profiles/builtin.yaml");
-    serde_yaml_ng::Deserializer::from_str(raw)
-        .map(|doc| {
-            let v: Value = serde::Deserialize::deserialize(doc).expect("builtin.yaml parses");
+    let docs: Vec<Value> = serde_saphyr::from_multiple(raw).expect("builtin.yaml parses");
+    docs.iter()
+        .map(|v| {
             v["metadata"]["name"]
                 .as_str()
                 .expect("every built-in profile has a name")

@@ -2,6 +2,33 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-14 00:00] - Replace serde_yaml_ng with serde-saphyr; rustls 0.23.46
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `crates/notaio/Cargo.toml`: `serde_yaml_ng` replaced by `serde-saphyr` 2.0.0 (MIT OR
+  Apache-2.0, passes `make deny`). Used by `crdgen` and two test files only.
+- `crates/notaio/src/bin/crdgen.rs`, `crates/notaio/tests/manifests.rs`,
+  `crates/notaio/tests/e2e_install.rs`: `serde_saphyr::to_string` and
+  `serde_saphyr::from_multiple`.
+- `deploy/crds/sandbox.firestoned.io.yaml`: regenerated. Formatting only (quote style, folded long
+  descriptions); parses to the same data as before. `deploy/profiles/builtin.yaml` is byte-identical.
+- `Cargo.lock`: minimal change. `serde-saphyr` and `granit-parser` in; `serde_yaml_ng`,
+  `unsafe-libyaml`, `ryu` and a duplicate `hashbrown`/`indexmap` out; `rustls` 0.23.45 to 0.23.46.
+
+### Why
+RUSTSEC-2024-0449 marks `unsafe-libyaml` unmaintained (a c2rust translation of libyaml, archived,
+bugs not fixed upstream), and cargo-deny and cargo-audit failed the Build on `main`. `crdgen` is the
+source of truth for the checked-in manifests, so it should not depend on it. RUSTSEC-2026-0346 to
+0349 (rustls, fixed in 0.23.46) were published at the same time and failed the same jobs.
+
+### Impact
+- [ ] Breaking change
+- [ ] Requires cluster rollout (the CRD schema is unchanged)
+- [ ] Config or examples change only
+- [ ] Documentation only
+
 ## [2026-10-03 00:00] - How the AgentSandbox components relate
 
 **Author:** Erick Bourgeois

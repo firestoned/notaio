@@ -39,11 +39,13 @@ spec:
                 - Internal
                 type: string
               description:
-                default: ''
+                default: ""
                 type: string
               knobs:
                 additionalProperties:
-                  description: A relaxation step for a knob. `R0` is the locked default; higher steps are progressively looser.
+                  description: >-
+                    A relaxation step for a knob. `R0` is the locked default; higher steps are
+                    progressively looser.
                   enum:
                   - R0
                   - R1
@@ -78,7 +80,7 @@ spec:
                     reason:
                       type: string
                     status:
-                      description: '`True`, `False` or `Unknown`.'
+                      description: "`True`, `False` or `Unknown`."
                       type: string
                     type:
                       type: string
@@ -91,7 +93,9 @@ spec:
                   type: object
                 type: array
               digest:
-                description: Digest of the validated spec. Recorded in every bundle so a change to the profile is visible.
+                description: >-
+                  Digest of the validated spec. Recorded in every bundle so a change to the
+                  profile is visible.
                 nullable: true
                 type: string
               observedGeneration:
@@ -194,7 +198,9 @@ spec:
               egress:
                 default: []
                 items:
-                  description: One egress allowlist entry, enforced at the gateway and in the host or network layer.
+                  description: >-
+                    One egress allowlist entry, enforced at the gateway and in the host or network
+                    layer.
                   properties:
                     host:
                       type: string
@@ -255,7 +261,7 @@ spec:
                   description: A tool or MCP server the agent may use, pinned by manifest digest.
                   properties:
                     manifestDigest:
-                      description: '`sha256:<hex>` of the tool manifest.'
+                      description: "`sha256:<hex>` of the tool manifest."
                       type: string
                     name:
                       type: string
@@ -277,7 +283,7 @@ spec:
                   type: string
                 type: array
               bundleDigest:
-                description: '`sha256:<hex>` of the canonical bundle content.'
+                description: "`sha256:<hex>` of the canonical bundle content."
                 nullable: true
                 type: string
               bundleNotAfter:
@@ -309,7 +315,7 @@ spec:
                     reason:
                       type: string
                     status:
-                      description: '`True`, `False` or `Unknown`.'
+                      description: "`True`, `False` or `Unknown`."
                       type: string
                     type:
                       type: string
@@ -507,7 +513,7 @@ spec:
                     reason:
                       type: string
                     status:
-                      description: '`True`, `False` or `Unknown`.'
+                      description: "`True`, `False` or `Unknown`."
                       type: string
                     type:
                       type: string

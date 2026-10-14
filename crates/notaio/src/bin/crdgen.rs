@@ -11,8 +11,8 @@ use sandboxpolicy_api::{KnobGrant, SandboxPolicy, SandboxProfile};
 use sandboxpolicy_core::builtin;
 
 fn emit<T: serde::Serialize>(doc: &T) {
-    // serde_yaml_ng emits a document without a leading separator.
-    match serde_yaml_ng::to_string(doc) {
+    // serde_saphyr emits a document without a leading separator.
+    match serde_saphyr::to_string(doc) {
         Ok(s) => print!("---\n{s}"),
         Err(e) => {
             eprintln!("serialisation failed: {e}");
