@@ -2,8 +2,8 @@
 # (threat model T8.2, scenario S6). Notaio's own writes go to the /status subresource, which
 # this policy does not match. Replace the allowed user with your GitOps reconciler.
 #
-# Needs Kubernetes 1.30 or later (ValidatingAdmissionPolicy is GA). Tested on kind by the
-# `e2e_admission` suite (`make kind-e2e-admission`).
+# Needs Kubernetes 1.30 or later (ValidatingAdmissionPolicy is GA). Tested by the `e2e_admission`
+# suite (`make kind-e2e-admission`) on kind (1.31) and on k0s (1.36).
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicy
 metadata:

@@ -2,6 +2,29 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-14 01:00] - First run on a k0s test cluster (ROADMAP M1)
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `ROADMAP.md`: M1's first item marked done, with the result and two follow-ups (uint formats in
+  the CRDs, a WARN on reconciling a deleted policy).
+- `docs/architecture.md`: "Known gaps in v0" now reflects the k0s run.
+- `deploy/admission/gitops-only.yaml`: header records where the policy has been tested.
+
+### Why
+CLAUDE.md names this as the first useful piece of work: run the controller on a k0s test cluster
+and report what breaks before changing anything. The image (`ghcr.io/firestoned/notaio:dev`, pinned
+by digest) was built from `main` at 7881316. All four e2e suites passed against it, NetworkPolicy
+enforcement was proven with a labelled and an unlabelled listener, and everything was removed from
+the cluster afterwards.
+
+### Impact
+- [ ] Breaking change
+- [ ] Requires cluster rollout
+- [ ] Config or examples change only
+- [x] Documentation only
+
 ## [2026-10-14 00:00] - Replace serde_yaml_ng with serde-saphyr; rustls 0.23.46
 
 **Author:** Erick Bourgeois
