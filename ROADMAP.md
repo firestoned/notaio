@@ -22,7 +22,8 @@ Not done: nothing has run on a cluster.
   from another namespace, the same listener without it is reachable). Nothing broke. Two follow-ups:
   - The CRDs carry `format: uint8/16/32/64` (schemars, for unsigned Rust types). Kubernetes 1.36
     warns `unrecognized format` on every apply; kind 1.31 does not. Validation is unaffected, since
-    unknown formats are ignored. `crdgen` should rewrite or drop them.
+    unknown formats are ignored. **Fixed 2026-10-15:** `crdgen` maps them to `int32`/`int64`, and a
+    test fails on any format Kubernetes does not recognise.
   - Deleting a grant can queue a reconcile of a policy already deleted, which kube-runtime logs at
     WARN ("not found in local store"). Noise, not a failure.
 - `notaio lint` CLI that runs the same `sandboxpolicy-core` on files, for pull request checks. This
