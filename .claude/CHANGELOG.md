@@ -2,6 +2,29 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-15 00:00] - crdgen: Kubernetes formats for unsigned integers
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `crates/notaio/src/bin/crdgen.rs`: CRDs are emitted with schemars' `uint8`/`uint16` formats
+  rewritten to `int32` and `uint32`/`uint64` to `int64` (`FORMAT_REWRITES`).
+- `crates/notaio/tests/manifests.rs`: `crds_use_only_formats_kubernetes_recognises` fails on any
+  schema format in `deploy/crds/` the API server does not recognise.
+- `deploy/crds/sandbox.firestoned.io.yaml`: regenerated. Ten `format` lines change; nothing else.
+- `ROADMAP.md`: the M1 follow-up marked fixed.
+
+### Why
+Kubernetes 1.36 warns `unrecognized format` on every apply of the old CRDs (found on the k0s test
+cluster). The widths are kept, and schemars' `minimum`/`maximum` are untouched, so validation does
+not change. Verified with a server-side dry run on 1.36: the old CRDs warn, the new ones do not.
+
+### Impact
+- [ ] Breaking change
+- [x] Requires cluster rollout (re-apply `deploy/crds/` to drop the warning; schema behaviour unchanged)
+- [ ] Config or examples change only
+- [ ] Documentation only
+
 ## [2026-10-14 01:00] - First run on a k0s test cluster (ROADMAP M1)
 
 **Author:** Erick Bourgeois

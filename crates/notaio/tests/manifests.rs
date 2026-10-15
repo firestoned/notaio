@@ -55,3 +55,79 @@ fn examples_are_valid_and_compile() {
         out.grants[0].message
     );
 }
+
+/// Schema formats the Kubernetes API server recognises in a CRD. Since Kubernetes 1.36 any other
+/// format (schemars emits `uint8` to `uint64` for unsigned Rust types) draws an `unrecognized format`
+/// warning on every apply. Found on the k0s test cluster, ROADMAP M1.
+const KUBERNETES_FORMATS: &[&str] = &[
+    "int32",
+    "int64",
+    "float",
+    "double",
+    "byte",
+    "binary",
+    "date",
+    "date-time",
+    "datetime",
+    "duration",
+    "password",
+    "uuid",
+    "uuid3",
+    "uuid4",
+    "uuid5",
+    "email",
+    "hostname",
+    "ipv4",
+    "ipv6",
+    "cidr",
+    "mac",
+    "uri",
+    "bsonobjectid",
+    "isbn",
+    "isbn10",
+    "isbn13",
+    "creditcard",
+    "ssn",
+    "hexcolor",
+    "rgbcolor",
+];
+
+fn collect_formats(v: &serde_json::Value, path: &str, out: &mut Vec<(String, String)>) {
+    match v {
+        serde_json::Value::Object(map) => {
+            for (k, child) in map {
+                let here = format!("{path}.{k}");
+                if k == "format" {
+                    if let Some(f) = child.as_str() {
+                        out.push((path.to_string(), f.to_string()));
+                    }
+                }
+                collect_formats(child, &here, out);
+            }
+        }
+        serde_json::Value::Array(items) => {
+            for (i, child) in items.iter().enumerate() {
+                collect_formats(child, &format!("{path}[{i}]"), out);
+            }
+        }
+        _ => {}
+    }
+}
+
+#[test]
+fn crds_use_only_formats_kubernetes_recognises() {
+    let crds: Vec<serde_json::Value> = docs(&read("deploy/crds/sandbox.firestoned.io.yaml"));
+    assert_eq!(crds.len(), 3);
+    let mut formats = Vec::new();
+    for crd in &crds {
+        collect_formats(crd, crd["metadata"]["name"].as_str().unwrap(), &mut formats);
+    }
+    let unknown: Vec<_> = formats
+        .iter()
+        .filter(|(_, f)| !KUBERNETES_FORMATS.contains(&f.as_str()))
+        .collect();
+    assert!(
+        unknown.is_empty(),
+        "formats Kubernetes does not recognise: {unknown:#?}"
+    );
+}

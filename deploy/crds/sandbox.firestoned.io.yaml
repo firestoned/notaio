@@ -166,7 +166,7 @@ spec:
                       type: array
                     ttlSeconds:
                       description: Requested token lifetime. Defaults to the K5.1 ceiling when omitted.
-                      format: uint32
+                      format: int64
                       minimum: 0.0
                       nullable: true
                       type: integer
@@ -179,15 +179,15 @@ spec:
                 nullable: true
                 properties:
                   maxEgressBytes:
-                    format: uint64
+                    format: int64
                     minimum: 0.0
                     type: integer
                   maxToolCalls:
-                    format: uint32
+                    format: int64
                     minimum: 0.0
                     type: integer
                   maxWallClockSeconds:
-                    format: uint32
+                    format: int64
                     minimum: 0.0
                     type: integer
                 required:
@@ -215,7 +215,7 @@ spec:
                         type: string
                       type: array
                     port:
-                      format: uint16
+                      format: int32
                       maximum: 65535.0
                       minimum: 0.0
                       type: integer
@@ -229,12 +229,12 @@ spec:
                 nullable: true
                 properties:
                   maxConcurrent:
-                    format: uint8
+                    format: int32
                     maximum: 255.0
                     minimum: 0.0
                     type: integer
                   maxDurationSeconds:
-                    format: uint32
+                    format: int64
                     minimum: 0.0
                     type: integer
                 required:
@@ -292,7 +292,7 @@ spec:
                 type: string
               bundleVersion:
                 description: Monotonic version of the compiled content. Bumps only when the content changes.
-                format: uint64
+                format: int64
                 minimum: 0.0
                 nullable: true
                 type: integer
@@ -345,7 +345,7 @@ spec:
                         name:
                           type: string
                         ttlSeconds:
-                          format: uint32
+                          format: int64
                           minimum: 0.0
                           type: integer
                       required:
@@ -359,7 +359,7 @@ spec:
                       type: string
                     type: array
                   leaseMaxSeconds:
-                    format: uint32
+                    format: int64
                     minimum: 0.0
                     type: integer
                   tools:
