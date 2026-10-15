@@ -236,8 +236,9 @@ and that the version is not below the highest it has accepted. Every failure is 
 
 ## Known gaps in v0
 
-- The controller, the admission policy and the deployment manifests have run on kind, through the
-  e2e suites (`make kind-e2e`), but not yet on a k0s test cluster (ROADMAP M1).
+- The controller, the admission policy and the deployment manifests have run on kind (`make kind-e2e`,
+  in CI) and on a three-node k0s test cluster, where kube-router also enforced the NetworkPolicy. Not
+  yet on a production cluster, and not yet with a real GitOps reconciler as the admitted identity.
 - The ConfigMap is a v0 distribution mechanism. Whether consumers should read it from the Kubernetes
   API at all is open decision 1 in ADR-0002.
 - The development signer keeps a key in a Secret. The threat model requires the signing key not to be

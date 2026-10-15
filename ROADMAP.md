@@ -16,6 +16,15 @@ Not done: nothing has run on a cluster.
 
 - Run the controller on a k0s test cluster end to end: CRDs, profiles, a policy, a grant, a bundle
   published and verified by a small consumer. Fix what breaks. Try the admission policy there too.
+  **Done 2026-10-14** on a three-node k0s cluster (Kubernetes 1.36, kube-router), image pulled from
+  the registry by digest: all four e2e suites pass, `examples/` pass a server-side dry run, and the
+  controller's NetworkPolicy is enforced (a listener carrying the controller's label is unreachable
+  from another namespace, the same listener without it is reachable). Nothing broke. Two follow-ups:
+  - The CRDs carry `format: uint8/16/32/64` (schemars, for unsigned Rust types). Kubernetes 1.36
+    warns `unrecognized format` on every apply; kind 1.31 does not. Validation is unaffected, since
+    unknown formats are ignored. `crdgen` should rewrite or drop them.
+  - Deleting a grant can queue a reconcile of a policy already deleted, which kube-runtime logs at
+    WARN ("not found in local store"). Noise, not a failure.
 - `notaio lint` CLI that runs the same `sandboxpolicy-core` on files, for pull request checks. This
   is the threat model's "toxic-combination lint on every policy pull request".
 - Approved-ceiling check: a way to record the approved maximum exposure of a profile or policy and
