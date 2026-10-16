@@ -1,0 +1,1 @@
+--8<-- "adr/0003-bundle-distribution.md"

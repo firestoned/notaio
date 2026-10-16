@@ -10,8 +10,8 @@ pub type SharedSigner = Arc<dyn Signer + Send + Sync>;
 /// reports but never publishes a bundle. Unsigned bundles are never published.
 ///
 /// This is deliberately a development path. The threat model (T8.2) says the signing key must not be
-/// held by whoever administers the cluster, so the production signer is a KMS, HSM or TPM backed
-/// implementation of `Signer`. See ADR-0002, open decision 2.
+/// held by whoever administers the cluster, so the production signer is an OpenBao transit backed
+/// implementation of `Signer`, with a non-exportable key. See ADR-0004.
 pub fn from_env() -> anyhow::Result<Option<SharedSigner>> {
     let Ok(path) = std::env::var("NOTAIO_SIGNING_KEY_FILE") else {
         return Ok(None);

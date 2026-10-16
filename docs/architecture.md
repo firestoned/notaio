@@ -79,9 +79,9 @@ change, which is why they sit in small crates with their own ADR.
 | Contract | Written by | Read by | Defined in | State |
 | --- | --- | --- | --- | --- |
 | `SandboxProfile`, `SandboxPolicy`, `KnobGrant` (`sandbox.firestoned.io/v1alpha1`) | GitOps reconciler (spec), notaio (status only) | notaio; banlieue admission (M3) | `crates/sandboxpolicy-api`, `deploy/crds/` | v1alpha1 |
-| Signed bundle: a DSSE envelope over the compiled content | notaio, and only notaio | mediatore, mediatore-guest, gateway | `crates/sandboxpolicy-bundle`, [ADR-0002](adr/0002-bundle-contract.md) | proposed; schema v1 freeze is M1 |
-| Bundle location | notaio | the consumers | v0: ConfigMap `<policy>-bundle` beside the policy, with version and digest annotations | ADR-0002 open decision 1 |
-| Trusted public key | the signing key's custodian | every consumer | distributed out of band | ADR-0002 open decision 2 |
+| Signed bundle: a DSSE envelope over the compiled content, canonicalised with RFC 8785 | notaio, and only notaio | mediatore, mediatore-guest, gateway | `crates/sandboxpolicy-bundle`, [ADR-0002](adr/0002-bundle-contract.md), [ADR-0005](adr/0005-canonical-form-rfc-8785.md) | RFC 8785 and the schema v2 freeze are M1 |
+| Bundle location | notaio | mediatore through the API; guests through mediatore's relay | ConfigMap `<policy>-bundle` beside the policy, with version and digest annotations ([ADR-0003](adr/0003-bundle-distribution.md)) | published today; the relay is M3 |
+| Signing key and its public half | OpenBao transit, non-exportable; notaio may only request signatures | every consumer, configured out of band, key id `<name>:v<N>` | [ADR-0004](adr/0004-signing-key-custody.md) | decided; development signer until implemented |
 | Policy status: `Ready`, version, digest, `maxExposure`, active grants | notaio | operators, reviewers, dashboards | `crates/sandboxpolicy-api` | implemented |
 
 ### The life of a change
@@ -106,7 +106,7 @@ sequenceDiagram
     N->>N: lint, apply grants, compile, sign
     N->>API: status: Ready, version, digest, maxExposure
     N->>CM: signed envelope, version annotation
-    C->>CM: fetch (v0 distribution, ADR-0002 open decision 1)
+    C->>CM: mediatore watches (ADR-0003), relays to guests
     C->>C: verify signature, expiry, version floor
     Note over C: enforce, or refuse and keep the last good bundle
 ```
@@ -159,8 +159,10 @@ sequenceDiagram
   and bundle writes in named namespaces.
 - **Duties are split on purpose.** banlieue holds the keys to the VMs, mediatore holds the power to
   mint tokens, and notaio holds the power to sign policy. The threat model requires that whoever
-  holds the keys to the VMs does not also sign the policy (T8.2, scenario S6), and in production the
-  signing key must sit in a KMS, HSM or TPM that cluster administrators cannot use.
+  holds the keys to the VMs does not also sign the policy (T8.2, scenario S6). In production the
+  signing key sits in OpenBao transit, where it cannot be exported: notaio may only ask for
+  signatures, and every request is audited outside the cluster
+  ([ADR-0004](adr/0004-signing-key-custody.md)).
 - **The guest decides nothing.** mediatore-guest renders what the bundle says. It never evaluates
   policy and never talks to a Kubernetes API server, so a compromised guest can at worst break its
   own sandbox, which the controls outside the guest (host and gateway) still contain.
@@ -239,10 +241,13 @@ and that the version is not below the highest it has accepted. Every failure is 
 - The controller, the admission policy and the deployment manifests have run on kind (`make kind-e2e`,
   in CI) and on a three-node k0s test cluster, where kube-router also enforced the NetworkPolicy. Not
   yet on a production cluster, and not yet with a real GitOps reconciler as the admitted identity.
-- The ConfigMap is a v0 distribution mechanism. Whether consumers should read it from the Kubernetes
-  API at all is open decision 1 in ADR-0002.
+- Distribution is decided (ADR-0003: ConfigMap, read by mediatore, relayed to guests), but the
+  mediatore side is not built yet (ROADMAP M3).
 - The development signer keeps a key in a Secret. The threat model requires the signing key not to be
-  held by cluster administrators (T8.2). A KMS, HSM or TPM backed signer is open decision 2.
+  held by cluster administrators (T8.2). ADR-0004 decides an OpenBao transit signer; until it is
+  built, no deployment is production ready.
+- The content digest is still the Rust-defined form; RFC 8785 (ADR-0005) lands with the schema v2
+  freeze.
 - A policy that becomes invalid leaves the previous bundle in place until it expires. The bundle
   lifetime is therefore the upper bound on how long a tightening takes to land. Faster tightening is
   open decision 3.

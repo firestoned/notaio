@@ -1,0 +1,1 @@
+--8<-- "adr/0005-canonical-form-rfc-8785.md"
