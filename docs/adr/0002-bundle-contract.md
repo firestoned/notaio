@@ -2,6 +2,7 @@
 
 - Status: Proposed
 - Date: 2026-09-30
+- Amended: 2026-10-16 (open decisions 1, 2 and 4 resolved by ADR-0003, ADR-0004 and ADR-0005)
 
 ## Context
 
@@ -28,19 +29,23 @@ loosen a running sandbox.
 
 ## Open decisions
 
-1. **Distribution.** v0 publishes the envelope to a ConfigMap next to the policy. That makes every
+1. **Distribution.** *Resolved by [ADR-0003](0003-bundle-distribution.md): the ConfigMap stays;
+   mediatore reads it through the API and relays the envelope to guests over its mutual-TLS
+   stream.* v0 publishes the envelope to a ConfigMap next to the policy. That makes every
    consumer a Kubernetes API reader, which sits badly with "mediatore never watches CRDs" and "the
    guest never talks to a Kubernetes API server". Alternatives: an OCI artifact in a registry,
    consumed by mediatore over its existing trust path, or a push from notaio to mediatore.
    The format above is independent of the choice.
-2. **Signing key custody.** T8.2 says the signing key must not be held by cluster administrators.
+2. **Signing key custody.** *Resolved by [ADR-0004](0004-signing-key-custody.md): a
+   non-exportable OpenBao transit key.* T8.2 says the signing key must not be held by cluster administrators.
    The development signer reads a seed from a Secret, which they can read. The production signer must
    be a `Signer` implementation backed by a KMS, HSM or TPM, with the public key distributed to
    consumers out of band.
 3. **Tightening latency.** With no revocation channel, a tightened or deleted policy takes up to one
    bundle lifetime to stop being honoured by a consumer that does not re-fetch. Options: a shorter
    lifetime, a version floor pushed to mediatore, or both.
-4. **Canonicalisation.** The current form is deterministic by construction. RFC 8785 would make it
+4. **Canonicalisation.** *Resolved by [ADR-0005](0005-canonical-form-rfc-8785.md): RFC 8785,
+   with `SCHEMA` bumped to v2.* The current form is deterministic by construction. RFC 8785 would make it
    verifiable by non-Rust consumers. Decide before the schema is frozen.
 5. **Cedar.** If conditional rules appear, the bundle carries a compiled Cedar policy set next to the
    declarative content. The consumer stays mediatore. The envelope does not change.

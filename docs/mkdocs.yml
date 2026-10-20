@@ -143,6 +143,9 @@ nav:
       - Overview: adr/index.md
       - "ADR-0001: Separate project": adr/0001-separate-project.md
       - "ADR-0002: Bundle contract": adr/0002-bundle-contract.md
+      - "ADR-0003: Bundle distribution": adr/0003-bundle-distribution.md
+      - "ADR-0004: Signing key custody": adr/0004-signing-key-custody.md
+      - "ADR-0005: Canonical form (RFC 8785)": adr/0005-canonical-form-rfc-8785.md
   - Reference:
       - Built-in Profiles: reference/profiles.md
   - Developer:

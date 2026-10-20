@@ -39,5 +39,6 @@ Image signing, SBOMs and build provenance arrive with the published image (ROADM
 ## Known gaps
 
 The development signer keeps its key in a Kubernetes Secret, which the threat model forbids for
-production (T8.2). A KMS, HSM or TPM backed signer is ADR-0002 open decision 2. The other open items
+production (T8.2). [ADR-0004](../adr/0004-signing-key-custody.md) moves the production key into
+OpenBao transit, where it cannot be exported; it is not built yet. The other open items
 are listed under "Known gaps in v0" in the [Architecture](../architecture.md#known-gaps-in-v0).

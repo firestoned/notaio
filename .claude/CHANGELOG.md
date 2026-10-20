@@ -2,6 +2,35 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-16 00:00] - ADR-0003, ADR-0004, ADR-0005: ADR-0002's open decisions
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `docs/adr/0003-bundle-distribution.md`: the ConfigMap stays; mediatore reads it through the API
+  and relays the envelope unchanged to guests over its mutual-TLS stream; no consumer trusts the
+  transport.
+- `docs/adr/0004-signing-key-custody.md`: the production key is a non-exportable OpenBao transit
+  key; notaio may only request signatures, with Kubernetes auth bound to its ServiceAccount.
+  Accepted risk recorded: a cluster admin acting as that ServiceAccount can request signatures
+  (audited, key never leaves OpenBao), revisit for a malicious-admin threat model.
+- `docs/adr/0005-canonical-form-rfc-8785.md`: content canonicalised with RFC 8785;
+  `maxEgressBytes` bounded to 2^53 - 1; `SCHEMA` bumps to v2, which is the schema that freezes.
+- `docs/adr/0002-bundle-contract.md`: amended, open decisions 1, 2 and 4 point at the new ADRs.
+- `docs/architecture.md`, `docs/src/security/index.md`, `SECURITY.md`, `ROADMAP.md` (M1, M2), the
+  docs site (stubs, ADR index, nav), and the rustdoc on `Signer` and `notaio::signer::from_env`.
+
+### Why
+ROADMAP M1: decide distribution, key custody and canonicalisation before the bundle schema is
+frozen, because mediatore (M3) cannot integrate against a contract that may still change. ADD step
+1: decisions recorded before code. The CALM step is deferred (no model yet), noted in each ADR.
+
+### Impact
+- [ ] Breaking change (ADR-0005's schema v2 will be, when implemented)
+- [ ] Requires cluster rollout
+- [ ] Config or examples change only
+- [x] Documentation only
+
 ## [2026-10-15 00:00] - crdgen: Kubernetes formats for unsigned integers
 
 **Author:** Erick Bourgeois

@@ -38,8 +38,8 @@ pub(crate) fn pae(payload_type: &str, payload: &[u8]) -> Vec<u8> {
 }
 
 /// Something that can sign. The production implementation must not hold the key in the controller's
-/// memory or on its disk (T8.2): back it with a KMS, HSM or TPM. `Ed25519Signer` is for development
-/// and tests.
+/// memory or on its disk (T8.2); ADR-0004 backs it with a non-exportable OpenBao transit key.
+/// `Ed25519Signer` is for development and tests.
 pub trait Signer {
     fn key_id(&self) -> &str;
     fn sign(&self, message: &[u8]) -> Result<Vec<u8>, BundleError>;

@@ -46,7 +46,8 @@ Out of scope, or known:
 - issues that require cluster-admin privileges, which already bypass the admission policy by
   removing it;
 - the development signer keeping its key in a Kubernetes Secret. It is a known gap, documented in
-  `docs/architecture.md` and ADR-0002 (open decision 2), and is not for production use.
+  `docs/architecture.md`, and is not for production use. ADR-0004 replaces it with a
+  non-exportable OpenBao transit key.
 
 The threat model notaio implements is the AgentSandbox Threat Model and Security Roadmap.
 `docs/threat-model-mapping.md` states what this repository enforces and what it does not.
