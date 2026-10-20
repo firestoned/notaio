@@ -2,8 +2,10 @@
 //! mediatore-guest and the gateway (consumers).
 //!
 //! Design rules, see ADR-0002:
-//! - Content is canonical JSON: struct field order is fixed, maps are `BTreeMap`, lists are sorted
-//!   by the compiler, and there are no floats. The digest is SHA-256 over those bytes.
+//! - Content is canonicalised with RFC 8785 (ADR-0005): members sorted by UTF-16 code units, no
+//!   insignificant whitespace, integers only and within the I-JSON safe range. Lists are sorted by
+//!   the compiler. The digest is SHA-256 over those bytes, so any RFC 8785 implementation in any
+//!   language can recompute it.
 //! - The version is monotonic and bumps only when the content digest changes. Validity (`issuedAt`,
 //!   `notAfter`) refreshes without a version bump.
 //! - Bundles are wrapped in a DSSE envelope. A consumer verifies the signature, the schema, the
@@ -14,6 +16,7 @@
 mod content;
 mod dsse;
 mod error;
+pub mod jcs;
 mod verify;
 
 pub use content::{BundleContent, BundleMeta, BundlePayload, PolicyRef, ProfileRef, SCHEMA};

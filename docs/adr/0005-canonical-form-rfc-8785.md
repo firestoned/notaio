@@ -6,8 +6,9 @@
 - **Resolves:** [ADR-0002](0002-bundle-contract.md) open decision 4 (canonicalisation)
 - **Related:** ADR-0002 decision 2 (content) and decision 5 (verification)
 
-Not implemented. This is the last change to the content's byte form before the bundle schema is
-frozen (ROADMAP M1).
+Implemented 2026-10-20: `crates/sandboxpolicy-bundle/src/jcs.rs`, with the RFC's sorting and
+escaping vectors, the integer bound and a golden digest from an independent implementation as
+tests. Schema v2 is frozen (ADR-0002).
 
 ## Context
 
@@ -36,7 +37,8 @@ and numbers in the ECMAScript form of an IEEE-754 double. Libraries exist in mos
 3. **The canonical form is implemented in `sandboxpolicy-bundle`,** with the RFC's test vectors as
    tests. The crate keeps its rule of no Kubernetes dependency. A third-party JCS crate is used only
    if it passes `deny.toml` and is maintained; otherwise the small no-float subset is implemented
-   in the crate.
+   in the crate. *Implemented in the crate:* `serde_jcs` is permissively licensed, but the bound
+   in decision 2 had to be enforced either way, and the crate runs as root in every guest.
 4. **This is a schema change.** Per CLAUDE.md, `SCHEMA` becomes `sandbox.firestoned.io/bundle/v2`,
    and v2 is the schema that is frozen. No consumer has accepted a v1 bundle, so nothing has to
    migrate. The DSSE payload type changes with it.

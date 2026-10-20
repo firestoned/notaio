@@ -10,7 +10,9 @@ use sandboxpolicy_api::{
     Condition, ExposedAudience, GrantPhase, KnobGrant, MaxExposure, SandboxPolicy,
     SandboxPolicySpec, SandboxPolicyStatus, SandboxProfile, SandboxProfileSpec,
 };
-use sandboxpolicy_bundle::{BundleContent, BundleMeta, BundlePayload, PolicyRef, ProfileRef};
+use sandboxpolicy_bundle::{
+    BundleContent, BundleError, BundleMeta, BundlePayload, PolicyRef, ProfileRef,
+};
 use sandboxpolicy_types::{Access, AudienceGrant, KnobId, Step};
 use sha2::{Digest, Sha256};
 
@@ -354,7 +356,19 @@ pub fn evaluate(input: &EvalInput<'_>) -> EvalOutput {
         &input.policy.spec,
         input.ceilings,
     );
-    let digest = content.digest();
+    // RFC 8785 has no exact form for floats or integers beyond 2^53 - 1 (ADR-0005). Content
+    // without a canonical form is never published: no bundle, and Ready says why.
+    let refused = |e: &BundleError| {
+        vec![
+            cond("ProfileResolved", true, "Resolved", "profile is valid"),
+            cond("Valid", true, "Valid", "policy passes every lint rule"),
+            cond("Ready", false, "NotCanonical", &e.to_string()),
+        ]
+    };
+    let digest = match content.digest() {
+        Ok(d) => d,
+        Err(e) => return not_canonical(status, grants, findings, requeue, refused(&e)),
+    };
     let version = match (input.prev_digest, input.prev_version) {
         (Some(d), Some(v)) if d == digest => v,
         (_, v) => v.unwrap_or(0) + 1,
@@ -377,18 +391,44 @@ pub fn evaluate(input: &EvalInput<'_>) -> EvalOutput {
             "bundle compiled, awaiting signature and publication",
         ),
     ];
-    let bundle = BundlePayload::new(
+    let bundle = match BundlePayload::new(
         BundleMeta {
             version,
             issued_at: now,
             not_after,
         },
         content,
-    );
+    ) {
+        Ok(b) => b,
+        Err(e) => return not_canonical(status, grants, findings, requeue, refused(&e)),
+    };
     EvalOutput {
         status,
         grants,
         bundle: Some(bundle),
+        findings,
+        requeue_after: requeue,
+    }
+}
+
+/// The fail-closed result for compiled content that has no RFC 8785 canonical form (ADR-0005):
+/// no bundle, no digest or version, and the given conditions (`Ready=False`, `NotCanonical`).
+fn not_canonical(
+    mut status: SandboxPolicyStatus,
+    grants: Vec<GrantResult>,
+    findings: Vec<Finding>,
+    requeue: Duration,
+    conditions: Vec<Condition>,
+) -> EvalOutput {
+    status.bundle_version = None;
+    status.bundle_digest = None;
+    status.bundle_not_after = None;
+    status.max_exposure = None;
+    status.conditions = conditions;
+    EvalOutput {
+        status,
+        grants,
+        bundle: None,
         findings,
         requeue_after: requeue,
     }

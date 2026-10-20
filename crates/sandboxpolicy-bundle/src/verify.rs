@@ -77,7 +77,7 @@ pub fn verify_bundle(
     if payload.schema != SCHEMA {
         return Err(BundleError::Schema(payload.schema));
     }
-    if payload.content.digest() != payload.content_digest {
+    if payload.content.digest()? != payload.content_digest {
         return Err(BundleError::DigestMismatch);
     }
     if payload.meta.issued_at > opts.now + opts.max_clock_skew {

@@ -5,7 +5,9 @@ use sandboxpolicy_types::{AudienceGrant, Budgets, EgressRule, KnobId, Lease, Ste
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-pub const SCHEMA: &str = "sandbox.firestoned.io/bundle/v1";
+use crate::{jcs, BundleError};
+
+pub const SCHEMA: &str = "sandbox.firestoned.io/bundle/v2";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -22,8 +24,9 @@ pub struct ProfileRef {
     pub digest: String,
 }
 
-/// Everything that decides what a sandbox may do. Field order here is part of the canonical form:
-/// do not reorder fields without a schema bump.
+/// Everything that decides what a sandbox may do. The canonical form is RFC 8785 (ADR-0005), which
+/// sorts members, so field order here does not affect the digest; adding, removing, renaming or
+/// retyping a field still does, and is a schema change.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BundleContent {
@@ -39,17 +42,25 @@ pub struct BundleContent {
 }
 
 impl BundleContent {
-    /// Canonical bytes of the content.
-    pub fn canonical_bytes(&self) -> Vec<u8> {
-        // Serialising plain structs and BTreeMaps to JSON cannot fail.
-        serde_json::to_vec(self).unwrap_or_default()
+    /// RFC 8785 canonical bytes of the content (ADR-0005).
+    ///
+    /// # Errors
+    /// `BundleError::NonCanonical` when the content holds a number RFC 8785 cannot represent
+    /// exactly: a float, or an integer outside the I-JSON safe range. Callers fail closed.
+    pub fn canonical_bytes(&self) -> Result<Vec<u8>, BundleError> {
+        let value =
+            serde_json::to_value(self).map_err(|e| BundleError::NonCanonical(e.to_string()))?;
+        jcs::canonicalize(&value)
     }
 
     /// `sha256:<hex>` over the canonical bytes.
-    pub fn digest(&self) -> String {
+    ///
+    /// # Errors
+    /// As [`BundleContent::canonical_bytes`].
+    pub fn digest(&self) -> Result<String, BundleError> {
         let mut h = Sha256::new();
-        h.update(self.canonical_bytes());
-        format!("sha256:{}", hex_lower(&h.finalize()))
+        h.update(self.canonical_bytes()?);
+        Ok(format!("sha256:{}", hex_lower(&h.finalize())))
     }
 }
 
@@ -78,13 +89,17 @@ pub struct BundlePayload {
 }
 
 impl BundlePayload {
-    pub fn new(meta: BundleMeta, content: BundleContent) -> Self {
-        let content_digest = content.digest();
-        BundlePayload {
+    /// A payload for `content`, with its digest.
+    ///
+    /// # Errors
+    /// As [`BundleContent::canonical_bytes`]: content without a canonical form is never wrapped.
+    pub fn new(meta: BundleMeta, content: BundleContent) -> Result<Self, BundleError> {
+        let content_digest = content.digest()?;
+        Ok(BundlePayload {
             schema: SCHEMA.to_string(),
             meta,
             content,
             content_digest,
-        }
+        })
     }
 }

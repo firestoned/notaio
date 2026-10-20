@@ -32,9 +32,9 @@ Not done: nothing has run on a cluster.
   fail a change that exceeds it (the "maximum exposure compared with its approved ceiling" test).
 - Decide ADR-0002 open decisions 1, 2 and 4 (distribution, signing key custody, canonicalisation),
   then freeze bundle schema v1. **Decided 2026-10-16:** ADR-0003 (ConfigMap, relayed by mediatore),
-  ADR-0004 (OpenBao transit), ADR-0005 (RFC 8785, which bumps the schema to v2). Still to do:
-  implement RFC 8785 and the `maxEgressBytes` bound, then freeze schema v2. The OpenBao signer is
-  M2; the relay is M3.
+  ADR-0004 (OpenBao transit), ADR-0005 (RFC 8785, which bumps the schema to v2). **Done
+  2026-10-20:** RFC 8785 and the 2^53 - 1 integer bound implemented, schema v2 frozen (ADR-0002).
+  The OpenBao signer is M2; the relay is M3.
 - Example verifier for mediatore and mediatore-guest, with persisted "highest version accepted".
 
 ## M2: production controller

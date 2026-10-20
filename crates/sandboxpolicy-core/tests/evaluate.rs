@@ -352,3 +352,42 @@ fn compiled_lists_are_sorted_so_the_digest_is_stable() {
     let db = run(&b, Some(&pr), &[], None).status.bundle_digest;
     assert_eq!(da, db);
 }
+
+#[test]
+fn content_without_a_canonical_form_fails_closed() {
+    // ADR-0005, decision 2. The default K4.3 ceilings keep maxEgressBytes far below 2^53, so lift
+    // them to reach the bound: lint L009 then passes and only the canonical form can refuse.
+    let pr = profile("hardened");
+    let mut po = policy("hardened", vec![audience("internal-git", Access::Read)]);
+    po.spec.budgets = Some(Budgets {
+        max_tool_calls: 500,
+        max_wall_clock_seconds: 3600,
+        max_egress_bytes: 1 << 53,
+    });
+    let ceilings = Ceilings {
+        egress_bytes: [u64::MAX; 3],
+        ..Ceilings::default()
+    };
+    let o = evaluate(&EvalInput {
+        now: now(),
+        policy: &po,
+        profile: Some(&pr),
+        grants: &[],
+        prev_version: None,
+        prev_digest: None,
+        prev_conditions: &[],
+        bundle_lifetime: Duration::hours(1),
+        ceilings: &ceilings,
+    });
+    assert!(o.bundle.is_none(), "a bundle was compiled");
+    assert!(!ready(&o));
+    assert!(
+        o.status
+            .conditions
+            .iter()
+            .any(|c| c.type_ == "Ready" && c.reason == "NotCanonical"),
+        "{:?}",
+        o.status.conditions
+    );
+    assert_eq!(o.status.bundle_digest, None);
+}

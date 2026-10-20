@@ -22,4 +22,6 @@ pub enum BundleError {
     Signing(String),
     #[error("invalid key material: {0}")]
     Key(String),
+    #[error("content has no RFC 8785 canonical form: {0}")]
+    NonCanonical(String),
 }
