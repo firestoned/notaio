@@ -55,6 +55,7 @@ fn payload(version: u64) -> BundlePayload {
         },
         content(),
     )
+    .unwrap()
 }
 
 fn signer() -> Ed25519Signer {
@@ -90,7 +91,7 @@ fn content_change_changes_digest() {
     let a = content();
     let mut b = content();
     b.knobs.insert(KnobId::new("K4.1"), Step::R1);
-    assert_ne!(a.digest(), b.digest());
+    assert_ne!(a.digest().unwrap(), b.digest().unwrap());
 }
 
 #[test]
@@ -194,4 +195,60 @@ fn bad_seed_is_rejected() {
     assert!(Ed25519Signer::from_seed_b64("k", "not base64 !!").is_err());
     assert!(Ed25519Signer::from_seed_b64("k", &STANDARD.encode([1u8; 16])).is_err());
     assert!(Ed25519Signer::from_seed_b64("k", &STANDARD.encode([1u8; 32])).is_ok());
+}
+
+/// The content's canonical bytes and digest for `content()`, produced by an independent
+/// implementation rather than this crate: Python's `json.dumps(sort_keys=True,
+/// separators=(",", ":"), ensure_ascii=False)`, which equals RFC 8785 for integer-only content
+/// with BMP keys (ADR-0005).
+const FIXTURE_CANONICAL: &str = r#"{"audiences":[{"access":"Read","name":"internal-git","scopes":["repo:read"],"ttlSeconds":300}],"budgets":{"maxEgressBytes":10485760,"maxToolCalls":500,"maxWallClockSeconds":14400},"egress":[],"knobs":{"K4.1":"R0","K5.1":"R1"},"lease":{"maxConcurrent":1,"maxDurationSeconds":14400},"policy":{"name":"agent-default","namespace":"sandboxes","uid":"uid-1"},"profile":{"digest":"sha256:abc","name":"hardened"},"tools":[]}"#;
+const FIXTURE_DIGEST: &str =
+    "sha256:b25c43a63a17fc5ddb34748d7f80523fbca0da2ec534ac1ae80ad9aad0f8eef7";
+
+#[test]
+fn canonical_bytes_are_rfc_8785() {
+    let bytes = content().canonical_bytes().unwrap();
+    assert_eq!(String::from_utf8(bytes).unwrap(), FIXTURE_CANONICAL);
+    assert_eq!(content().digest().unwrap(), FIXTURE_DIGEST);
+}
+
+#[test]
+fn schema_is_v2() {
+    // ADR-0005 changed the canonical form, which is a schema change (CLAUDE.md).
+    assert_eq!(SCHEMA, "sandbox.firestoned.io/bundle/v2");
+    assert_eq!(
+        PAYLOAD_TYPE,
+        "application/vnd.firestoned.sandboxpolicy.bundle.v2+json"
+    );
+}
+
+#[test]
+fn content_beyond_the_safe_integer_range_is_refused() {
+    // ADR-0005, decision 2. Removing the bound makes this test fail.
+    let mut c = content();
+    c.budgets.max_egress_bytes = 1 << 53;
+    assert!(matches!(c.digest(), Err(BundleError::NonCanonical(_))));
+    let meta = BundleMeta {
+        version: 1,
+        issued_at: now(),
+        not_after: now() + Duration::hours(1),
+    };
+    assert!(matches!(
+        BundlePayload::new(meta, c),
+        Err(BundleError::NonCanonical(_))
+    ));
+}
+
+#[test]
+fn verification_refuses_content_without_a_canonical_form() {
+    // A buggy or malicious signer signs content outside the safe range. The consumer must refuse
+    // it rather than compute a digest another implementation would compute differently.
+    let s = signer();
+    let mut p = payload(3);
+    p.content.budgets.max_egress_bytes = 1 << 53;
+    let env = sign_bundle(&p, &s).unwrap();
+    assert!(matches!(
+        verify_bundle(&env, &trusted(&s), &VerifyOptions::at(now())),
+        Err(BundleError::NonCanonical(_))
+    ));
 }

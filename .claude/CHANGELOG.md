@@ -2,6 +2,43 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-20 00:00] - Implement ADR-0005: RFC 8785 canonical form, schema v2
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `crates/sandboxpolicy-bundle/src/jcs.rs` (new), `jcs_tests.rs` (new): RFC 8785 for integer-only
+  JSON. Members sorted by UTF-16 code units, minimal escaping, integers within plus or minus
+  2^53 - 1, floats refused. No new dependency (`serde_jcs` considered; the bound had to be enforced
+  either way, and this crate runs as root in every guest).
+- `crates/sandboxpolicy-bundle/src/{content,verify,error,lib}.rs`: `canonical_bytes`, `digest` and
+  `BundlePayload::new` return `Result`; `BundleError::NonCanonical`; verification refuses content
+  without a canonical form.
+- `crates/sandboxpolicy-bundle/src/{content,dsse}.rs`: `SCHEMA` `.../bundle/v2`, payload type
+  `...bundle.v2+json`.
+- `crates/sandboxpolicy-core/src/evaluate.rs`: such content fails closed, no bundle,
+  `Ready=False, NotCanonical`.
+- Tests: RFC 8785 sorting and escaping vectors, integer bound and float refusal, a golden digest for
+  the fixture computed independently in Python, schema v2, fail closed in `verify_bundle` and
+  `evaluate`. 52 pass.
+- `docs/adr/0002-bundle-contract.md`: amended; schema v2 frozen, with the golden digest test as the
+  guard. `docs/adr/0005-canonical-form-rfc-8785.md`: implemented.
+- `docs/threat-model-mapping.md`: first full pass under `rules/threat-modeling.md`, stamped
+  2026-10-20 against ADR-0001 to ADR-0005. T5.4, the signed-bundle hard floor, T8.2 (admission,
+  key custody with its accepted risk) and distribution updated. No change to `docs/air/`.
+- `docs/architecture.md`, `ROADMAP.md` (M1).
+
+### Why
+ADR-0005, the last change to the content's byte form before mediatore integrates (M3). Any
+consumer can now recompute the digest with any RFC 8785 library. The threat model pass closes the
+ADD cycle for ADR-0003 to ADR-0005.
+
+### Impact
+- [x] Breaking change (bundle schema v2: every content digest changes; no consumer has accepted v1)
+- [ ] Requires cluster rollout
+- [ ] Config or examples change only
+- [ ] Documentation only
+
 ## [2026-10-16 00:00] - ADR-0003, ADR-0004, ADR-0005: ADR-0002's open decisions
 
 **Author:** Erick Bourgeois

@@ -3,6 +3,7 @@
 - Status: Proposed
 - Date: 2026-09-30
 - Amended: 2026-10-16 (open decisions 1, 2 and 4 resolved by ADR-0003, ADR-0004 and ADR-0005)
+- Amended: 2026-10-20 (decisions 1 and 2: RFC 8785 canonical form and schema v2, from ADR-0005)
 
 ## Context
 
@@ -13,11 +14,15 @@ loosen a running sandbox.
 ## Decision
 
 1. **Envelope.** A DSSE envelope, payload type
-   `application/vnd.firestoned.sandboxpolicy.bundle.v1+json`, signed with Ed25519. Signatures cover the
-   DSSE pre-authentication encoding, never the bare payload.
+   `application/vnd.firestoned.sandboxpolicy.bundle.v2+json` (v1 before ADR-0005), signed with
+   Ed25519. Signatures cover the DSSE pre-authentication encoding, never the bare payload.
 2. **Content.** Policy and profile references, the effective step of every register knob, sorted
-   audiences, egress, tools, lease and budgets. Canonical form: fixed field order, ordered maps,
-   sorted lists, no floats. The digest is SHA-256 over those bytes.
+   audiences, egress, tools, lease and budgets. Canonical form: RFC 8785, integers only and within
+   the I-JSON safe range ([ADR-0005](0005-canonical-form-rfc-8785.md); before it, fixed field order,
+   ordered maps, sorted lists, no floats). The digest is SHA-256 over those bytes. Schema
+   `sandbox.firestoned.io/bundle/v2`, frozen: any change to the content's fields, names or types
+   is a v3 and an ADR. `canonical_bytes_are_rfc_8785` in `crates/sandboxpolicy-bundle/tests/`
+   pins a golden digest computed outside this crate, so such a change cannot land unnoticed.
 3. **Version.** Monotonic, and it bumps only when the content digest changes. `issuedAt` and
    `notAfter` refresh without a version bump.
 4. **Validity.** `notAfter` is at most one bundle lifetime away and never later than the earliest
