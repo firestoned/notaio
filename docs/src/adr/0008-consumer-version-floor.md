@@ -1,0 +1,1 @@
+--8<-- "adr/0008-consumer-version-floor.md"

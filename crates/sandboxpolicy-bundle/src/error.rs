@@ -24,4 +24,8 @@ pub enum BundleError {
     Key(String),
     #[error("content has no RFC 8785 canonical form: {0}")]
     NonCanonical(String),
+    #[error("bundle is from an older incarnation of the policy (uid {uid}) than the one accepted")]
+    StaleIncarnation { uid: String },
+    #[error("version floor: {0}")]
+    Floor(String),
 }

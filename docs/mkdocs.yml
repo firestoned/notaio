@@ -148,6 +148,7 @@ nav:
       - "ADR-0005: Canonical form (RFC 8785)": adr/0005-canonical-form-rfc-8785.md
       - "ADR-0006: notaio lint": adr/0006-notaio-lint-cli.md
       - "ADR-0007: Exposure ceiling": adr/0007-exposure-ceiling.md
+      - "ADR-0008: Consumer version floor": adr/0008-consumer-version-floor.md
   - Reference:
       - Built-in Profiles: reference/profiles.md
   - Developer:

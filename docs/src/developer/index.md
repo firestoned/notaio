@@ -92,6 +92,53 @@ jobs:
 The upload runs even when the lint fails, so the findings appear on the pull request while the
 lint step keeps it red.
 
+## A test OpenBao for the signer
+
+The production signer is an OpenBao transit key (ADR-0004). `dev/openbao/` stands one up on a
+test cluster: a single OpenBao 2.7 with PostgreSQL 18 as its storage backend, TLS 1.3 from a
+namespaced cert-manager CA, the audit device on, and exactly what ADR-0004 asks for. That's a
+non-exportable ed25519 key `notaio`, a policy that allows `update` on `transit/sign/notaio` and
+nothing else, and a Kubernetes auth role for `notaio-system/notaio` (audience `openbao`, 15 minute
+tokens). Only `notaio-system` can reach it.
+
+```sh
+make openbao-dev       OPENBAO_KUBECONFIG=<kubeconfig> OPENBAO_STATE=<dir outside the repo>
+make openbao-dev-check OPENBAO_KUBECONFIG=<kubeconfig> OPENBAO_STATE=<same dir>
+```
+
+`openbao-dev-check` checks it from the outside, the way the signer will use it: the storage
+backend, the key's type and exportability, that `notaio-system/notaio` can sign and can do
+nothing else, that another ServiceAccount cannot log in, that another namespace cannot reach it,
+and that the audit log records the signature. It exits non-zero on any surprise and removes what
+it creates.
+
+It needs cert-manager and a default StorageClass. The unseal key and root token go to
+`$OPENBAO_STATE/init.json` (mode 600), the public key consumers trust to
+`$OPENBAO_STATE/notaio-public-key.txt`. A restart of the OpenBao pod seals it; run the target
+again to unseal. It is a test instance: one replica, one key share.
+
+## Consuming a bundle
+
+A consumer (mediatore, mediatore-guest, the gateway) verifies each bundle and keeps the highest
+version it has accepted across restarts, with `sandboxpolicy_bundle::floor`
+([ADR-0008](../adr/0008-consumer-version-floor.md)):
+
+```rust
+let mut floor = FileFloor::open(Path::new("/var/lib/consumer/floor.json"))?;
+match accept(&envelope, &trusted_keys, Utc::now(), &mut floor) {
+    Ok(payload) => enforce(payload),          // verified, and the floor is already on disk
+    Err(refusal) => keep_last_good(refusal),  // forged, expired, a downgrade, or a stale replay
+}
+```
+
+`accept` writes the new floor before it returns, so a bundle it could forget is never acted on.
+The whole loop runs as an example:
+
+```sh
+cargo run -p sandboxpolicy-bundle --example verify_and_record -- \
+    bundle.dsse.json <key-id> <public-key-base64> floor.json
+```
+
 ## Documentation
 
 ```sh

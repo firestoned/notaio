@@ -13,7 +13,7 @@ RUST_LOG         ?= info
         ci-code-changed kind-install kind-create kind-delete kind-kubeconfig kind-load \
         kind-deploy kind-e2e kind-e2e-ci kind-e2e-logs \
         kind-e2e-install kind-e2e-bundle kind-e2e-rbac kind-e2e-admission \
-        docs docs-serve docs-clean docs-linkcheck policy-lint
+        docs docs-serve docs-clean docs-linkcheck policy-lint openbao-dev openbao-dev-check
 
 help: ## Show this help
 	@echo 'Usage: make [target] [VAR=value ...]'
@@ -98,6 +98,25 @@ docs-linkcheck: ## Check docs/site/ for broken links (run `make docs` first)
 docs-clean: ## Remove docs/site/ and docs/.venv/
 	@rm -rf docs/site/ docs/.venv/
 	@echo "✓ Documentation artefacts cleaned"
+
+# ----- test OpenBao ----------------------------------------------------------
+#
+# A single-node OpenBao with PostgreSQL storage, for developing the transit signer (ADR-0004)
+# on a long-lived test cluster. Nothing defaults: name the cluster's kubeconfig and a state
+# directory outside the repository, which receives the unseal key and root token (mode 600).
+# Re-run after any restart of the openbao pod, which seals it.
+OPENBAO_KUBECONFIG ?=
+OPENBAO_STATE ?=
+
+openbao-dev: ## Stand up, or unseal again, the test OpenBao (OPENBAO_KUBECONFIG=... OPENBAO_STATE=...)
+	@test -n "$(OPENBAO_KUBECONFIG)" || { echo "set OPENBAO_KUBECONFIG to the test cluster's kubeconfig"; exit 1; }
+	@test -n "$(OPENBAO_STATE)" || { echo "set OPENBAO_STATE to a directory outside the repository"; exit 1; }
+	dev/openbao/setup.sh "$(OPENBAO_KUBECONFIG)" "$(OPENBAO_STATE)"
+
+openbao-dev-check: ## Check the test OpenBao is what ADR-0004 asks for (OPENBAO_KUBECONFIG=... OPENBAO_STATE=...)
+	@test -n "$(OPENBAO_KUBECONFIG)" || { echo "set OPENBAO_KUBECONFIG to the test cluster's kubeconfig"; exit 1; }
+	@test -n "$(OPENBAO_STATE)" || { echo "set OPENBAO_STATE to the directory setup.sh wrote"; exit 1; }
+	dev/openbao/check.sh "$(OPENBAO_KUBECONFIG)" "$(OPENBAO_STATE)"
 
 # ----- CI gating -------------------------------------------------------------
 #
