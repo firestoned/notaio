@@ -546,3 +546,112 @@ spec:
     storage: true
     subresources:
       status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: exposureceilings.sandbox.firestoned.io
+spec:
+  group: sandbox.firestoned.io
+  names:
+    kind: ExposureCeiling
+    plural: exposureceilings
+    shortNames:
+    - exposureceiling
+    singular: exposureceiling
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.maxLeaseSeconds
+      name: Lease
+      type: integer
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Auto-generated derived type for ExposureCeilingSpec via `CustomResource`
+        properties:
+          spec:
+            description: |-
+              The approved maximum exposure of the SandboxPolicy with the same name and namespace
+              (ADR-0007). A policy whose computed `status.maxExposure` this does not cover publishes no
+              bundle, and neither does a policy without one. Changes only through review and GitOps, like
+              the other kinds; the controller reads it and never writes it.
+            properties:
+              approvals:
+                description: Must include one from the `Security` role (lint L016).
+                items:
+                  description: |-
+                    A recorded approval by a role named in the knob register. `reference` points at the reviewed
+                    change (a pull request URL, for example), because policy changes only arrive through review.
+                  properties:
+                    reference:
+                      type: string
+                    role:
+                      description: Approver roles named in the knob register.
+                      enum:
+                      - Security
+                      - PlatformOwner
+                      - DataOwner
+                      - Compliance
+                      - ToolOwner
+                      - RiskOwner
+                      type: string
+                  required:
+                  - reference
+                  - role
+                  type: object
+                type: array
+              audiences:
+                default: []
+                items:
+                  description: >-
+                    One audience a policy may expose, with the most access and the longest token it
+                    may have.
+                  properties:
+                    access:
+                      description: "`Write` allows `Read`."
+                      enum:
+                      - Read
+                      - Write
+                      type: string
+                    maxTtlSeconds:
+                      format: int64
+                      minimum: 0.0
+                      type: integer
+                    name:
+                      type: string
+                  required:
+                  - access
+                  - maxTtlSeconds
+                  - name
+                  type: object
+                type: array
+              egressHosts:
+                default: []
+                description: "`host:port`, as in `status.maxExposure.egressHosts`."
+                items:
+                  type: string
+                type: array
+              maxLeaseSeconds:
+                format: int64
+                minimum: 0.0
+                type: integer
+              tools:
+                default: []
+                description: Tool names.
+                items:
+                  type: string
+                type: array
+            required:
+            - approvals
+            - maxLeaseSeconds
+            type: object
+        required:
+        - spec
+        title: ExposureCeiling
+        type: object
+    served: true
+    storage: true

@@ -57,7 +57,7 @@ make policy-lint                               # this repository's examples and 
 ```
 
 Exit codes: 0 clean (warnings allowed), 1 an error finding, 2 unreadable input. Findings carry the
-lint codes L001 to L013 and the input codes I001 to I007, listed in `crates/notaio/src/lint.rs`.
+lint codes L001 to L016 and the input codes I001 to I008, listed in `crates/notaio/src/lint.rs`.
 
 A policy repository can run the published image on every pull request and show the findings
 inline. Pin the image by digest:

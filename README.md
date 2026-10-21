@@ -120,11 +120,12 @@ the newest bundle it has accepted.
 ## What it does
 
 ```
-SandboxProfile (cluster, platform owned)   knob steps for Fortress, Hardened, Standard, Lab
-SandboxPolicy  (namespaced)                binds groups to a profile, adds audiences, egress, tools
-KnobGrant      (namespaced)                a time-boxed, approved, one-step relaxation of one knob
+SandboxProfile  (cluster, platform owned)   knob steps for Fortress, Hardened, Standard, Lab
+SandboxPolicy   (namespaced)                binds groups to a profile, adds audiences, egress, tools
+KnobGrant       (namespaced)                a time-boxed, approved, one-step relaxation of one knob
+ExposureCeiling (namespaced)                the approved maximum exposure of one policy (Security)
         |
-        v   notaio controller: lint, apply grants, compute ceilings, compile, sign
+        v   notaio controller: lint, apply grants, compile, check the exposure ceiling, sign
 Signed bundle (DSSE envelope in a ConfigMap) + status: version, digest, maxExposure, conditions
         |
         v   consumed, never edited

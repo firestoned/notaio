@@ -15,10 +15,10 @@ spec:
       - apiGroups: ["sandbox.firestoned.io"]
         apiVersions: ["*"]
         operations: ["CREATE", "UPDATE", "DELETE"]
-        resources: ["sandboxprofiles", "sandboxpolicies", "knobgrants"]
+        resources: ["sandboxprofiles", "sandboxpolicies", "knobgrants", "exposureceilings"]
   validations:
     - expression: "request.userInfo.username in ['system:serviceaccount:flux-system:kustomize-controller']"
-      message: "SandboxProfile, SandboxPolicy and KnobGrant may only be changed by the GitOps reconciler, through a reviewed change."
+      message: "SandboxProfile, SandboxPolicy, KnobGrant and ExposureCeiling may only be changed by the GitOps reconciler, through a reviewed change."
       reason: Forbidden
 ---
 apiVersion: admissionregistration.k8s.io/v1

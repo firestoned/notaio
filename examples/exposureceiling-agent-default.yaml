@@ -1,0 +1,24 @@
+# The approved maximum exposure of SandboxPolicy agent-default (ADR-0007). It caps the policy with
+# the same name and namespace; a policy without one, or whose exposure this does not cover,
+# publishes no bundle. Keep ceilings under a path the policy repository's CODEOWNERS gives to the
+# security approvers, so widening a policy takes a second, separate approval.
+#
+# This covers examples/sandboxpolicy-hardened.yaml exactly: one read-only audience with the K5.1
+# R0 token lifetime, no egress, no tools, the K7.3 R0 lease. The package-install grant does not
+# change the exposure.
+apiVersion: sandbox.firestoned.io/v1alpha1
+kind: ExposureCeiling
+metadata:
+  name: agent-default
+  namespace: sandboxes
+spec:
+  audiences:
+    - name: internal-git
+      access: Read
+      maxTtlSeconds: 300
+  egressHosts: []
+  tools: []
+  maxLeaseSeconds: 14400
+  approvals:
+    - role: Security
+      reference: https://github.com/firestoned/notaio/pull/1

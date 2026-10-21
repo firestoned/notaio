@@ -2,6 +2,42 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-20 18:00] - ADR-0007: ExposureCeiling, the approved maximum exposure
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `docs/adr/0007-exposure-ceiling.md`: a fourth kind, one per policy by name; exposure must be
+  covered (audiences, access, token lifetime, egress, tools, lease; grants count); no ceiling, no
+  bundle; a `Security` approval required; enforced by `notaio lint` and by the controller; codes
+  L014 to L016 and I008.
+- `crates/sandboxpolicy-api/src/ceiling.rs` (new): `ExposureCeiling`, `ExposureCeilingSpec`,
+  `CeilingAudience`.
+- `crates/sandboxpolicy-core`: `lint_exposure`; `EvalInput.exposure_ceiling`; `evaluate` fails
+  closed (`NoApprovedCeiling`, `ExposureAboveCeiling`, `CeilingNotApproved`) and still reports
+  `maxExposure`; `RULES` gains L014 to L016.
+- `crates/notaio`: the controller fetches the ceiling by the policy's name and watches ceilings;
+  `notaio lint` reads ceilings, I008 for one without a policy; `crdgen` emits the fourth CRD.
+- `deploy/`: the new CRD (regenerated), RBAC read on `exposureceilings`, the GitOps-only admission
+  policy now covers them.
+- `examples/exposureceiling-agent-default.yaml` (new), covering the example policy exactly.
+- Tests: core (L014 audience, token, lease, a widening grant; L015; L016), `notaio lint` (L014,
+  L015, I008), fixtures updated; e2e: a ceiling before every published policy, a new "no ceiling,
+  no bundle" test, ceilings in the admission and RBAC suites. 81 pass.
+- Docs: architecture (the four kinds, evaluation step 7), README, the security page, the developer
+  guide, the ADR on the site, `ROADMAP.md` (M1), `docs/threat-model-mapping.md` (pass stamped to
+  ADR-0007; the approved-ceiling validation moves from "Not covered" to "Implemented").
+
+### Why
+ROADMAP M1 and the threat model's "maximum exposure compared with its approved ceiling": widening
+a policy now needs a second, separate approval, and a grant cannot exceed what Security approved.
+
+### Impact
+- [x] Breaking change (a policy without an ExposureCeiling publishes no new bundle)
+- [x] Requires cluster rollout (apply the new CRD and RBAC, record ceilings before the controller)
+- [ ] Config or examples change only
+- [ ] Documentation only
+
 ## [2026-10-20 12:00] - ADR-0006: `notaio lint`, and `notaio controller`
 
 **Author:** Erick Bourgeois

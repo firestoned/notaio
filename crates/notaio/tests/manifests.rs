@@ -3,7 +3,7 @@
 //! The checked-in YAML must parse into the typed objects and behave under the real evaluator.
 
 use chrono::{Duration, TimeZone, Utc};
-use sandboxpolicy_api::{GrantPhase, KnobGrant, SandboxPolicy, SandboxProfile};
+use sandboxpolicy_api::{ExposureCeiling, GrantPhase, KnobGrant, SandboxPolicy, SandboxProfile};
 use sandboxpolicy_core::ceilings::Ceilings;
 use sandboxpolicy_core::{builtin, evaluate, EvalInput};
 use serde::Deserialize;
@@ -31,12 +31,15 @@ fn checked_in_profiles_match_the_code() {
 fn examples_are_valid_and_compile() {
     let policy: SandboxPolicy = docs(&read("examples/sandboxpolicy-hardened.yaml")).remove(0);
     let grant: KnobGrant = docs(&read("examples/knobgrant-package-install.yaml")).remove(0);
+    let ceiling: ExposureCeiling =
+        docs(&read("examples/exposureceiling-agent-default.yaml")).remove(0);
     let mut profile = SandboxProfile::new("hardened", builtin::profile("hardened").unwrap());
     profile.metadata.generation = Some(1);
 
     let ceilings = Ceilings::default();
     let now = Utc.with_ymd_and_hms(2026, 9, 30, 12, 0, 0).unwrap();
     let out = evaluate(&EvalInput {
+        exposure_ceiling: Some(&ceiling),
         now,
         policy: &policy,
         profile: Some(&profile),
@@ -117,7 +120,7 @@ fn collect_formats(v: &serde_json::Value, path: &str, out: &mut Vec<(String, Str
 #[test]
 fn crds_use_only_formats_kubernetes_recognises() {
     let crds: Vec<serde_json::Value> = docs(&read("deploy/crds/sandbox.firestoned.io.yaml"));
-    assert_eq!(crds.len(), 3);
+    assert_eq!(crds.len(), 4);
     let mut formats = Vec::new();
     for crd in &crds {
         collect_formats(crd, crd["metadata"]["name"].as_str().unwrap(), &mut formats);

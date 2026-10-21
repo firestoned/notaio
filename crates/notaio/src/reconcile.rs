@@ -9,8 +9,8 @@ use kube::api::{Api, ListParams, Patch, PatchParams};
 use kube::runtime::controller::Action;
 use kube::{Client, Resource, ResourceExt};
 use sandboxpolicy_api::{
-    GrantPhase, KnobGrant, KnobGrantStatus, SandboxPolicy, SandboxPolicyStatus, SandboxProfile,
-    SandboxProfileStatus,
+    ExposureCeiling, GrantPhase, KnobGrant, KnobGrantStatus, SandboxPolicy, SandboxPolicyStatus,
+    SandboxProfile, SandboxProfileStatus,
 };
 use sandboxpolicy_bundle::sign_bundle;
 use sandboxpolicy_core::ceilings::Ceilings;
@@ -63,6 +63,10 @@ pub async fn reconcile_policy(policy: Arc<SandboxPolicy>, ctx: Arc<Ctx>) -> Resu
         .await?;
     let grants_api: Api<KnobGrant> = Api::namespaced(client.clone(), &ns);
     let grants = grants_api.list(&ListParams::default()).await?.items;
+    // The approved maximum exposure has the policy's own name (ADR-0007). None fails closed.
+    let exposure_ceiling = Api::<ExposureCeiling>::namespaced(client.clone(), &ns)
+        .get_opt(&name)
+        .await?;
 
     // The version must never go backwards, even if status was lost, so the published object is a
     // second source of truth.
@@ -88,6 +92,7 @@ pub async fn reconcile_policy(policy: Arc<SandboxPolicy>, ctx: Arc<Ctx>) -> Resu
 
     let out = evaluate(&EvalInput {
         now,
+        exposure_ceiling: exposure_ceiling.as_ref(),
         policy: &policy,
         profile: profile.as_ref(),
         grants: &grants,

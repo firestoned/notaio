@@ -20,7 +20,7 @@ use kube::runtime::reflector::ObjectRef;
 use kube::runtime::watcher;
 use kube::{Api, Client};
 use notaio::cli::{Cli, Command, Format, LintArgs};
-use sandboxpolicy_api::{KnobGrant, SandboxPolicy, SandboxProfile};
+use sandboxpolicy_api::{ExposureCeiling, KnobGrant, SandboxPolicy, SandboxProfile};
 use sandboxpolicy_core::ceilings::Ceilings;
 use tracing_subscriber::EnvFilter;
 
@@ -105,6 +105,7 @@ async fn run_controller() -> anyhow::Result<()> {
     let policies: Api<SandboxPolicy> = Api::all(client.clone());
     let profiles: Api<SandboxProfile> = Api::all(client.clone());
     let grants: Api<KnobGrant> = Api::all(client.clone());
+    let exposure_ceilings: Api<ExposureCeiling> = Api::all(client.clone());
 
     let policy_controller = Controller::new(policies, watcher::Config::default());
     let store = policy_controller.store();
@@ -124,6 +125,12 @@ async fn run_controller() -> anyhow::Result<()> {
             let ns = kube::ResourceExt::namespace(&g);
             let mut r = ObjectRef::<SandboxPolicy>::new(&g.spec.policy_ref);
             r.namespace = ns;
+            Some(r)
+        })
+        // A ceiling change re-evaluates the policy with its name (ADR-0007).
+        .watches(exposure_ceilings, watcher::Config::default(), |c| {
+            let mut r = ObjectRef::<SandboxPolicy>::new(&kube::ResourceExt::name_any(&c));
+            r.namespace = kube::ResourceExt::namespace(&c);
             Some(r)
         })
         .shutdown_on_signal()
