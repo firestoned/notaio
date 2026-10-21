@@ -1,0 +1,342 @@
+# A single-node OpenBao for developing and testing notaio's transit signer (ADR-0004) on a
+# long-lived test cluster, with PostgreSQL as its storage backend. Not a production deployment:
+# one OpenBao replica, unsealed by hand with dev/openbao/setup.sh after every restart (Shamir,
+# one key share).
+#
+# - PostgreSQL 18 on a persistent volume holds OpenBao's data, so the transit key survives a
+#   restart of either pod. OpenBao creates its tables (openbao_kv_store, openbao_ha_locks).
+# - The database password and OpenBao's connection URL are in Secret openbao-postgres, created by
+#   setup.sh with a random password. Neither is in this file.
+# - TLS 1.3 only everywhere, from a namespaced cert-manager CA. OpenBao reaches PostgreSQL with
+#   sslmode=verify-full; clients of OpenBao trust ca.crt from Secret openbao-tls.
+# - The Kubernetes auth method reviews ServiceAccount tokens (system:auth-delegator).
+# - Only notaio-system may reach OpenBao, and only OpenBao may reach PostgreSQL.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openbao
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: openbao-selfsigned
+  namespace: openbao
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: openbao-ca
+  namespace: openbao
+spec:
+  isCA: true
+  commonName: openbao-ca
+  secretName: openbao-ca
+  duration: 87600h
+  privateKey: { algorithm: ECDSA, size: 256 }
+  issuerRef: { name: openbao-selfsigned, kind: Issuer }
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: openbao-ca
+  namespace: openbao
+spec:
+  ca:
+    secretName: openbao-ca
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: openbao-tls
+  namespace: openbao
+spec:
+  secretName: openbao-tls
+  duration: 8760h
+  renewBefore: 720h
+  privateKey: { algorithm: ECDSA, size: 256, rotationPolicy: Always }
+  dnsNames:
+    - openbao
+    - openbao.openbao
+    - openbao.openbao.svc
+    - openbao.openbao.svc.cluster.local
+  ipAddresses: ["127.0.0.1"]
+  issuerRef: { name: openbao-ca, kind: Issuer }
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: openbao-postgres-tls
+  namespace: openbao
+spec:
+  secretName: openbao-postgres-tls
+  duration: 8760h
+  renewBefore: 720h
+  privateKey: { algorithm: ECDSA, size: 256, rotationPolicy: Always }
+  dnsNames:
+    - openbao-postgres
+    - openbao-postgres.openbao.svc
+    - openbao-postgres.openbao.svc.cluster.local
+  issuerRef: { name: openbao-ca, kind: Issuer }
+---
+# PostgreSQL, OpenBao's storage backend.
+apiVersion: v1
+kind: Service
+metadata:
+  name: openbao-postgres
+  namespace: openbao
+spec:
+  selector: { app.kubernetes.io/name: openbao-postgres }
+  ports:
+    - { name: postgres, port: 5432, targetPort: 5432 }
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: openbao-postgres
+  namespace: openbao
+spec:
+  serviceName: openbao-postgres
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: openbao-postgres }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: openbao-postgres }
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: postgres
+          # postgres:18, index digest (every architecture). Same pin as mediatore's kind tier.
+          image: docker.io/library/postgres:18@sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336
+          args:
+            - -c
+            - ssl=on
+            - -c
+            - ssl_cert_file=/tls/tls.crt
+            - -c
+            - ssl_key_file=/tls/tls.key
+            - -c
+            - ssl_min_protocol_version=TLSv1.3
+          env:
+            - { name: POSTGRES_USER, value: openbao }
+            - { name: POSTGRES_DB, value: openbao }
+            - { name: PGDATA, value: /var/lib/postgresql/data/pgdata }
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: openbao-postgres, key: password }
+          ports:
+            - { name: postgres, containerPort: 5432 }
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "openbao", "-d", "openbao"]
+            periodSeconds: 5
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/postgresql/data }
+            - { name: tls, mountPath: /tls, readOnly: true }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { memory: 512Mi }
+      volumes:
+        - name: tls
+          secret:
+            secretName: openbao-postgres-tls
+            # Owned by root, group-readable by the fsGroup: what postgres accepts for a key.
+            defaultMode: 0640
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests: { storage: 2Gi }
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: openbao
+  namespace: openbao
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: openbao-auth-delegator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+  - kind: ServiceAccount
+    name: openbao
+    namespace: openbao
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openbao-config
+  namespace: openbao
+data:
+  # The connection URL, with the password, comes from BAO_PG_CONNECTION_URL (Secret
+  # openbao-postgres), not from this file.
+  openbao.hcl: |
+    ui = false
+    api_addr = "https://openbao.openbao.svc:8200"
+    listener "tcp" {
+      address = "0.0.0.0:8200"
+      tls_cert_file = "/tls/tls.crt"
+      tls_key_file = "/tls/tls.key"
+      tls_min_version = "tls13"
+    }
+    storage "postgresql" {
+      table = "openbao_kv_store"
+      max_connect_retries = 30
+    }
+    # Every request, including each signature notaio asks for, to the pod's log (ADR-0004,
+    # decision 4). OpenBao 2.x only accepts audit devices declared here, not through the API.
+    audit "file" "to-stdout" {
+      description = "Audit log to standard output."
+      options {
+        file_path = "stdout"
+      }
+    }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: openbao
+  namespace: openbao
+spec:
+  selector: { app.kubernetes.io/name: openbao }
+  ports:
+    - { name: https, port: 8200, targetPort: 8200 }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openbao
+  namespace: openbao
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector:
+    matchLabels: { app.kubernetes.io/name: openbao }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: openbao }
+    spec:
+      serviceAccountName: openbao
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 100
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: openbao
+          # OpenBao 2.7.1, index digest (every architecture). Same pin as mediatore's kind tier.
+          image: quay.io/openbao/openbao:2.7.1@sha256:6d2b93856e3fcf7b18ad855a0b51eaba474dc8b79cf554379ea32034797d2acf
+          args: ["server", "-config=/config/openbao.hcl"]
+          env:
+            - name: BAO_PG_CONNECTION_URL
+              valueFrom:
+                secretKeyRef: { name: openbao-postgres, key: connection-url }
+            # For `bao` run by the setup script inside the pod, on the loopback.
+            - { name: BAO_ADDR, value: "https://127.0.0.1:8200" }
+            - { name: BAO_CACERT, value: "/tls/ca.crt" }
+          ports:
+            - { name: https, containerPort: 8200 }
+          readinessProbe:
+            # Ready even sealed or uninitialised: the setup script does those.
+            httpGet:
+              path: /v1/sys/health?standbyok=true&sealedcode=204&uninitcode=204
+              port: https
+              scheme: HTTPS
+            periodSeconds: 5
+          volumeMounts:
+            - { name: config, mountPath: /config, readOnly: true }
+            - { name: tls, mountPath: /tls, readOnly: true }
+            - { name: pg-ca, mountPath: /pg-ca, readOnly: true }
+            - { name: tmp, mountPath: /tmp }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { memory: 256Mi }
+      volumes:
+        - name: config
+          configMap: { name: openbao-config }
+        - name: tls
+          secret: { secretName: openbao-tls, defaultMode: 0440 }
+        # The CA that signed PostgreSQL's certificate, for sslmode=verify-full.
+        - name: pg-ca
+          secret:
+            secretName: openbao-postgres-tls
+            items: [{ key: ca.crt, path: ca.crt }]
+            defaultMode: 0440
+        - name: tmp
+          emptyDir: {}
+---
+# Clients: notaio-system only. OpenBao itself: DNS, PostgreSQL, and the API server for TokenReview.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: openbao
+  namespace: openbao
+spec:
+  podSelector:
+    matchLabels: { app.kubernetes.io/name: openbao }
+  policyTypes: ["Ingress", "Egress"]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: notaio-system }
+      ports:
+        - { protocol: TCP, port: 8200 }
+  egress:
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels: { k8s-app: kube-dns }
+      ports:
+        - { protocol: UDP, port: 53 }
+        - { protocol: TCP, port: 53 }
+    - to:
+        - podSelector:
+            matchLabels: { app.kubernetes.io/name: openbao-postgres }
+      ports:
+        - { protocol: TCP, port: 5432 }
+    - ports:
+        - { protocol: TCP, port: 443 }
+        - { protocol: TCP, port: 6443 }
+---
+# PostgreSQL: reachable from OpenBao only, and reaches nothing.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: openbao-postgres
+  namespace: openbao
+spec:
+  podSelector:
+    matchLabels: { app.kubernetes.io/name: openbao-postgres }
+  policyTypes: ["Ingress", "Egress"]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels: { app.kubernetes.io/name: openbao }
+      ports:
+        - { protocol: TCP, port: 5432 }
+  egress: []

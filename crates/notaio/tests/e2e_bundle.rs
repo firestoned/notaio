@@ -14,8 +14,10 @@ use k8s_openapi::api::core::v1::{ConfigMap, Secret};
 use kube::api::{DeleteParams, PostParams};
 use kube::{Api, Client, ResourceExt};
 use sandboxpolicy_api::{ExposureCeiling, GrantPhase, KnobGrant, SandboxPolicy};
+use sandboxpolicy_bundle::floor::{accept, FileFloor};
 use sandboxpolicy_bundle::{
-    verify_bundle, BundlePayload, Ed25519Signer, Envelope, Signer, TrustedKeys, VerifyOptions,
+    verify_bundle, BundleError, BundlePayload, Ed25519Signer, Envelope, Signer, TrustedKeys,
+    VerifyOptions,
 };
 
 use common::*;
@@ -182,15 +184,25 @@ async fn policy_compiles_to_a_signed_verifiable_bundle_that_never_goes_back() {
     let grant_expiry = s2.next_grant_expiry.expect("next grant expiry is reported");
     assert!(payload2.meta.not_after <= grant_expiry);
 
-    // 3. A consumer that has accepted v2 refuses the v1 bundle it saw earlier: the downgrade the
-    //    threat model calls T5.4.
-    let mut floor = VerifyOptions::at(Utc::now());
-    floor.min_version = Some(v2);
-    assert!(
-        verify_bundle(&env1, &keys, &floor).is_err(),
-        "a consumer at version {v2} accepted version {v1}"
+    // 3. The consumer loop, as mediatore and mediatore-guest run it (ADR-0008): a persisted floor
+    //    that survives a restart, so the v1 bundle seen earlier is refused even by a consumer that
+    //    has just started again. This is the downgrade the threat model calls T5.4.
+    let floor_path =
+        std::path::Path::new(env!("CARGO_TARGET_TMPDIR")).join(format!("{name}-floor.json"));
+    let _ = std::fs::remove_file(&floor_path);
+    {
+        let mut floor = FileFloor::open(&floor_path).expect("open floor");
+        accept(&env1, &keys, Utc::now(), &mut floor).expect("v1 accepted first");
+        accept(&env2, &keys, Utc::now(), &mut floor).expect("v2 accepted after v1");
+    }
+    let mut restarted = FileFloor::open(&floor_path).expect("reopen floor");
+    assert_eq!(
+        accept(&env1, &keys, Utc::now(), &mut restarted).unwrap_err(),
+        BundleError::Downgrade { got: v1, min: v2 },
+        "a restarted consumer at version {v2} accepted version {v1}"
     );
-    verify_bundle(&env2, &keys, &floor).expect("the current bundle passes the floor");
+    accept(&env2, &keys, Utc::now(), &mut restarted).expect("the current bundle passes the floor");
+    let _ = std::fs::remove_file(&floor_path);
 
     // Cleanup. The bundle ConfigMap is owned by the policy and goes with it.
     grants

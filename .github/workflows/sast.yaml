@@ -44,11 +44,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # `unsafe-usage` is an audit note on every `unsafe` keyword, not a
-      # finding, and `// nosemgrep` does not keep it out of the SARIF upload.
-      # The audit is enforced at compile time instead: crates that use
-      # `unsafe` deny `clippy::undocumented_unsafe_blocks`, so a block without
-      # a `// SAFETY:` justification fails the Clippy job.
+      # Two audit notes are excluded; each is enforced another way.
+      #
+      # `unsafe-usage` flags every `unsafe` keyword. notaio has none: the
+      # workspace sets `unsafe_code = "forbid"`, so `unsafe` does not compile.
+      #
+      # `args` flags every call to `std::env::args()`, because `argv[0]` can be
+      # set to anything by whoever runs the program and must not drive a
+      # security decision. Nothing here reads `argv[0]`: the two call sites
+      # (`crdgen`, the `verify_and_record` example) skip it and take only the
+      # operator's arguments, and the `notaio` binary parses its command line
+      # with clap. A new security decision on `argv[0]` would be caught in
+      # review, not by a rule that fires on every call.
       - name: Run Semgrep
         run: |
           semgrep scan \
@@ -58,6 +65,7 @@ jobs:
             --config=p/owasp-top-ten \
             --sarif --output=semgrep.sarif \
             --exclude-rule=rust.lang.security.unsafe-usage.unsafe-usage \
+            --exclude-rule=rust.lang.security.args.args \
             --metrics=off \
             --error || true
 

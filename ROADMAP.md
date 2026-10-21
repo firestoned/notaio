@@ -40,6 +40,9 @@ Not done: nothing has run on a cluster.
   2026-10-20:** RFC 8785 and the 2^53 - 1 integer bound implemented, schema v2 frozen (ADR-0002).
   The OpenBao signer is M2; the relay is M3.
 - Example verifier for mediatore and mediatore-guest, with persisted "highest version accepted".
+  **Done 2026-10-21** (ADR-0008): `sandboxpolicy_bundle::floor` (`accept`, `FileFloor`), keyed by
+  namespace and name with the incarnation's `uid` ordered by `issuedAt`, and the
+  `verify_and_record` example. **M1 is complete.**
 
 ## M2: production controller
 

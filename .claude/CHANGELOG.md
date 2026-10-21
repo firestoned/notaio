@@ -2,6 +2,96 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-21 08:00] - Semgrep: exclude the `args` audit note; document the docker cooldown
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `.github/workflows/sast.yaml`: `--exclude-rule=rust.lang.security.args.args`. The rule flags every
+  `std::env::args()` because `argv[0]` is untrusted; nothing here reads `argv[0]` (`crdgen` and the
+  `verify_and_record` example skip it; `notaio` uses clap). The comment for the existing
+  `unsafe-usage` exclusion now says why it holds here: `unsafe_code = "forbid"`.
+- `.github/dependabot.yml`: the docker entry's 2-day cooldown is named as the one deliberate
+  exception to Semgrep's 7-day `dependabot-missing-cooldown`; its alert is dismissed as won't fix.
+
+### Why
+Code scanning alerts #13 and #14 (`args`, INFO, audit) and #11 (cooldown). Checked with the
+workflow's pinned Semgrep image and flags: one finding left, the deliberate cooldown.
+
+### Impact
+- [ ] Breaking change
+- [ ] Requires cluster rollout
+- [x] Config or examples change only
+- [ ] Documentation only
+
+## [2026-10-21 06:00] - A test OpenBao for the transit signer (ADR-0004)
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `dev/openbao/openbao.yaml` (new): OpenBao 2.7.1 with PostgreSQL 18 as its storage backend
+  (persistent volume), TLS 1.3 from a namespaced cert-manager CA (`sslmode=verify-full` to
+  PostgreSQL), the audit device declared in config, Kubernetes auth via `system:auth-delegator`,
+  NetworkPolicies (only `notaio-system` reaches OpenBao; only OpenBao reaches PostgreSQL).
+  Images pinned by digest, restricted Pod Security.
+- `dev/openbao/setup.sh` (new): idempotent; random PostgreSQL password in a Secret, init and
+  unseal (state outside the repo, mode 600), a non-exportable ed25519 transit key `notaio`,
+  policy `notaio-sign` (sign only), role `notaio` for `notaio-system/notaio`, prints the public key.
+- `dev/openbao/check.sh` (new), `make openbao-dev-check`: the ADR-0004 properties, checked from
+  outside as the signer will use OpenBao. Exits non-zero on any surprise; cleans up after itself.
+- `Makefile`: `openbao-dev` and `openbao-dev-check`, with no defaults for the cluster or the state
+  directory.
+- `.dockerignore`: `dev/`. Developer guide: a section on it.
+
+### Why
+ADR-0004's signer needs an OpenBao to develop and test against. Stood up on the k0s test cluster
+and verified: data in PostgreSQL and the key unchanged across a restart; `notaio-system/notaio`
+can sign and cannot export, rotate, read the key config, use another key, encrypt or list
+policies; another ServiceAccount cannot log in; another namespace cannot reach OpenBao; the audit
+log records each signature request. Then torn down and rebuilt from nothing with
+`make openbao-dev` (25 seconds), `make openbao-dev-check` passing, and the restart cycle (sealed,
+check fails, `make openbao-dev` unseals, same key) confirmed. Two early login failures from brand
+new pods could not be reproduced in four later fresh runs; the check retries login, as the signer
+will have to.
+
+### Impact
+- [ ] Breaking change
+- [ ] Requires cluster rollout
+- [x] Config or examples change only
+- [ ] Documentation only
+
+## [2026-10-21 00:00] - ADR-0008: the consumer's persisted version floor (M1 complete)
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `docs/adr/0008-consumer-version-floor.md`: the floor is kept per namespace and name with the
+  incarnation's `uid`; same `uid` never goes down; a different `uid` is accepted only if issued
+  later, so a recreated policy works and an old-incarnation replay does not; verify, persist,
+  then accept.
+- `crates/sandboxpolicy-bundle/src/floor.rs` (new): `VersionFloor`, `MemoryFloor`, `FileFloor`
+  (one JSON file, temporary file plus sync plus rename, directory synced; a damaged file is an
+  error, never an empty floor), `accept`. `BundleError::StaleIncarnation`, `BundleError::Floor`.
+  No new dependency, no Kubernetes dependency.
+- `crates/sandboxpolicy-bundle/examples/verify_and_record.rs` (new): the consumer loop.
+- `crates/sandboxpolicy-bundle/tests/floor.rs` (new): first accept, downgrade, re-delivery, raise,
+  new incarnation, stale replay, failed verification leaves the floor alone, restart, missing and
+  corrupt files, unwritable floor refuses, atomic write. `e2e_bundle` now runs `accept` with a
+  `FileFloor` across a consumer restart. 93 pass.
+- Docs: `docs/architecture.md` (contracts table, "who trusts what"), the developer guide (consuming
+  a bundle), the ADR on the site, `ROADMAP.md` (M1 complete), `docs/threat-model-mapping.md` (pass
+  stamped to ADR-0008).
+
+### Why
+ROADMAP M1's last item and threat model T5.4: a consumer that forgets its floor on restart can be
+downgraded to an older, looser bundle that is still signed and still valid.
+
+### Impact
+- [ ] Breaking change
+- [ ] Requires cluster rollout
+- [ ] Config or examples change only
+- [ ] Documentation only
+
 ## [2026-10-20 18:00] - ADR-0007: ExposureCeiling, the approved maximum exposure
 
 **Author:** Erick Bourgeois

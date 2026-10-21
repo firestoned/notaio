@@ -81,6 +81,7 @@ change, which is why they sit in small crates with their own ADR.
 | `SandboxProfile`, `SandboxPolicy`, `KnobGrant` (`sandbox.firestoned.io/v1alpha1`) | GitOps reconciler (spec), notaio (status only) | notaio; banlieue admission (M3) | `crates/sandboxpolicy-api`, `deploy/crds/` | v1alpha1 |
 | Signed bundle: a DSSE envelope over the compiled content, canonicalised with RFC 8785 | notaio, and only notaio | mediatore, mediatore-guest, gateway | `crates/sandboxpolicy-bundle`, [ADR-0002](adr/0002-bundle-contract.md), [ADR-0005](adr/0005-canonical-form-rfc-8785.md) | implemented; schema v2, frozen |
 | Bundle location | notaio | mediatore through the API; guests through mediatore's relay | ConfigMap `<policy>-bundle` beside the policy, with version and digest annotations ([ADR-0003](adr/0003-bundle-distribution.md)) | published today; the relay is M3 |
+| Consumer version floor: the highest version accepted per policy, keyed by namespace and name, with the incarnation's `uid` | each consumer, on its own disk | that consumer | `crates/sandboxpolicy-bundle/src/floor.rs`, [ADR-0008](adr/0008-consumer-version-floor.md) | implemented; consumers adopt it in M3 |
 | Signing key and its public half | OpenBao transit, non-exportable; notaio may only request signatures | every consumer, configured out of band, key id `<name>:v<N>` | [ADR-0004](adr/0004-signing-key-custody.md) | decided; development signer until implemented |
 | Policy status: `Ready`, version, digest, `maxExposure`, active grants | notaio | operators, reviewers, dashboards | `crates/sandboxpolicy-api` | implemented |
 
@@ -153,7 +154,10 @@ sequenceDiagram
 - **Consumers trust the key, not the messenger.** A consumer accepts a bundle because it verifies
   against a trusted public key, never because of where it was read from. Anything that can write the
   bundle ConfigMap can withhold a bundle or replay an older one. It cannot loosen a sandbox: a forged
-  bundle fails the signature, and an older one fails the version floor and expiry.
+  bundle fails the signature, and an older one fails the version floor and expiry. The floor is
+  persisted before a bundle is acted on, so a restart does not reopen the downgrade; a recreated
+  policy is accepted because its bundle was issued later, and a replay from the old incarnation is
+  refused ([ADR-0008](adr/0008-consumer-version-floor.md)).
 - **notaio trusts only the API server.** It takes no inbound connection, holds no hypervisor
   credentials, and no agent traffic reaches it. Its RBAC is read on the four kinds, status writes,
   and bundle writes in named namespaces.

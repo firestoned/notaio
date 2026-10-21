@@ -1,6 +1,6 @@
 # Mapping to the AgentSandbox threat model
 
-Last full pass 2026-10-20, against ADR-0001 … ADR-0007.
+Last full pass 2026-10-21, against ADR-0001 … ADR-0008.
 
 What this project implements, what it only supports, and what it does not cover. Identifiers refer
 to the AgentSandbox Threat Model and Security Roadmap. When that document changes, update
@@ -23,7 +23,7 @@ to the AgentSandbox Threat Model and Security Roadmap. When that document change
 | Lease and egress volume ceilings (K7.3, K4.3) | lint L009, `ceilings.rs` |
 | O3 "maximum exposure is computable from its policy" | `status.maxExposure` |
 | Validation "maximum exposure compared with its approved ceiling" on every policy pull request | `ExposureCeiling` per policy, approved by `Security` (ADR-0007); `lint_exposure` (L014 to L016) runs in `notaio lint` and in the controller, grants included. No ceiling, or exposure it does not cover: no bundle (`e2e_bundle`). |
-| T5.4 bundle downgrade or tampering | signed DSSE envelope, monotonic version, verification refuses a downgrade, a forged signature and a digest mismatch (`crates/sandboxpolicy-bundle/src/verify.rs`). The digest covers the RFC 8785 form of the content (`jcs.rs`, ADR-0005), so a consumer in any language can recompute it; content with no exact canonical form is refused, not approximated. `e2e_bundle` checks a wrong key and a downgrade against the deployed controller. |
+| T5.4 bundle downgrade or tampering | signed DSSE envelope, monotonic version, verification refuses a downgrade, a forged signature and a digest mismatch (`crates/sandboxpolicy-bundle/src/verify.rs`). The digest covers the RFC 8785 form of the content (`jcs.rs`, ADR-0005), so a consumer in any language can recompute it; content with no exact canonical form is refused, not approximated. The version floor a consumer keeps is persisted before a bundle is acted on, so a restart does not reopen the downgrade, and it is keyed by namespace and name with the incarnation's `uid` ordered by `issuedAt`, so a recreated policy is accepted and a replay from its old incarnation is refused (`floor.rs`, ADR-0008). `e2e_bundle` checks a wrong key and a downgrade across a consumer restart against the deployed controller. |
 | Hard floor "policy bundles are signed, unsigned ones are rejected" | producer never publishes unsigned (`crates/notaio/src/reconcile.rs`: no signer, no bundle), consumer verification fails closed. Content without a canonical form is never compiled into a bundle (`evaluate`, `Ready=False, NotCanonical`). |
 | Policy profiles as reviewed bundles of knobs (section 10) | `builtin.rs`, `deploy/profiles/builtin.yaml` |
 
@@ -35,6 +35,7 @@ to the AgentSandbox Threat Model and Security Roadmap. When that document change
 | Profile eligibility by group (K7.2, T7.3) | Banlieue admission, using these objects as parameters |
 | Enforcement of egress, tools, leases, budgets, jail and guard settings | Gateway, mediatore, mediatore-guest, from the bundle. Distribution (ADR-0003): mediatore reads the bundle ConfigMap through the API and relays it unchanged to guests, which verify it themselves. Not built yet (ROADMAP M3). |
 | Token minting per policy and audience (T5.3) | Mediatore |
+| Downgrade protection at each consumer (T5.4) | mediatore, mediatore-guest and the gateway call `sandboxpolicy_bundle::floor::accept` with a floor on their own storage (ADR-0008). Not adopted yet (ROADMAP M3). |
 
 ## Not covered yet
 

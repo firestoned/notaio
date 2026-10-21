@@ -44,6 +44,8 @@ updates:
   # Shorter cooldown than the registry ecosystems, deliberately: this is a
   # first-party distroless base whose rebuilds exist to ship OS security
   # patches (glibc, zlib). Holding those for a week is the larger risk.
+  # Semgrep's dependabot-missing-cooldown wants at least 7 days everywhere; this
+  # entry is the one deliberate exception, and its alert is dismissed as such.
   - package-ecosystem: "docker"
     directory: "/"
     schedule:

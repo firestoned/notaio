@@ -16,6 +16,7 @@
 mod content;
 mod dsse;
 mod error;
+pub mod floor;
 pub mod jcs;
 mod verify;
 
