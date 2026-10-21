@@ -27,7 +27,9 @@ Not done: nothing has run on a cluster.
   - Deleting a grant can queue a reconcile of a policy already deleted, which kube-runtime logs at
     WARN ("not found in local store"). Noise, not a failure.
 - `notaio lint` CLI that runs the same `sandboxpolicy-core` on files, for pull request checks. This
-  is the threat model's "toxic-combination lint on every policy pull request".
+  is the threat model's "toxic-combination lint on every policy pull request". **Done 2026-10-20**
+  (ADR-0006): `notaio lint`, text and SARIF, input codes I001 to I007; the controller is now
+  `notaio controller`.
 - Approved-ceiling check: a way to record the approved maximum exposure of a profile or policy and
   fail a change that exceeds it (the "maximum exposure compared with its approved ceiling" test).
 - Decide ADR-0002 open decisions 1, 2 and 4 (distribution, signing key custody, canonicalisation),

@@ -2,6 +2,40 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-20 12:00] - ADR-0006: `notaio lint`, and `notaio controller`
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `docs/adr/0006-notaio-lint-cli.md`: one binary with subcommands; profiles from the files then
+  the built-ins; the clock is now, `--now` to pin it; text and SARIF; exit 0, 1, 2; input codes
+  I001 to I007.
+- `crates/notaio/src/lib.rs`, `cli.rs`, `lint.rs` (new): the CLI definition and the lint engine,
+  as a library so they are testable. `lint.rs` reuses `lint_knobs` and `evaluate`.
+- `crates/notaio/src/main.rs`: dispatches `controller` and `lint`; the bare `3600` is now
+  `DEFAULT_BUNDLE_LIFETIME_SECONDS`.
+- `crates/sandboxpolicy-core`: `GrantResult.findings` keeps the structured findings behind a
+  rejection; `lint::RULES` is the rule table as data, tested against the documented table.
+- `deploy/controller/20-deployment.yaml`: `args: ["controller"]`, parsed by a test.
+- `crates/notaio/Cargo.toml`: `clap` 4.6 (MIT OR Apache-2.0), passes `make deny`.
+- Tests: `tests/lint.rs` (engine, one test per input code), `tests/cli.rs` (the real binary: exit
+  codes, SARIF, usage, the deployment's arguments), two in core. 73 pass.
+- `Makefile`: `policy-lint` on `examples/` and `deploy/profiles/`, clock pinned because the
+  examples carry fixed dates; run in the Build workflow.
+- Docs: `docs/architecture.md`, `README.md`, the developer guide (with a policy-repository
+  workflow that uploads SARIF), the ADR on the site, `ROADMAP.md` (M1),
+  `docs/threat-model-mapping.md` (pass stamped to ADR-0006).
+
+### Why
+ROADMAP M1 and the threat model's "toxic-combination lint on every policy pull request": a policy
+the controller would reject now fails review instead of reaching the cluster.
+
+### Impact
+- [x] Breaking change (the controller is started with `notaio controller`)
+- [x] Requires cluster rollout (the deployment passes `args: ["controller"]`)
+- [ ] Config or examples change only
+- [ ] Documentation only
+
 ## [2026-10-20 00:00] - Implement ADR-0005: RFC 8785 canonical form, schema v2
 
 **Author:** Erick Bourgeois

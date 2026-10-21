@@ -63,7 +63,7 @@ Sandboxes take no inbound connections and have no route to any Kubernetes API se
 
 | Component | Runs | Relationship to notaio | Today |
 | --- | --- | --- | --- |
-| **notaio** | management cluster | The only producer of bundles. Watches the three kinds, writes their status and the bundle, and nothing else. | implemented; e2e on kind |
+| **notaio** | management cluster; policy repository CI | The only producer of bundles. `notaio controller` watches the three kinds, writes their status and the bundle, and nothing else. `notaio lint` runs the same checks on the policy repository's files in every pull request ([ADR-0006](adr/0006-notaio-lint-cli.md)). | implemented; e2e on kind and k0s |
 | Policy repository | Git | Where the three kinds are authored and reviewed. A `KnobGrant`'s approvals reference the reviewed change. | by convention |
 | GitOps reconciler | management cluster | The only identity allowed to create, change or delete the three kinds (`deploy/admission/gitops-only.yaml`). notaio itself cannot (`deploy/controller/10-rbac.yaml`). | implemented; `e2e_admission`, `e2e_rbac` |
 | [banlieue](https://github.com/firestoned/banlieue) | management cluster | Creates one VM per identity, outside any cluster, and hands it out through a claim. Consumes the CRD types (`sandboxpolicy-api`): its admission checks claim eligibility with these objects as parameters, and the claim records the policy version. No policy logic lives in banlieue. | M3 |
@@ -201,9 +201,20 @@ reviewed change.
 The lint rules and their codes are documented at the top of
 `crates/sandboxpolicy-core/src/lint.rs`.
 
+## Checking a change before it merges
+
+`notaio lint <paths>` runs the controller's checks on files: `lint_knobs` on every profile and
+`evaluate` on every policy with its grants, under the default ceilings and the current time
+([ADR-0006](adr/0006-notaio-lint-cli.md)). A policy the controller would reject fails its pull
+request instead, with the same lint codes (L001 to L013) and input codes for what only a set of
+files can get wrong (I001 to I007: an invalid object, a duplicate, a missing profile, an orphaned
+or expired grant). Profiles come from the files first, then the built-ins. `--format sarif`
+feeds GitHub code scanning, so a reviewer sees the finding on the file. It exits 0 when clean, 1 on
+an error finding and 2 on unreadable input.
+
 ## The controller
 
-Two reconcilers in one process. The profile reconciler lints and records a digest. The policy
+`notaio controller`: two reconcilers in one process. The profile reconciler lints and records a digest. The policy
 reconciler gathers the profile and grants, calls `evaluate`, updates grant statuses, signs and
 publishes the bundle to a ConfigMap named `<policy>-bundle` in the policy's namespace, and patches
 status.

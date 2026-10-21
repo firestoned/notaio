@@ -28,6 +28,8 @@ spec:
         - name: notaio
           # Placeholder. Pin by digest once images are published and signed.
           image: ghcr.io/firestoned/notaio:0.0.1
+          # One binary, the roles as subcommands (ADR-0006). Parsed by a test in crates/notaio/tests/cli.rs.
+          args: ["controller"]
           env:
             - name: RUST_LOG
               value: info

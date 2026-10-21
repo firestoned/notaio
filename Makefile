@@ -13,7 +13,7 @@ RUST_LOG         ?= info
         ci-code-changed kind-install kind-create kind-delete kind-kubeconfig kind-load \
         kind-deploy kind-e2e kind-e2e-ci kind-e2e-logs \
         kind-e2e-install kind-e2e-bundle kind-e2e-rbac kind-e2e-admission \
-        docs docs-serve docs-clean docs-linkcheck
+        docs docs-serve docs-clean docs-linkcheck policy-lint
 
 help: ## Show this help
 	@echo 'Usage: make [target] [VAR=value ...]'
@@ -56,6 +56,14 @@ manifests: ## Regenerate deploy/crds and deploy/profiles from the Rust types
 manifests-check: ## Fail if deploy/crds or deploy/profiles drifted from the Rust types
 	@cargo run -q -p notaio --bin crdgen -- crds | diff -u deploy/crds/sandbox.firestoned.io.yaml -
 	@cargo run -q -p notaio --bin crdgen -- profiles | diff -u deploy/profiles/builtin.yaml -
+
+# The examples carry fixed expiry dates, and a grant's lifetime is capped from `now` (L012), so
+# against the real clock they go stale on a known day. Pin the clock to when they were written;
+# a policy repository runs `notaio lint` without --now (ADR-0006, decision 5).
+EXAMPLES_NOW ?= 2026-10-20T00:00:00Z
+
+policy-lint: ## Run `notaio lint` on examples/ and deploy/profiles/ (dogfooding ADR-0006)
+	cargo run -q -p notaio --bin notaio -- lint --now $(EXAMPLES_NOW) examples/ deploy/profiles/
 
 # docs/framework-mapping.md is generated from docs/air/*.yaml. Edit the YAML, then run `make air`.
 air: ## Regenerate docs/framework-mapping.md from docs/air/*.yaml

@@ -391,3 +391,36 @@ fn content_without_a_canonical_form_fails_closed() {
     );
     assert_eq!(o.status.bundle_digest, None);
 }
+
+#[test]
+fn rejected_grant_keeps_its_structured_findings() {
+    // ADR-0006: notaio lint reports each finding with its own code, so a rejection must not be
+    // flattened into a string.
+    let pr = profile("hardened");
+    let po = policy("hardened", vec![audience("internal-git", Access::Read)]);
+    let g = grant("jump", "K2.3", Step::R2, 7, &[Role::PlatformOwner]);
+    let o = run(&po, Some(&pr), &[g], None);
+    let r = &o.grants[0];
+    assert_eq!(r.phase, GrantPhase::Rejected);
+    assert!(
+        r.findings.iter().any(|f| f.code == "L011"),
+        "{:?}",
+        r.findings
+    );
+}
+
+#[test]
+fn rules_table_matches_the_documented_codes() {
+    // The data table and the rustdoc table in lint.rs describe the same rules.
+    let doc = include_str!("../src/lint.rs");
+    for (code, meaning) in sandboxpolicy_core::lint::RULES {
+        assert!(
+            doc.contains(&format!(
+                "//! | {code} | {}",
+                meaning.replace("LabOnly", "`LabOnly`")
+            )),
+            "{code} differs between RULES and the documented table"
+        );
+    }
+    assert_eq!(sandboxpolicy_core::lint::RULES.len(), 13);
+}

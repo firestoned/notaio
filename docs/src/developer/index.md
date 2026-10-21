@@ -44,6 +44,54 @@ On macOS, `make kind-load` cross-compiles and needs a gcc cross toolchain
 KIND_EXPERIMENTAL_PROVIDER=podman make kind-e2e CONTAINER_TOOL=podman
 ```
 
+## Checking policies with `notaio lint`
+
+`notaio lint` runs the controller's checks on files, for pull requests to a policy repository
+([ADR-0006](../adr/0006-notaio-lint-cli.md)):
+
+```sh
+notaio lint policies/                          # text; exit 1 on any error finding
+notaio lint --format sarif policies/ > notaio.sarif
+notaio lint --now 2026-10-20T00:00:00Z examples/   # pin the clock for a reproducible run
+make policy-lint                               # this repository's examples and profiles
+```
+
+Exit codes: 0 clean (warnings allowed), 1 an error finding, 2 unreadable input. Findings carry the
+lint codes L001 to L013 and the input codes I001 to I007, listed in `crates/notaio/src/lint.rs`.
+
+A policy repository can run the published image on every pull request and show the findings
+inline. Pin the image by digest:
+
+```yaml
+name: Policy lint
+on:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: notaio lint
+        run: |
+          docker run --rm -v "$PWD:/repo:ro" -w /repo \
+            ghcr.io/firestoned/notaio@sha256:<digest> \
+            lint --format sarif . > notaio.sarif
+      - name: Upload findings
+        if: always()
+        uses: github/codeql-action/upload-sarif@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
+        with:
+          sarif_file: notaio.sarif
+          category: notaio
+```
+
+The upload runs even when the lint fails, so the findings appear on the pull request while the
+lint step keeps it red.
+
 ## Documentation
 
 ```sh

@@ -1,27 +1,78 @@
 //! Notaio: validates SandboxProfile, SandboxPolicy and KnobGrant objects, compiles each
 //! policy into a signed, versioned bundle and publishes it. It holds no hypervisor credentials and
 //! no agent traffic ever reaches it. See docs/architecture.md.
+//!
+//! One binary, the roles as subcommands (ADR-0006): `notaio controller` runs the controller,
+//! `notaio lint` checks policy files for pull requests.
 
 mod error;
 mod reconcile;
 mod signer;
 
+use std::process::ExitCode;
 use std::sync::Arc;
 
 use chrono::Duration;
+use clap::Parser;
 use futures::StreamExt;
 use kube::runtime::controller::Controller;
 use kube::runtime::reflector::ObjectRef;
 use kube::runtime::watcher;
 use kube::{Api, Client};
+use notaio::cli::{Cli, Command, Format, LintArgs};
 use sandboxpolicy_api::{KnobGrant, SandboxPolicy, SandboxProfile};
 use sandboxpolicy_core::ceilings::Ceilings;
 use tracing_subscriber::EnvFilter;
 
 use reconcile::{error_policy, reconcile_policy, reconcile_profile, Ctx};
 
+/// Bundle lifetime when `NOTAIO_BUNDLE_LIFETIME_SECONDS` is not set. A consumer refuses a bundle
+/// past `notAfter`, so this bounds how long a tightening takes to land (ADR-0002, decision 3).
+const DEFAULT_BUNDLE_LIFETIME_SECONDS: i64 = 3600;
+
+/// `notaio lint` exit codes (ADR-0006, decision 6). 0 is success.
+const EXIT_FINDINGS: u8 = 1;
+const EXIT_INPUT: u8 = 2;
+
+fn main() -> ExitCode {
+    // A bare `notaio` or a bad flag prints usage and exits 2, from clap.
+    let cli = Cli::parse();
+    match cli.command {
+        Command::Controller => match run_controller() {
+            Ok(()) => ExitCode::SUCCESS,
+            Err(e) => {
+                eprintln!("notaio controller: {e:#}");
+                ExitCode::FAILURE
+            }
+        },
+        Command::Lint(args) => run_lint(&args),
+    }
+}
+
+fn run_lint(args: &LintArgs) -> ExitCode {
+    let now = args.now.unwrap_or_else(chrono::Utc::now);
+    let report = match notaio::lint::load(&args.paths)
+        .and_then(|sources| notaio::lint::lint_sources(&sources, now))
+    {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("notaio lint: {}: {}", e.path.display(), e.message);
+            return ExitCode::from(EXIT_INPUT);
+        }
+    };
+    let out = match args.format {
+        Format::Text => notaio::lint::render_text(&report),
+        Format::Sarif => notaio::lint::render_sarif(&report),
+    };
+    print!("{out}");
+    if report.has_errors() {
+        return ExitCode::from(EXIT_FINDINGS);
+    }
+    ExitCode::SUCCESS
+}
+
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn run_controller() -> anyhow::Result<()> {
     let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
     if std::env::var("NOTAIO_LOG_JSON").is_ok_and(|v| v == "1") {
         tracing_subscriber::fmt()
@@ -35,7 +86,7 @@ async fn main() -> anyhow::Result<()> {
     let lifetime_secs: i64 = std::env::var("NOTAIO_BUNDLE_LIFETIME_SECONDS")
         .ok()
         .and_then(|v| v.parse().ok())
-        .unwrap_or(3600);
+        .unwrap_or(DEFAULT_BUNDLE_LIFETIME_SECONDS);
     let signer = signer::from_env()?;
     if signer.is_none() {
         tracing::warn!(
