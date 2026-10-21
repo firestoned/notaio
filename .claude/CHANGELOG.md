@@ -2,6 +2,28 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-21 08:00] - Semgrep: exclude the `args` audit note; document the docker cooldown
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `.github/workflows/sast.yaml`: `--exclude-rule=rust.lang.security.args.args`. The rule flags every
+  `std::env::args()` because `argv[0]` is untrusted; nothing here reads `argv[0]` (`crdgen` and the
+  `verify_and_record` example skip it; `notaio` uses clap). The comment for the existing
+  `unsafe-usage` exclusion now says why it holds here: `unsafe_code = "forbid"`.
+- `.github/dependabot.yml`: the docker entry's 2-day cooldown is named as the one deliberate
+  exception to Semgrep's 7-day `dependabot-missing-cooldown`; its alert is dismissed as won't fix.
+
+### Why
+Code scanning alerts #13 and #14 (`args`, INFO, audit) and #11 (cooldown). Checked with the
+workflow's pinned Semgrep image and flags: one finding left, the deliberate cooldown.
+
+### Impact
+- [ ] Breaking change
+- [ ] Requires cluster rollout
+- [x] Config or examples change only
+- [ ] Documentation only
+
 ## [2026-10-21 06:00] - A test OpenBao for the transit signer (ADR-0004)
 
 **Author:** Erick Bourgeois
