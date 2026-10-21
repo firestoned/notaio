@@ -15,11 +15,14 @@
 //! | L011 | Grant is not exactly one step above the profile, or duplicates another grant |
 //! | L012 | Grant outlives the maximum lifetime for its target step |
 //! | L013 | Grant lacks an approval from a required role |
+//! | L014 | The policy's exposure is not covered by its approved ceiling |
+//! | L015 | The policy has no approved ceiling |
+//! | L016 | The ceiling lacks an approval from the `Security` role |
 
 use std::collections::{BTreeMap, BTreeSet};
 
 use chrono::{DateTime, Duration, Utc};
-use sandboxpolicy_api::{KnobGrantSpec, SandboxPolicySpec};
+use sandboxpolicy_api::{ExposureCeilingSpec, KnobGrantSpec, MaxExposure, SandboxPolicySpec};
 use sandboxpolicy_types::{Access, DataScope, KnobId, Role, Step};
 
 use crate::ceilings::Ceilings;
@@ -62,6 +65,15 @@ pub const RULES: &[(&str, &str)] = &[
         "Grant outlives the maximum lifetime for its target step",
     ),
     ("L013", "Grant lacks an approval from a required role"),
+    (
+        "L014",
+        "The policy's exposure is not covered by its approved ceiling",
+    ),
+    ("L015", "The policy has no approved ceiling"),
+    (
+        "L016",
+        "The ceiling lacks an approval from the `Security` role",
+    ),
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -437,6 +449,99 @@ pub fn lint_grant(
             "L013",
             "owner",
             "owner and reason are required",
+        ));
+    }
+    out
+}
+
+/// `Read` below `Write`, for comparing an exposed audience with its ceiling.
+fn access_rank(a: Access) -> u8 {
+    match a {
+        Access::Read => 0,
+        Access::Write => 1,
+    }
+}
+
+/// Is `exposure` covered by the approved `ceiling` (ADR-0007)? Every exposed audience must be in
+/// the ceiling with no more access and no longer a token, every egress host and tool must be in
+/// it, and the lease no longer. `None` is no ceiling at all (L015).
+pub fn lint_exposure(
+    exposure: &MaxExposure,
+    ceiling: Option<&ExposureCeilingSpec>,
+) -> Vec<Finding> {
+    let mut out = Vec::new();
+    let Some(c) = ceiling else {
+        out.push(Finding::err(
+            "L015",
+            "",
+            "no ExposureCeiling with this policy's name and namespace",
+        ));
+        return out;
+    };
+    if !c.approvals.iter().any(|a| a.role == Role::Security) {
+        out.push(Finding::err(
+            "L016",
+            "approvals",
+            "the ceiling has no approval from the Security role",
+        ));
+    }
+    for a in &exposure.audiences {
+        let path = format!("audiences[{}]", a.name);
+        let Some(approved) = c.audiences.iter().find(|x| x.name == a.name) else {
+            out.push(Finding::err(
+                "L014",
+                path,
+                "audience not in the approved ceiling",
+            ));
+            continue;
+        };
+        if access_rank(a.access) > access_rank(approved.access) {
+            out.push(Finding::err(
+                "L014",
+                path.clone(),
+                format!(
+                    "{:?} access above the approved {:?}",
+                    a.access, approved.access
+                ),
+            ));
+        }
+        if a.ttl_seconds > approved.max_ttl_seconds {
+            out.push(Finding::err(
+                "L014",
+                path,
+                format!(
+                    "token lifetime {}s above the approved {}s",
+                    a.ttl_seconds, approved.max_ttl_seconds
+                ),
+            ));
+        }
+    }
+    for host in &exposure.egress_hosts {
+        if !c.egress_hosts.contains(host) {
+            out.push(Finding::err(
+                "L014",
+                format!("egressHosts[{host}]"),
+                "egress host not in the approved ceiling",
+            ));
+        }
+    }
+    for tool in &exposure.tools {
+        if !c.tools.contains(tool) {
+            out.push(Finding::err(
+                "L014",
+                format!("tools[{tool}]"),
+                "tool not in the approved ceiling",
+            ));
+        }
+    }
+    if exposure.lease_max_seconds > c.max_lease_seconds {
+        out.push(Finding::err(
+            "L014",
+            "leaseMaxSeconds",
+            format!(
+                "lease {}s above the approved {}s",
+                exposure.lease_max_seconds, c.max_lease_seconds
+            ),
         ));
     }
     out

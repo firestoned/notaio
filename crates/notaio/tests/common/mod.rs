@@ -92,6 +92,28 @@ where
     }
 }
 
+/// The approved ceiling for [`hardened_policy`] (ADR-0007): exactly its exposure, one read-only
+/// audience with the K5.1 R0 token, the K7.3 R0 lease. [`package_install_grant`] does not widen it.
+/// Same shape as `examples/exposureceiling-agent-default.yaml`.
+pub fn hardened_ceiling(policy: &str, namespace: &str) -> Value {
+    json!({
+        "apiVersion": "sandbox.firestoned.io/v1alpha1",
+        "kind": "ExposureCeiling",
+        "metadata": { "name": policy, "namespace": namespace },
+        "spec": {
+            "audiences": [
+                { "name": "internal-git", "access": "Read", "maxTtlSeconds": 300 }
+            ],
+            "egressHosts": [],
+            "tools": [],
+            "maxLeaseSeconds": 14400,
+            "approvals": [
+                { "role": "Security", "reference": "https://example.com/review/2" }
+            ]
+        }
+    })
+}
+
 /// A SandboxPolicy on the `hardened` profile that passes every lint rule. Same shape as
 /// `examples/sandboxpolicy-hardened.yaml`.
 pub fn hardened_policy(name: &str, namespace: &str) -> Value {

@@ -147,6 +147,7 @@ nav:
       - "ADR-0004: Signing key custody": adr/0004-signing-key-custody.md
       - "ADR-0005: Canonical form (RFC 8785)": adr/0005-canonical-form-rfc-8785.md
       - "ADR-0006: notaio lint": adr/0006-notaio-lint-cli.md
+      - "ADR-0007: Exposure ceiling": adr/0007-exposure-ceiling.md
   - Reference:
       - Built-in Profiles: reference/profiles.md
   - Developer:

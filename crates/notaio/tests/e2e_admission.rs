@@ -12,7 +12,7 @@ mod common;
 use k8s_openapi::api::rbac::v1::{ClusterRole, ClusterRoleBinding};
 use kube::api::{DeleteParams, PostParams};
 use kube::{Api, Client, Config};
-use sandboxpolicy_api::SandboxPolicy;
+use sandboxpolicy_api::{ExposureCeiling, SandboxPolicy};
 use serde_json::json;
 
 use common::*;
@@ -80,6 +80,16 @@ async fn direct_edits_are_denied_even_for_cluster_admin() {
         err.to_string().contains(DENIAL),
         "denied, but not by the gitops-only policy: {err}"
     );
+
+    // Ceilings too (ADR-0007): an approval nobody reviewed is no approval.
+    let ceilings: Api<ExposureCeiling> = Api::namespaced(admin.clone(), &ns);
+    let ceiling: ExposureCeiling =
+        serde_json::from_value(hardened_ceiling(&unique_name("direct"), &ns)).expect("fixture");
+    let err = ceilings
+        .create(&PostParams::default(), &ceiling)
+        .await
+        .expect_err("cluster-admin created an ExposureCeiling directly");
+    assert!(err.to_string().contains(DENIAL), "unexpected denial: {err}");
 }
 
 #[tokio::test]
@@ -94,7 +104,7 @@ async fn gitops_reconciler_is_admitted_and_controller_still_writes_status() {
         "metadata": { "name": GITOPS_RBAC },
         "rules": [{
             "apiGroups": ["sandbox.firestoned.io"],
-            "resources": ["sandboxprofiles", "sandboxpolicies", "knobgrants"],
+            "resources": ["sandboxprofiles", "sandboxpolicies", "knobgrants", "exposureceilings"],
             "verbs": ["get", "list", "watch", "create", "update", "patch", "delete"]
         }]
     }))
@@ -121,7 +131,23 @@ async fn gitops_reconciler_is_admitted_and_controller_still_writes_status() {
     wait_enforcing(&admin, &ns).await;
 
     let name = unique_name("gitops");
-    let gitops: Api<SandboxPolicy> = Api::namespaced(as_gitops().await, &ns);
+    let gitops_client = as_gitops().await;
+    let gitops_ceilings: Api<ExposureCeiling> = Api::namespaced(gitops_client.clone(), &ns);
+    let ceiling: ExposureCeiling =
+        serde_json::from_value(hardened_ceiling(&name, &ns)).expect("fixture");
+    wait_for("the GitOps identity to create an ExposureCeiling", || {
+        let gitops_ceilings = gitops_ceilings.clone();
+        let c = ceiling.clone();
+        async move {
+            gitops_ceilings
+                .create(&PostParams::default(), &c)
+                .await
+                .ok()
+                .map(|_| ())
+        }
+    })
+    .await;
+    let gitops: Api<SandboxPolicy> = Api::namespaced(gitops_client, &ns);
     wait_for("the GitOps identity to create a SandboxPolicy", || {
         let gitops = gitops.clone();
         let p = policy(&name, &ns);
@@ -160,6 +186,10 @@ async fn gitops_reconciler_is_admitted_and_controller_still_writes_status() {
         .delete(&name, &DeleteParams::default())
         .await
         .expect("GitOps identity deletes its SandboxPolicy");
+    gitops_ceilings
+        .delete(&name, &DeleteParams::default())
+        .await
+        .expect("GitOps identity deletes its ExposureCeiling");
 
     bindings
         .delete(GITOPS_RBAC, &DeleteParams::default())

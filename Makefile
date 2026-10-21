@@ -337,7 +337,7 @@ kind-e2e-logs: ## Dump controller and policy state (run this when an e2e fails)
 	@echo "── controller logs ──"
 	-@$(KIND_KUBECTL) -n $(NAMESPACE) logs deployment/notaio --tail=200
 	@echo "── policy objects ──"
-	-@$(KIND_KUBECTL) get sandboxprofiles,sandboxpolicies,knobgrants -A -o yaml
+	-@$(KIND_KUBECTL) get sandboxprofiles,sandboxpolicies,knobgrants,exposureceilings -A -o yaml
 	@echo "── bundles ──"
 	-@$(KIND_KUBECTL) get configmaps -A -l app.kubernetes.io/managed-by=notaio -o yaml
 	@echo "── events ──"

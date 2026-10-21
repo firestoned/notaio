@@ -87,7 +87,7 @@ It is deliberately **not** in [banlieue](https://github.com/firestoned/banlieue)
 | If you want to know | Read |
 | --- | --- |
 | How notaio, banlieue, mediatore, mediatore-guest and the gateway relate, the contracts between them, and who trusts what | [Where notaio sits in AgentSandbox](architecture.md#where-notaio-sits-in-agentsandbox) |
-| How the three kinds, evaluation and the controller work | [Architecture](architecture.md) |
+| How the four kinds, evaluation and the controller work | [Architecture](architecture.md) |
 | Which threat model items this enforces, and which it does not | [Threat Model Mapping](security/threat-model-mapping.md) |
 | What a consumer can trust in a bundle | [ADR-0002: Bundle contract](adr/0002-bundle-contract.md) |
 | What the built-in profiles allow | [Built-in Profiles](reference/profiles.md) |

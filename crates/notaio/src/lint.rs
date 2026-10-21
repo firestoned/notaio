@@ -13,13 +13,14 @@
 //! | I005 | The compiled content has no RFC 8785 canonical form (ADR-0005) |
 //! | I006 | A grant has expired |
 //! | I007 | A policy's profile does not lint clean; the profile's own findings are reported against it |
+//! | I008 | An ExposureCeiling names a policy that is not in the inputs (ADR-0007) |
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
 use chrono::{DateTime, Duration, Utc};
-use sandboxpolicy_api::{GrantPhase, KnobGrant, SandboxPolicy, SandboxProfile};
+use sandboxpolicy_api::{ExposureCeiling, GrantPhase, KnobGrant, SandboxPolicy, SandboxProfile};
 use sandboxpolicy_core::ceilings::Ceilings;
 use sandboxpolicy_core::lint::{lint_knobs, Finding, Severity, RULES};
 use sandboxpolicy_core::{builtin, evaluate, EvalInput};
@@ -55,6 +56,10 @@ pub const INPUT_RULES: &[(&str, &str)] = &[
     (
         "I007",
         "A policy's profile does not lint clean; the profile's own findings are reported against it",
+    ),
+    (
+        "I008",
+        "An ExposureCeiling names a policy that is not in the inputs (ADR-0007)",
     ),
 ];
 
@@ -207,6 +212,9 @@ pub fn lint_sources_with(
     let mut profiles: BTreeMap<String, (PathBuf, SandboxProfile)> = BTreeMap::new();
     let mut policies: Vec<(PathBuf, SandboxPolicy)> = Vec::new();
     let mut grants: Vec<(PathBuf, KnobGrant)> = Vec::new();
+    // By (namespace, name): a ceiling caps the policy with the same name (ADR-0007).
+    let mut ceilings_by_policy: BTreeMap<(Option<String>, String), (PathBuf, ExposureCeiling)> =
+        BTreeMap::new();
 
     for source in sources {
         let docs: Vec<Value> =
@@ -253,6 +261,12 @@ pub fn lint_sources_with(
                     Ok(g) => grants.push((source.path.clone(), g)),
                     Err(e) => report.push("I001", &source.path, &object, "", invalid(e)),
                 },
+                "ExposureCeiling" => match serde_json::from_value::<ExposureCeiling>(doc) {
+                    Ok(c) => {
+                        ceilings_by_policy.insert((ns, name), (source.path.clone(), c));
+                    }
+                    Err(e) => report.push("I001", &source.path, &object, "", invalid(e)),
+                },
                 other => report.push(
                     "I001",
                     &source.path,
@@ -287,21 +301,57 @@ pub fn lint_sources_with(
         }
     }
 
+    for ((ns, name), (path, _)) in &ceilings_by_policy {
+        let owner = policies.iter().any(|(_, p)| {
+            p.metadata.namespace == *ns && p.metadata.name.as_deref() == Some(name.as_str())
+        });
+        if !owner {
+            report.push(
+                "I008",
+                path,
+                &describe("ExposureCeiling", ns.as_deref(), name),
+                "metadata.name",
+                format!("no SandboxPolicy {name:?} in the inputs"),
+            );
+        }
+    }
+
     for (path, policy) in &policies {
-        lint_policy(&mut report, path, policy, &profiles, &grants, now, ceilings);
+        let key = (
+            policy.metadata.namespace.clone(),
+            policy.metadata.name.clone().unwrap_or_default(),
+        );
+        let exposure_ceiling = ceilings_by_policy.get(&key).map(|(_, c)| c);
+        let refs = PolicyRefs {
+            profiles: &profiles,
+            grants: &grants,
+            exposure_ceiling,
+        };
+        lint_policy(&mut report, path, policy, &refs, now, ceilings);
     }
     Ok(report)
+}
+
+/// What a policy may reference among the inputs.
+struct PolicyRefs<'a> {
+    profiles: &'a BTreeMap<String, (PathBuf, SandboxProfile)>,
+    grants: &'a [(PathBuf, KnobGrant)],
+    exposure_ceiling: Option<&'a ExposureCeiling>,
 }
 
 fn lint_policy(
     report: &mut Report,
     path: &Path,
     policy: &SandboxPolicy,
-    profiles: &BTreeMap<String, (PathBuf, SandboxProfile)>,
-    grants: &[(PathBuf, KnobGrant)],
+    refs: &PolicyRefs<'_>,
     now: DateTime<Utc>,
     ceilings: &Ceilings,
 ) {
+    let PolicyRefs {
+        profiles,
+        grants,
+        exposure_ceiling,
+    } = *refs;
     let name = policy.metadata.name.clone().unwrap_or_default();
     let object = describe("SandboxPolicy", policy.metadata.namespace.as_deref(), &name);
     let profile_name = &policy.spec.profile_ref;
@@ -328,6 +378,7 @@ fn lint_policy(
     let my_grants: Vec<KnobGrant> = mine.iter().map(|(_, g)| g.clone()).collect();
     let out = evaluate(&EvalInput {
         now,
+        exposure_ceiling,
         policy,
         profile: Some(&profile),
         grants: &my_grants,

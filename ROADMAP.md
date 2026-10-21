@@ -32,6 +32,8 @@ Not done: nothing has run on a cluster.
   `notaio controller`.
 - Approved-ceiling check: a way to record the approved maximum exposure of a profile or policy and
   fail a change that exceeds it (the "maximum exposure compared with its approved ceiling" test).
+  **Done 2026-10-20** (ADR-0007): an `ExposureCeiling` per policy, approved by `Security`, checked
+  by `notaio lint` and by the controller (L014 to L016, I008). No ceiling, no bundle.
 - Decide ADR-0002 open decisions 1, 2 and 4 (distribution, signing key custody, canonicalisation),
   then freeze bundle schema v1. **Decided 2026-10-16:** ADR-0003 (ConfigMap, relayed by mediatore),
   ADR-0004 (OpenBao transit), ADR-0005 (RFC 8785, which bumps the schema to v2). **Done

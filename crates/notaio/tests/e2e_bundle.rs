@@ -13,7 +13,7 @@ use chrono::Utc;
 use k8s_openapi::api::core::v1::{ConfigMap, Secret};
 use kube::api::{DeleteParams, PostParams};
 use kube::{Api, Client, ResourceExt};
-use sandboxpolicy_api::{GrantPhase, KnobGrant, SandboxPolicy};
+use sandboxpolicy_api::{ExposureCeiling, GrantPhase, KnobGrant, SandboxPolicy};
 use sandboxpolicy_bundle::{
     verify_bundle, BundlePayload, Ed25519Signer, Envelope, Signer, TrustedKeys, VerifyOptions,
 };
@@ -99,6 +99,14 @@ async fn policy_compiles_to_a_signed_verifiable_bundle_that_never_goes_back() {
     let keys = trusted_keys(&client).await;
 
     let name = unique_name("bundle");
+    // The approved ceiling first: without one nothing publishes (ADR-0007).
+    let ceilings: Api<ExposureCeiling> = Api::namespaced(client.clone(), &ns);
+    let ceiling: ExposureCeiling = serde_json::from_value(hardened_ceiling(&name, &ns))
+        .expect("fixture is an ExposureCeiling");
+    ceilings
+        .create(&PostParams::default(), &ceiling)
+        .await
+        .expect("create ExposureCeiling");
     let policy: SandboxPolicy =
         serde_json::from_value(hardened_policy(&name, &ns)).expect("fixture is a SandboxPolicy");
     policies
@@ -189,6 +197,63 @@ async fn policy_compiles_to_a_signed_verifiable_bundle_that_never_goes_back() {
         .delete(&grant_name, &DeleteParams::default())
         .await
         .expect("delete KnobGrant");
+    policies
+        .delete(&name, &DeleteParams::default())
+        .await
+        .expect("delete SandboxPolicy");
+    ceilings
+        .delete(&name, &DeleteParams::default())
+        .await
+        .expect("delete ExposureCeiling");
+}
+
+#[tokio::test]
+#[ignore = "needs a kind cluster: make kind-e2e-bundle"]
+async fn a_policy_without_an_approved_ceiling_publishes_nothing() {
+    // ADR-0007, decision 4: enforced in the cluster, not only at pull request time.
+    let client = client().await;
+    let ns = policy_namespace();
+    let policies: Api<SandboxPolicy> = Api::namespaced(client.clone(), &ns);
+    let cms: Api<ConfigMap> = Api::namespaced(client.clone(), &ns);
+    let name = unique_name("uncapped");
+    let policy: SandboxPolicy =
+        serde_json::from_value(hardened_policy(&name, &ns)).expect("fixture is a SandboxPolicy");
+    policies
+        .create(&PostParams::default(), &policy)
+        .await
+        .expect("create SandboxPolicy");
+
+    // Wait on the controller's verdict, not on the absence of a ConfigMap, which is true before
+    // the controller has looked at all.
+    let status = wait_for(
+        &format!("SandboxPolicy {name} refused for want of a ceiling"),
+        || {
+            let policies = policies.clone();
+            let name = name.clone();
+            async move {
+                let status = policies.get(&name).await.ok()?.status?;
+                status
+                    .conditions
+                    .iter()
+                    .any(|c| {
+                        c.type_ == "Ready" && c.status == "False" && c.reason == "NoApprovedCeiling"
+                    })
+                    .then_some(status)
+            }
+        },
+    )
+    .await;
+    assert!(
+        status.max_exposure.is_some(),
+        "the exposure to approve is reported"
+    );
+    assert!(
+        cms.get_opt(&bundle_object_name(&name))
+            .await
+            .expect("get")
+            .is_none(),
+        "a bundle was published without an approved ceiling"
+    );
     policies
         .delete(&name, &DeleteParams::default())
         .await

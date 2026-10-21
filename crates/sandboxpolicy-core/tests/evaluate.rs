@@ -67,17 +67,62 @@ fn grant(name: &str, knob: &str, step: Step, days: i64, roles: &[Role]) -> KnobG
     )
 }
 
+/// A ceiling that covers anything `policy` names (ADR-0007), so tests about something else are not
+/// refused for want of one.
+fn covering_ceiling(policy: &SandboxPolicy) -> ExposureCeiling {
+    let spec = &policy.spec;
+    let mut c = ExposureCeiling::new(
+        policy.metadata.name.as_deref().unwrap(),
+        ExposureCeilingSpec {
+            audiences: spec
+                .audiences
+                .iter()
+                .map(|a| CeilingAudience {
+                    name: a.name.clone(),
+                    access: Access::Write,
+                    max_ttl_seconds: u32::MAX,
+                })
+                .collect(),
+            egress_hosts: spec
+                .egress
+                .iter()
+                .map(|e| format!("{}:{}", e.host, e.port))
+                .collect(),
+            tools: spec.tools.iter().map(|t| t.name.clone()).collect(),
+            max_lease_seconds: u32::MAX,
+            approvals: vec![Approval {
+                role: Role::Security,
+                reference: "https://example.invalid/pr/2".into(),
+            }],
+        },
+    );
+    c.metadata.namespace = policy.metadata.namespace.clone();
+    c
+}
+
 fn run(
     policy: &SandboxPolicy,
     profile: Option<&SandboxProfile>,
     grants: &[KnobGrant],
     prev: Option<(u64, &str)>,
 ) -> EvalOutput {
+    let ceiling = covering_ceiling(policy);
+    run_with_ceiling(policy, profile, grants, prev, Some(&ceiling))
+}
+
+fn run_with_ceiling(
+    policy: &SandboxPolicy,
+    profile: Option<&SandboxProfile>,
+    grants: &[KnobGrant],
+    prev: Option<(u64, &str)>,
+    exposure_ceiling: Option<&ExposureCeiling>,
+) -> EvalOutput {
     let ceilings = Ceilings::default();
     evaluate(&EvalInput {
         now: now(),
         policy,
         profile,
+        exposure_ceiling,
         grants,
         prev_version: prev.map(|p| p.0),
         prev_digest: prev.map(|p| p.1),
@@ -368,10 +413,12 @@ fn content_without_a_canonical_form_fails_closed() {
         egress_bytes: [u64::MAX; 3],
         ..Ceilings::default()
     };
+    let ceiling = covering_ceiling(&po);
     let o = evaluate(&EvalInput {
         now: now(),
         policy: &po,
         profile: Some(&pr),
+        exposure_ceiling: Some(&ceiling),
         grants: &[],
         prev_version: None,
         prev_digest: None,
@@ -422,5 +469,96 @@ fn rules_table_matches_the_documented_codes() {
             "{code} differs between RULES and the documented table"
         );
     }
-    assert_eq!(sandboxpolicy_core::lint::RULES.len(), 13);
+    assert_eq!(sandboxpolicy_core::lint::RULES.len(), 16);
+}
+
+fn ready_reason(o: &EvalOutput) -> Option<&str> {
+    o.status
+        .conditions
+        .iter()
+        .find(|c| c.type_ == "Ready")
+        .map(|c| c.reason.as_str())
+}
+
+fn has_code(o: &EvalOutput, code: &str) -> bool {
+    o.findings.iter().any(|f| f.code == code)
+}
+
+fn read_ceiling(po: &SandboxPolicy, ttl: u32, lease: u32) -> ExposureCeiling {
+    let mut c = covering_ceiling(po);
+    for a in &mut c.spec.audiences {
+        a.access = Access::Read;
+        a.max_ttl_seconds = ttl;
+    }
+    c.spec.max_lease_seconds = lease;
+    c
+}
+
+#[test]
+fn l015_no_ceiling_fails_closed_and_still_reports_exposure() {
+    let pr = profile("hardened");
+    let po = policy("hardened", vec![audience("internal-git", Access::Read)]);
+    let o = run_with_ceiling(&po, Some(&pr), &[], None, None);
+    assert!(o.bundle.is_none());
+    assert!(!ready(&o));
+    assert_eq!(ready_reason(&o), Some("NoApprovedCeiling"));
+    assert!(has_code(&o, "L015"), "{:?}", o.findings);
+    // Approvers need to see what they are being asked to approve.
+    assert!(o.status.max_exposure.is_some());
+}
+
+#[test]
+fn l014_exposure_not_covered_fails_closed() {
+    let pr = profile("hardened");
+    let po = policy("hardened", vec![audience("internal-git", Access::Read)]);
+    // Hardened gives a 300 second token and a 4 hour lease. Each ceiling below misses one.
+    for ceiling in [
+        read_ceiling(&po, 60, u32::MAX),
+        read_ceiling(&po, 300, 3600),
+    ] {
+        let o = run_with_ceiling(&po, Some(&pr), &[], None, Some(&ceiling));
+        assert!(o.bundle.is_none(), "published past {:?}", ceiling.spec);
+        assert_eq!(ready_reason(&o), Some("ExposureAboveCeiling"));
+        assert!(has_code(&o, "L014"), "{:?}", o.findings);
+    }
+    // Exactly at the ceiling is covered.
+    let exact = read_ceiling(&po, 300, 4 * 3600);
+    let o = run_with_ceiling(&po, Some(&pr), &[], None, Some(&exact));
+    assert!(ready(&o), "{:?}", o.findings);
+}
+
+#[test]
+fn l014_an_audience_missing_from_the_ceiling_is_not_covered() {
+    let pr = profile("hardened");
+    let po = policy("hardened", vec![audience("internal-git", Access::Read)]);
+    let mut c = covering_ceiling(&po);
+    c.spec.audiences[0].name = "something-else".into();
+    let o = run_with_ceiling(&po, Some(&pr), &[], None, Some(&c));
+    assert!(has_code(&o, "L014"), "{:?}", o.findings);
+    assert!(o.bundle.is_none());
+}
+
+#[test]
+fn l014_a_grant_that_widens_exposure_past_the_ceiling_is_refused() {
+    // K5.1 R1 raises the default token lifetime from 300 to 900 seconds. The grant itself is
+    // valid; the exposure it produces is not approved.
+    let pr = profile("hardened");
+    let po = policy("hardened", vec![audience("internal-git", Access::Read)]);
+    let g = grant("ttl", "K5.1", Step::R1, 7, &[Role::Security]);
+    let c = read_ceiling(&po, 300, u32::MAX);
+    let o = run_with_ceiling(&po, Some(&pr), &[g], None, Some(&c));
+    assert_eq!(o.grants[0].phase, GrantPhase::Active);
+    assert!(has_code(&o, "L014"), "{:?}", o.findings);
+    assert!(o.bundle.is_none());
+}
+
+#[test]
+fn l016_ceiling_without_a_security_approval_fails_closed() {
+    let pr = profile("hardened");
+    let po = policy("hardened", vec![audience("internal-git", Access::Read)]);
+    let mut c = covering_ceiling(&po);
+    c.spec.approvals[0].role = Role::PlatformOwner;
+    let o = run_with_ceiling(&po, Some(&pr), &[], None, Some(&c));
+    assert!(has_code(&o, "L016"), "{:?}", o.findings);
+    assert!(o.bundle.is_none());
 }

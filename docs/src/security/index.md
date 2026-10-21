@@ -24,6 +24,7 @@ The full policy, including response times and scope, is in
 | The controller reads no Secrets through the API, and writes bundles only where allowed | per-namespace Role, no Secret verbs | `e2e_rbac` |
 | No inbound connections; egress to DNS and the API server only | `deploy/controller/30-networkpolicy.yaml` | applied in every e2e run |
 | Toxic combinations, wildcard audiences, multi-step grants are refused | lint rules L001 to L013 | `sandboxpolicy-core` tests |
+| No policy publishes past its approved exposure, and none publishes without one | ExposureCeiling and lint rules L014 to L016 ([ADR-0007](../adr/0007-exposure-ceiling.md)), checked by `notaio lint` and by the controller | `sandboxpolicy-core` tests; `e2e_bundle` (no ceiling, no bundle) |
 
 ## Supply chain
 

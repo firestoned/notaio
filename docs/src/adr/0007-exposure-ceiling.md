@@ -1,0 +1,1 @@
+--8<-- "adr/0007-exposure-ceiling.md"

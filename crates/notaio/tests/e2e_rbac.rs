@@ -21,6 +21,8 @@ use common::{client, controller_namespace, controller_user, policy_namespace};
 const GROUP: &str = "sandbox.firestoned.io";
 const RBAC: &str = "rbac.authorization.k8s.io";
 const POLICY_KINDS: [&str; 3] = ["sandboxprofiles", "sandboxpolicies", "knobgrants"];
+/// Read only, and no status subresource to write (ADR-0007).
+const CEILINGS: &str = "exposureceilings";
 
 /// Asks the API server whether the controller may `verb` on `resource` (optionally a
 /// `subresource`) in `namespace` (None for cluster scope).
@@ -89,6 +91,12 @@ async fn controller_can_read_policy_objects_and_write_their_status() {
             "controller cannot patch {kind}/status"
         );
     }
+    for verb in ["get", "list", "watch"] {
+        assert!(
+            may(&client, verb, GROUP, CEILINGS, None, None).await,
+            "controller cannot {verb} {CEILINGS}"
+        );
+    }
     for verb in ["get", "create", "patch"] {
         assert!(
             may(&client, verb, "", "configmaps", None, Some(&policy_ns)).await,
@@ -102,7 +110,7 @@ async fn controller_can_read_policy_objects_and_write_their_status() {
 async fn controller_cannot_create_edit_or_delete_policy_objects() {
     let client = client().await;
     let policy_ns = policy_namespace();
-    for kind in POLICY_KINDS {
+    for kind in POLICY_KINDS.into_iter().chain([CEILINGS]) {
         for verb in ["create", "update", "patch", "delete", "deletecollection"] {
             for ns in [None, Some(policy_ns.as_str())] {
                 assert!(

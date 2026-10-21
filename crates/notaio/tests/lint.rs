@@ -1,6 +1,6 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-//! `notaio lint`, the engine (ADR-0006). Every input code I001 to I007 has a test here that fails
+//! `notaio lint`, the engine (ADR-0006). Every input code I001 to I008 has a test here that fails
 //! when its check is removed.
 
 use std::path::PathBuf;
@@ -64,6 +64,29 @@ spec:
 
 const IN_A_WEEK: &str = "2026-10-27T00:00:00Z";
 
+/// An approved ceiling for `policy` that covers everything the fixtures use (ADR-0007).
+fn ceiling(policy: &str, max_ttl: u32) -> String {
+    format!(
+        r#"apiVersion: sandbox.firestoned.io/v1alpha1
+kind: ExposureCeiling
+metadata:
+  name: {policy}
+  namespace: sandboxes
+spec:
+  audiences:
+    - name: internal-git
+      access: Write
+      maxTtlSeconds: {max_ttl}
+  egressHosts: []
+  tools: []
+  maxLeaseSeconds: 86400
+  approvals:
+    - role: Security
+      reference: https://example.com/review/2
+"#
+    )
+}
+
 fn codes(r: &Report) -> Vec<&str> {
     r.diagnostics.iter().map(|d| d.code.as_str()).collect()
 }
@@ -79,13 +102,14 @@ fn errors(r: &Report) -> Vec<&str> {
 #[test]
 fn a_clean_repository_has_no_findings() {
     let text = format!(
-        "{}---\n{}",
+        "{}---\n{}---\n{}",
         policy("agent-default", "hardened", "Read"),
-        grant("pkg", "agent-default", "R1", IN_A_WEEK)
+        grant("pkg", "agent-default", "R1", IN_A_WEEK),
+        ceiling("agent-default", 3600)
     );
     let r = lint_sources(&[src("policies.yaml", &text)], now()).unwrap();
     assert!(r.diagnostics.is_empty(), "{:#?}", r.diagnostics);
-    assert_eq!(r.checked, 2);
+    assert_eq!(r.checked, 3);
     assert!(!r.has_errors());
 }
 
@@ -211,7 +235,12 @@ fn i005_content_without_a_canonical_form() {
         egress_bytes: [u64::MAX; 3],
         ..Ceilings::default()
     };
-    let r = lint_sources_with(&[src("p.yaml", &p)], now(), &ceilings).unwrap();
+    let r = lint_sources_with(
+        &[src("p.yaml", &p), src("c.yaml", &ceiling("big", 3600))],
+        now(),
+        &ceilings,
+    )
+    .unwrap();
     assert_eq!(errors(&r), vec!["I005"], "{:#?}", r.diagnostics);
 }
 
@@ -224,6 +253,7 @@ fn i006_expired_grant_fails() {
                 "g.yaml",
                 &grant("old", "agent-default", "R1", "2026-10-01T00:00:00Z"),
             ),
+            src("c.yaml", &ceiling("agent-default", 3600)),
         ],
         now(),
     )
@@ -265,4 +295,40 @@ spec:
         vec!["I007"],
         "profile findings belong to the profile"
     );
+}
+
+#[test]
+fn l015_a_policy_without_a_ceiling_fails() {
+    let r = lint_sources(
+        &[src("p.yaml", &policy("agent-default", "hardened", "Read"))],
+        now(),
+    )
+    .unwrap();
+    assert_eq!(errors(&r), vec!["L015"], "{:#?}", r.diagnostics);
+}
+
+#[test]
+fn l014_exposure_above_the_ceiling_fails_on_the_policy() {
+    // Hardened gives a 300 second token; this ceiling approves 60.
+    let r = lint_sources(
+        &[
+            src("p.yaml", &policy("agent-default", "hardened", "Read")),
+            src("c.yaml", &ceiling("agent-default", 60)),
+        ],
+        now(),
+    )
+    .unwrap();
+    let d = r
+        .diagnostics
+        .iter()
+        .find(|d| d.code == "L014")
+        .expect("an L014 finding");
+    assert_eq!(d.object, "SandboxPolicy sandboxes/agent-default");
+    assert_eq!(d.path, PathBuf::from("p.yaml"));
+}
+
+#[test]
+fn i008_ceiling_for_a_policy_not_in_the_inputs() {
+    let r = lint_sources(&[src("c.yaml", &ceiling("missing", 3600))], now()).unwrap();
+    assert_eq!(errors(&r), vec!["I008"]);
 }

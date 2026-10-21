@@ -7,7 +7,7 @@ use std::collections::BTreeMap;
 
 use chrono::{DateTime, Duration, Utc};
 use sandboxpolicy_api::{
-    Condition, ExposedAudience, GrantPhase, KnobGrant, MaxExposure, SandboxPolicy,
+    Condition, ExposedAudience, ExposureCeiling, GrantPhase, KnobGrant, MaxExposure, SandboxPolicy,
     SandboxPolicySpec, SandboxPolicyStatus, SandboxProfile, SandboxProfileSpec,
 };
 use sandboxpolicy_bundle::{
@@ -25,6 +25,9 @@ pub struct EvalInput<'a> {
     pub policy: &'a SandboxPolicy,
     /// `None` when the referenced profile does not exist.
     pub profile: Option<&'a SandboxProfile>,
+    /// The policy's approved maximum exposure (ADR-0007). `None` when there is none, which
+    /// fails closed (lint L015).
+    pub exposure_ceiling: Option<&'a ExposureCeiling>,
     /// Grants visible to the policy. Grants for other policies are ignored.
     pub grants: &'a [KnobGrant],
     /// Highest version ever published for this policy (status, or the published object).
@@ -323,7 +326,7 @@ pub fn evaluate(input: &EvalInput<'_>) -> EvalOutput {
     status.next_grant_expiry = earliest;
 
     // 3. The policy itself, against the effective knobs.
-    let findings = lint::lint_policy(&effective, &input.policy.spec, input.ceilings);
+    let mut findings = lint::lint_policy(&effective, &input.policy.spec, input.ceilings);
     let mut requeue = input.bundle_lifetime / 2;
     if let Some(e) = earliest {
         requeue = requeue.min(e - now + Duration::seconds(1));
@@ -365,6 +368,36 @@ pub fn evaluate(input: &EvalInput<'_>) -> EvalOutput {
     );
     // RFC 8785 has no exact form for floats or integers beyond 2^53 - 1 (ADR-0005). Content
     // without a canonical form is never published: no bundle, and Ready says why.
+    // The approved ceiling (ADR-0007). Compared on the compiled content, so active grants count.
+    // A policy it does not cover publishes nothing new; its exposure is still reported, so the
+    // approvers can see what they are being asked to approve.
+    let exposed = exposure(&content);
+    let gate = lint::lint_exposure(&exposed, input.exposure_ceiling.map(|c| &c.spec));
+    if has_errors(&gate) {
+        let reason = if input.exposure_ceiling.is_none() {
+            "NoApprovedCeiling"
+        } else if gate.iter().any(|f| f.code == "L016") {
+            "CeilingNotApproved"
+        } else {
+            "ExposureAboveCeiling"
+        };
+        let msg = summarize(&gate);
+        status.max_exposure = Some(exposed);
+        status.conditions = vec![
+            cond("ProfileResolved", true, "Resolved", "profile is valid"),
+            cond("Valid", true, "Valid", "policy passes every lint rule"),
+            cond("Ready", false, reason, &msg),
+        ];
+        findings.extend(gate);
+        return EvalOutput {
+            status,
+            grants,
+            bundle: None,
+            findings,
+            requeue_after: requeue,
+        };
+    }
+
     let refused = |e: &BundleError| {
         vec![
             cond("ProfileResolved", true, "Resolved", "profile is valid"),
@@ -387,7 +420,7 @@ pub fn evaluate(input: &EvalInput<'_>) -> EvalOutput {
     status.bundle_version = Some(version);
     status.bundle_digest = Some(digest);
     status.bundle_not_after = Some(not_after);
-    status.max_exposure = Some(exposure(&content));
+    status.max_exposure = Some(exposed);
     status.conditions = vec![
         cond("ProfileResolved", true, "Resolved", "profile is valid"),
         cond("Valid", true, "Valid", "policy passes every lint rule"),

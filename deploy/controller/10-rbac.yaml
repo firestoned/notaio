@@ -5,8 +5,8 @@ metadata:
   namespace: notaio-system
 ---
 # Cluster scope is read-only for the policy kinds, plus status writes. Nothing here can create,
-# update or delete a SandboxProfile, SandboxPolicy or KnobGrant: those arrive through review and
-# GitOps only (threat model T8.2).
+# update or delete a SandboxProfile, SandboxPolicy, KnobGrant or ExposureCeiling: those arrive
+# through review and GitOps only (threat model T8.2).
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -14,6 +14,10 @@ metadata:
 rules:
   - apiGroups: ["sandbox.firestoned.io"]
     resources: ["sandboxprofiles", "sandboxpolicies", "knobgrants"]
+    verbs: ["get", "list", "watch"]
+  # Approved exposure ceilings (ADR-0007): read only, and no status to write.
+  - apiGroups: ["sandbox.firestoned.io"]
+    resources: ["exposureceilings"]
     verbs: ["get", "list", "watch"]
   - apiGroups: ["sandbox.firestoned.io"]
     resources: ["sandboxprofiles/status", "sandboxpolicies/status", "knobgrants/status"]

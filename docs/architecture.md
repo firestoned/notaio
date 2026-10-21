@@ -63,9 +63,9 @@ Sandboxes take no inbound connections and have no route to any Kubernetes API se
 
 | Component | Runs | Relationship to notaio | Today |
 | --- | --- | --- | --- |
-| **notaio** | management cluster; policy repository CI | The only producer of bundles. `notaio controller` watches the three kinds, writes their status and the bundle, and nothing else. `notaio lint` runs the same checks on the policy repository's files in every pull request ([ADR-0006](adr/0006-notaio-lint-cli.md)). | implemented; e2e on kind and k0s |
-| Policy repository | Git | Where the three kinds are authored and reviewed. A `KnobGrant`'s approvals reference the reviewed change. | by convention |
-| GitOps reconciler | management cluster | The only identity allowed to create, change or delete the three kinds (`deploy/admission/gitops-only.yaml`). notaio itself cannot (`deploy/controller/10-rbac.yaml`). | implemented; `e2e_admission`, `e2e_rbac` |
+| **notaio** | management cluster; policy repository CI | The only producer of bundles. `notaio controller` watches the four kinds, writes their status and the bundle, and nothing else. `notaio lint` runs the same checks on the policy repository's files in every pull request ([ADR-0006](adr/0006-notaio-lint-cli.md)). | implemented; e2e on kind and k0s |
+| Policy repository | Git | Where the four kinds are authored and reviewed; ceilings sit under a path its CODEOWNERS gives to the security approvers. A `KnobGrant`'s approvals reference the reviewed change. | by convention |
+| GitOps reconciler | management cluster | The only identity allowed to create, change or delete the four kinds (`deploy/admission/gitops-only.yaml`). notaio itself cannot (`deploy/controller/10-rbac.yaml`). | implemented; `e2e_admission`, `e2e_rbac` |
 | [banlieue](https://github.com/firestoned/banlieue) | management cluster | Creates one VM per identity, outside any cluster, and hands it out through a claim. Consumes the CRD types (`sandboxpolicy-api`): its admission checks claim eligibility with these objects as parameters, and the claim records the policy version. No policy logic lives in banlieue. | M3 |
 | [mediatore](https://github.com/firestoned/mediatore) | management cluster | Binds a person's login to an attested VM and mints short-lived, one-audience tokens. Verifies the bundle, evaluates it at every mint, stamps the bundle version into the token and refuses a stale one. Never watches policy objects. | M3 |
 | [mediatore-guest](https://github.com/firestoned/mediatore/tree/main/crates/mediatore-guest) | root, inside every sandbox VM | Renders the jail, the nftables ruleset and the agent's settings from the verified bundle. Depends on `sandboxpolicy-bundle` only, which has no Kubernetes dependency, so a root process in a hostile VM inherits no cluster client. Never evaluates policy for itself. | M3 |
@@ -155,7 +155,7 @@ sequenceDiagram
   bundle ConfigMap can withhold a bundle or replay an older one. It cannot loosen a sandbox: a forged
   bundle fails the signature, and an older one fails the version floor and expiry.
 - **notaio trusts only the API server.** It takes no inbound connection, holds no hypervisor
-  credentials, and no agent traffic reaches it. Its RBAC is read on the three kinds, status writes,
+  credentials, and no agent traffic reaches it. Its RBAC is read on the four kinds, status writes,
   and bundle writes in named namespaces.
 - **Duties are split on purpose.** banlieue holds the keys to the VMs, mediatore holds the power to
   mint tokens, and notaio holds the power to sign policy. The threat model requires that whoever
@@ -167,7 +167,7 @@ sequenceDiagram
   policy and never talks to a Kubernetes API server, so a compromised guest can at worst break its
   own sandbox, which the controls outside the guest (host and gateway) still contain.
 
-## The three kinds
+## The four kinds
 
 **SandboxProfile** (cluster scoped). A named set of knob steps, `R0` to `R3`, plus a `dataScope`.
 `dataScope: LabOnly` records that the profile holds no sensitive data, which is what lets Lab combine
@@ -183,6 +183,13 @@ above the profile, carry an owner, a reason, an expiry inside the cap for its st
 R3 7) and an approval from every role the register names for that knob, each with a reference to the
 reviewed change.
 
+**ExposureCeiling** (namespaced, named after its policy). The approved maximum exposure of one
+policy: the audiences it may expose (each with the most access and the longest token), its egress
+hosts, its tools and its longest lease, plus an approval from the `Security` role
+([ADR-0007](adr/0007-exposure-ceiling.md)). A policy without one, or whose exposure it does not
+cover, publishes nothing new. Widening a policy therefore takes two approvals: the policy change
+and the ceiling change. The controller only reads ceilings.
+
 ## Evaluation
 
 `sandboxpolicy_core::evaluate` is a pure function of the policy, its profile, its grants and `now`.
@@ -197,6 +204,9 @@ reviewed change.
 5. Bundle validity is `now + lifetime`, clamped to the earliest active grant expiry, so a relaxation
    lapses on its own with no revocation mechanism.
 6. `status.maxExposure` records what a fully compromised sandbox could reach (objective O3).
+7. The exposure, grants included, must be covered by the policy's ExposureCeiling (L014 to
+   L016). If it is not, or there is none, no bundle is compiled, `Ready` is `False` with the
+   reason, and `maxExposure` is still reported so the approvers can see what to approve.
 
 The lint rules and their codes are documented at the top of
 `crates/sandboxpolicy-core/src/lint.rs`.
@@ -206,9 +216,9 @@ The lint rules and their codes are documented at the top of
 `notaio lint <paths>` runs the controller's checks on files: `lint_knobs` on every profile and
 `evaluate` on every policy with its grants, under the default ceilings and the current time
 ([ADR-0006](adr/0006-notaio-lint-cli.md)). A policy the controller would reject fails its pull
-request instead, with the same lint codes (L001 to L013) and input codes for what only a set of
-files can get wrong (I001 to I007: an invalid object, a duplicate, a missing profile, an orphaned
-or expired grant). Profiles come from the files first, then the built-ins. `--format sarif`
+request instead, with the same lint codes (L001 to L016, including the ceiling checks) and input codes for what
+only a set of files can get wrong (I001 to I008: an invalid object, a duplicate, a missing
+profile, an orphaned or expired grant, a ceiling for no policy). Profiles come from the files first, then the built-ins. `--format sarif`
 feeds GitHub code scanning, so a reviewer sees the finding on the file. It exits 0 when clean, 1 on
 an error finding and 2 on unreadable input.
 
@@ -226,7 +236,7 @@ status.
   Unsigned bundles are never published.
 - **Monotonic version.** The previous version is the higher of the status and the published
   ConfigMap annotation, so losing status cannot reset it.
-- **Least privilege.** Read on the three kinds, `patch` on their status, `get/create/patch` on
+- **Least privilege.** Read on the four kinds, `patch` on their status, `get/create/patch` on
   ConfigMaps in named namespaces only. It cannot create, edit or delete a policy object, and it holds
   no hypervisor credentials. It takes no inbound connections.
 

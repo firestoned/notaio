@@ -28,6 +28,24 @@ spec:
   tools: []
 "#;
 
+const CEILING: &str = r#"apiVersion: sandbox.firestoned.io/v1alpha1
+kind: ExposureCeiling
+metadata:
+  name: agent-default
+  namespace: sandboxes
+spec:
+  audiences:
+    - name: internal-git
+      access: Read
+      maxTtlSeconds: 300
+  egressHosts: []
+  tools: []
+  maxLeaseSeconds: 14400
+  approvals:
+    - role: Security
+      reference: https://example.com/review/2
+"#;
+
 const JUMPING_GRANT: &str = r#"apiVersion: sandbox.firestoned.io/v1alpha1
 kind: KnobGrant
 metadata:
@@ -73,7 +91,13 @@ fn lint(dir: &Path, extra: &[&str]) -> Output {
 
 #[test]
 fn clean_repository_exits_zero() {
-    let dir = repo("cli-clean", &[("nested/policy.yaml", CLEAN_POLICY)]);
+    let dir = repo(
+        "cli-clean",
+        &[
+            ("nested/policy.yaml", CLEAN_POLICY),
+            ("ceiling.yaml", CEILING),
+        ],
+    );
     let out = lint(&dir, &[]);
     assert_eq!(
         out.status.code(),
@@ -126,7 +150,7 @@ fn sarif_output_names_rules_results_and_locations() {
         .iter()
         .map(|r| r["id"].as_str().unwrap())
         .collect();
-    for code in ["L001", "L013", "I001", "I007"] {
+    for code in ["L001", "L013", "L014", "L016", "I001", "I007", "I008"] {
         assert!(rules.contains(&code), "rule {code} missing from {rules:?}");
     }
     let result = run["results"]

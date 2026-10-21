@@ -3,11 +3,13 @@
 //! Consumers (banlieue admission, notaio controller, tooling) depend on this crate. Nothing
 //! that runs inside a sandbox VM should: use `sandboxpolicy-bundle` there instead.
 
+mod ceiling;
 mod grant;
 mod policy;
 mod profile;
 mod status;
 
+pub use ceiling::{CeilingAudience, ExposureCeiling, ExposureCeilingSpec};
 pub use grant::{Approval, GrantPhase, KnobGrant, KnobGrantSpec, KnobGrantStatus};
 pub use policy::{
     ExposedAudience, MaxExposure, SandboxPolicy, SandboxPolicySpec, SandboxPolicyStatus, Subjects,
