@@ -1,0 +1,1 @@
+--8<-- "adr/0006-notaio-lint-cli.md"

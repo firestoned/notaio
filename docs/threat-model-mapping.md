@@ -1,6 +1,6 @@
 # Mapping to the AgentSandbox threat model
 
-Last full pass 2026-10-20, against ADR-0001 … ADR-0005.
+Last full pass 2026-10-20, against ADR-0001 … ADR-0006.
 
 What this project implements, what it only supports, and what it does not cover. Identifiers refer
 to the AgentSandbox Threat Model and Security Roadmap. When that document changes, update
@@ -14,6 +14,7 @@ to the AgentSandbox Threat Model and Security Roadmap. When that document change
 | Expiring relaxations, per-step lifetime caps | lint L012, bundle `notAfter` clamped to the earliest grant expiry |
 | Approver per knob | `registry.rs` approvers, lint L013 |
 | "No toxic combinations" | lint L003, with `dataScope` for Lab |
+| "Toxic-combination lint on every policy pull request" | `notaio lint` (`crates/notaio/src/lint.rs`, ADR-0006) runs the controller's own checks on the policy repository's files, with the same codes, and SARIF for inline review. Making it a required check is a setting of the policy repository. |
 | Lab-only knobs (K6.3 R1, K8.2 R1) | lint L004 |
 | "Wildcard audiences are never allowed" (K5.3) | lint L005 |
 | Read-only token scope by default (K5.2), token TTL ceilings (K5.1) | lint L006 |
@@ -39,7 +40,7 @@ to the AgentSandbox Threat Model and Security Roadmap. When that document change
 | Model item | Gap |
 | --- | --- |
 | T8.2 signing key not held by administrators | Development signer only (a seed in a Secret). Decided, not built: a non-exportable OpenBao transit key (ADR-0004, ROADMAP M2). Accepted risk once built: a cluster administrator who can act as notaio's ServiceAccount can request signatures, audited outside the cluster, but cannot take the key. |
-| Validation "maximum exposure compared with its approved ceiling" on every policy pull request | No approved-ceiling object and no CLI for PR-time checks yet (ROADMAP M1) |
+| Validation "maximum exposure compared with its approved ceiling" on every policy pull request | The PR-time CLI exists (`notaio lint`, ADR-0006), but there is no approved-ceiling object to compare `maxExposure` with yet (ROADMAP M1) |
 | Metric "relaxations past their expiry: 0" and the relaxation dashboard | No metrics endpoint yet (ROADMAP M2). The data is in `KnobGrant` status. |
 | Lab audiences only (K5.2, K5.3 for Lab) | Needs an audience classification |
 | Knob prerequisites proven by passing control tests | Grants record approvals, not test results |

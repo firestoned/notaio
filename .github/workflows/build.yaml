@@ -124,6 +124,10 @@ jobs:
       - name: Check generated manifests
         run: make manifests-check
 
+      # notaio lint on the repository's own examples and profiles (ADR-0006).
+      - name: Lint example policies
+        run: make policy-lint
+
       - name: Install PyYAML
         run: pip install pyyaml
 

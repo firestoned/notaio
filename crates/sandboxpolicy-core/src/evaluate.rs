@@ -41,6 +41,8 @@ pub struct GrantResult {
     pub name: String,
     pub phase: GrantPhase,
     pub message: String,
+    /// The findings behind a rejection, each with its code (ADR-0006). Empty otherwise.
+    pub findings: Vec<Finding>,
 }
 
 #[derive(Debug, Clone)]
@@ -222,6 +224,7 @@ pub fn evaluate(input: &EvalInput<'_>) -> EvalOutput {
                 name: grant_name(g),
                 phase: GrantPhase::Pending,
                 message: "waiting for the profile".to_string(),
+                findings: vec![],
             })
             .collect();
         return EvalOutput {
@@ -251,6 +254,7 @@ pub fn evaluate(input: &EvalInput<'_>) -> EvalOutput {
                 name: grant_name(g),
                 phase: GrantPhase::Pending,
                 message: "waiting for a valid profile".to_string(),
+                findings: vec![],
             })
             .collect();
         return EvalOutput {
@@ -277,6 +281,7 @@ pub fn evaluate(input: &EvalInput<'_>) -> EvalOutput {
                 name,
                 phase: GrantPhase::Expired,
                 message: format!("expired at {}", g.spec.expires_at.to_rfc3339()),
+                findings: vec![],
             });
             continue;
         }
@@ -299,6 +304,7 @@ pub fn evaluate(input: &EvalInput<'_>) -> EvalOutput {
                 name,
                 phase: GrantPhase::Rejected,
                 message: summarize(&f),
+                findings: f,
             });
             continue;
         }
@@ -310,6 +316,7 @@ pub fn evaluate(input: &EvalInput<'_>) -> EvalOutput {
             name,
             phase: GrantPhase::Active,
             message: "applied".into(),
+            findings: vec![],
         });
     }
     status.active_grants = active;

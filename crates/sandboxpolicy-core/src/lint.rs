@@ -25,6 +25,45 @@ use sandboxpolicy_types::{Access, DataScope, KnobId, Role, Step};
 use crate::ceilings::Ceilings;
 use crate::registry::{self, LAB_ONLY_KNOBS};
 
+/// Every lint rule as `(code, meaning)`, in code order: the table above, as data, for tools that
+/// describe findings (`notaio lint --format sarif`).
+pub const RULES: &[(&str, &str)] = &[
+    ("L001", "Unknown knob id"),
+    ("L002", "Step above the loosest step the knob has"),
+    (
+        "L003",
+        "Toxic combination: sensitive data, untrusted content and an outbound channel together",
+    ),
+    (
+        "L004",
+        "Lab-only knob relaxed on a profile that is not LabOnly",
+    ),
+    (
+        "L005",
+        "Audience set does not fit K5.3, or an audience is malformed or a wildcard",
+    ),
+    (
+        "L006",
+        "Write access without K5.2, or token TTL above the K5.1 ceiling",
+    ),
+    ("L007", "Egress entry does not fit K4.1"),
+    (
+        "L008",
+        "Tool entry does not fit K1.3, or is not pinned by digest",
+    ),
+    ("L009", "Lease or budget above the K7.3 or K4.3 ceiling"),
+    ("L010", "Policy binds no subjects"),
+    (
+        "L011",
+        "Grant is not exactly one step above the profile, or duplicates another grant",
+    ),
+    (
+        "L012",
+        "Grant outlives the maximum lifetime for its target step",
+    ),
+    ("L013", "Grant lacks an approval from a required role"),
+];
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Severity {
     Error,

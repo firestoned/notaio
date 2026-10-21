@@ -11,6 +11,7 @@ code that implements it, and every implemented ADR ends with a full pass over th
 | [ADR-0003](0003-bundle-distribution.md) | Bundle distribution through a ConfigMap, relayed to guests by mediatore |
 | [ADR-0004](0004-signing-key-custody.md) | The production signing key lives in OpenBao transit |
 | [ADR-0005](0005-canonical-form-rfc-8785.md) | The bundle content is canonicalised with RFC 8785 |
+| [ADR-0006](0006-notaio-lint-cli.md) | `notaio lint`, the policy check for pull requests |
 
 ADRs live in [`docs/adr/`](https://github.com/firestoned/notaio/tree/main/docs/adr) in the
 repository and are never renumbered.

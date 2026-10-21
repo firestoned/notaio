@@ -147,6 +147,16 @@ It is deliberately **not** in [banlieue](https://github.com/firestoned/banlieue)
 | `deploy/` | Raw manifests. `crds/` and `profiles/` are generated, the rest is hand written. |
 | `docs/` | Architecture, ADRs, mapping to the threat model, and the [FINOS AI Governance Framework mapping](docs/framework-mapping.md) (generated from `docs/air/`). |
 
+## Check a policy change
+
+```sh
+notaio lint policies/                   # text, exit 1 on any error finding
+notaio lint --format sarif policies/    # for GitHub code scanning
+```
+
+The same checks the controller runs, on files, for pull requests to a policy repository
+(ADR-0006).
+
 ## Develop
 
 ```sh
@@ -155,6 +165,7 @@ make test        # unit and integration tests, offline
 make lint        # rustfmt and clippy with warnings denied
 make manifests   # regenerate deploy/crds and deploy/profiles from the code
 make kind-e2e    # deploy to a local kind cluster and run the e2e suites
+make policy-lint # run `notaio lint` on examples/ and deploy/profiles/
 make docs        # build the documentation site into docs/site/
 ```
 
