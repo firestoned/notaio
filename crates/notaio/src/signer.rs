@@ -1,23 +1,67 @@
 use std::sync::Arc;
 
 use anyhow::Context as _;
-use sandboxpolicy_bundle::{Ed25519Signer, Signer};
+use notaio::openbao::{choose_signer, SignerChoice, TransitSigner};
+use sandboxpolicy_bundle::{
+    envelope, sign_bundle, signing_input, BundlePayload, Ed25519Signer, Envelope, Signer as _,
+};
 
-pub type SharedSigner = Arc<dyn Signer + Send + Sync>;
+use crate::error::Error;
 
-/// Loads the development signer from `NOTAIO_SIGNING_KEY_FILE` (base64 of a 32 byte seed) and
-/// `NOTAIO_KEY_ID`. Returns `None` when no key is configured: the controller then validates and
-/// reports but never publishes a bundle. Unsigned bundles are never published.
+/// The key that signs bundles (ADR-0004). Unsigned bundles are never published: with no signer the
+/// controller validates and reports, and publishes nothing.
+pub enum BundleSigner {
+    /// A seed on disk, for kind and tests only. Anyone who can read the Secret can sign, which the
+    /// threat model forbids for production (T8.2).
+    Development(Ed25519Signer),
+    /// A non-exportable OpenBao transit key: notaio may ask for signatures, never hold the key.
+    OpenBao(TransitSigner),
+}
+
+pub type SharedSigner = Arc<BundleSigner>;
+
+impl BundleSigner {
+    /// The signed envelope for `payload`.
+    ///
+    /// # Errors
+    /// `Error::Bundle` if the payload cannot be serialised, `Error::Signing` if OpenBao does not
+    /// sign. Nothing is published on either.
+    pub async fn sign(&self, payload: &BundlePayload) -> Result<Envelope, Error> {
+        match self {
+            BundleSigner::Development(s) => Ok(sign_bundle(payload, s)?),
+            BundleSigner::OpenBao(t) => {
+                let input = signing_input(payload)?;
+                let (key_id, sig) = t.sign(&input.message).await?;
+                Ok(envelope(&input.payload, &key_id, &sig))
+            }
+        }
+    }
+
+    /// For the startup log.
+    pub fn describe(&self) -> String {
+        match self {
+            BundleSigner::Development(s) => format!("development key {:?}", s.key_id()),
+            BundleSigner::OpenBao(t) => format!("OpenBao transit key {:?}", t.key()),
+        }
+    }
+}
+
+/// The signer the environment configures (`notaio::openbao::choose_signer`).
 ///
-/// This is deliberately a development path. The threat model (T8.2) says the signing key must not be
-/// held by whoever administers the cluster, so the production signer is an OpenBao transit backed
-/// implementation of `Signer`, with a non-exportable key. See ADR-0004.
+/// # Errors
+/// A configuration that names both signers, an OpenBao address without `https://` or a CA, or a
+/// development seed that cannot be read.
 pub fn from_env() -> anyhow::Result<Option<SharedSigner>> {
-    let Ok(path) = std::env::var("NOTAIO_SIGNING_KEY_FILE") else {
-        return Ok(None);
-    };
-    let key_id = std::env::var("NOTAIO_KEY_ID").unwrap_or_else(|_| "dev".to_string());
-    let raw = std::fs::read_to_string(&path).with_context(|| format!("reading {path}"))?;
-    let signer = Ed25519Signer::from_seed_b64(&key_id, &raw)?;
-    Ok(Some(Arc::new(signer)))
+    match choose_signer(|name| std::env::var(name).ok())? {
+        SignerChoice::None => Ok(None),
+        SignerChoice::Development { key_file, key_id } => {
+            let raw = std::fs::read_to_string(&key_file)
+                .with_context(|| format!("reading {}", key_file.display()))?;
+            let signer = Ed25519Signer::from_seed_b64(&key_id, &raw)?;
+            Ok(Some(Arc::new(BundleSigner::Development(signer))))
+        }
+        SignerChoice::OpenBao(cfg) => Ok(Some(Arc::new(BundleSigner::OpenBao(
+            TransitSigner::new(cfg)?,
+        )))),
+    }
 }

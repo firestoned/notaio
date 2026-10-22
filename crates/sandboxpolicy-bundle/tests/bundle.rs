@@ -252,3 +252,16 @@ fn verification_refuses_content_without_a_canonical_form() {
         Err(BundleError::NonCanonical(_))
     ));
 }
+
+#[test]
+fn split_signing_produces_the_same_envelope() {
+    // An async signer (OpenBao transit, ADR-0004) signs the message out of band and assembles the
+    // envelope afterwards. That must be byte for byte what sign_bundle produces.
+    let s = signer();
+    let p = payload(3);
+    let input = signing_input(&p).unwrap();
+    let sig = s.sign(&input.message).unwrap();
+    let env = envelope(&input.payload, s.key_id(), &sig);
+    assert_eq!(env, sign_bundle(&p, &s).unwrap());
+    verify_bundle(&env, &trusted(&s), &VerifyOptions::at(now())).unwrap();
+}

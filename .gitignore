@@ -51,6 +51,9 @@ docs/__pycache__/
 # Per-cluster kubeconfig written by `make kind-e2e` (ADR-0014). Scoped to the
 # kind cluster so the suite never depends on — or mutates — your current context.
 .kind-kubeconfig-*
+# OpenBao state for the kind e2e (unseal key, root token): a throwaway cluster's,
+# but a root token all the same.
+.kind-openbao-*
 
 # Local npm install of tooling (e.g. `npm install openwolf`) at the repo root.
 # Root-anchored so a real package.json elsewhere in the tree stays trackable.

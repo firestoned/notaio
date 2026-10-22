@@ -1,0 +1,21 @@
+# With the OpenBao signer (ADR-0004), the controller also reaches OpenBao, and nothing else new.
+# Additive to deploy/controller/30-networkpolicy.yaml: NetworkPolicies allow the union of their
+# rules. Adjust the namespace and port to your OpenBao.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: notaio-openbao
+  namespace: notaio-system
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: notaio
+  policyTypes: ["Egress"]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: openbao }
+          podSelector:
+            matchLabels: { app.kubernetes.io/name: openbao }
+      ports:
+        - { protocol: TCP, port: 8200 }

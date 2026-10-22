@@ -21,6 +21,9 @@ pub mod jcs;
 mod verify;
 
 pub use content::{BundleContent, BundleMeta, BundlePayload, PolicyRef, ProfileRef, SCHEMA};
-pub use dsse::{sign_bundle, Ed25519Signer, Envelope, Signature, Signer, PAYLOAD_TYPE};
+pub use dsse::{
+    envelope, sign_bundle, signing_input, Ed25519Signer, Envelope, Signature, Signer, SigningInput,
+    PAYLOAD_TYPE,
+};
 pub use error::BundleError;
 pub use verify::{verify_bundle, TrustedKeys, VerifyOptions};

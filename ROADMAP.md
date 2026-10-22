@@ -51,6 +51,9 @@ Not done: nothing has run on a cluster.
   age, fail-open counters that must be zero), Kubernetes Events.
 - OpenBao transit `Signer` (ADR-0004): Kubernetes auth bound to notaio's ServiceAccount, a sign-only
   OpenBao policy, one egress rule. Remove the development signer path from the default deployment.
+  **Signer done 2026-10-22:** `crates/notaio/src/openbao.rs`, `deploy/signer/`, the `e2e_openbao`
+  suite (kind in CI, and against a test cluster). Still to do: make it the default and remove the
+  development signer from `deploy/controller/`.
 - Image build, signing and provenance. Pin the deployment by digest.
 
 ## M3: integrate the consumers

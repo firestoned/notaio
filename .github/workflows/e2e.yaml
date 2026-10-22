@@ -27,6 +27,7 @@ on:
     paths:
       - 'crates/**'
       - 'deploy/**'
+      - 'dev/**'
       - 'examples/**'
       - 'Cargo.toml'
       - 'Cargo.lock'
@@ -39,6 +40,7 @@ on:
     paths:
       - 'crates/**'
       - 'deploy/**'
+      - 'dev/**'
       - 'examples/**'
       - 'Cargo.toml'
       - 'Cargo.lock'
@@ -91,6 +93,8 @@ jobs:
             name: Controller RBAC
           - suite: admission
             name: GitOps-only admission
+          - suite: openbao
+            name: OpenBao signer
 
     steps:
       - name: Checkout repository

@@ -2,6 +2,46 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-22 12:00] - Implement ADR-0004: the OpenBao transit signer
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `crates/sandboxpolicy-bundle/src/dsse.rs`: `signing_input` and `envelope` split signing in two, so
+  a signer that works out of band (OpenBao) produces exactly what `sign_bundle` does; `sign_bundle`
+  is built on them.
+- `crates/notaio/src/openbao.rs` (new, in the library): `choose_signer` (OpenBao, development or
+  none; both configured is refused; `https://` and a CA required), `TransitSigner` (TLS 1.3 against
+  OpenBao's CA only, Kubernetes auth with the projected token re-read on every login, cached client
+  token refreshed at four fifths of its lease, `transit/sign`, one fresh login on a 403, retries
+  with backoff on transport errors and 5xx, a timeout per request), `parse_signature` (key id
+  `<key>:v<N>`), `parse_login`. No new crate in the lockfile: the HTTP and TLS crates were already
+  there through kube.
+- `crates/notaio/src/signer.rs`: `BundleSigner` (development or OpenBao) with one async `sign`.
+- `crates/notaio/src/reconcile.rs`: a signing failure publishes nothing, sets
+  `Ready=False, SigningFailed` with the reason, and keeps the previous bundle's version and digest.
+- `deploy/signer/openbao-patch.yaml`, `deploy/signer/openbao-networkpolicy.yaml` (new): run the
+  controller with the OpenBao signer. `dev/openbao/use-signer.sh` (new) switches either way.
+- `crates/notaio/tests/e2e_openbao.rs` (new): no development seed; a bundle signed by `notaio:v<N>`
+  that verifies against OpenBao's public key; with OpenBao gone, `SigningFailed` and no bundle.
+- `Makefile`: `kind-cert-manager` (v1.21.2, checksum, webhook readiness), `kind-openbao`,
+  `kind-e2e-openbao`, `cluster-deploy`, `cluster-undeploy`, `openbao-e2e`; `openbao` in
+  `E2E_SUITES`. `.github/workflows/e2e.yaml`: the OpenBao signer job; `dev/**` triggers the e2e.
+- Unit tests: signer choice (six cases), signature and login parsing, split signing. 104 pass.
+- Docs: ADR-0004 implemented, architecture, the security page, the developer guide, `ROADMAP.md`
+  (M2), `docs/threat-model-mapping.md` (T8.2 implemented with `deploy/signer/`; the default
+  deployment's gap stays open; the hard floor covers signing failures).
+
+### Why
+ROADMAP M2's first item and threat model T8.2: the signing key must not be held by whoever
+administers the cluster.
+
+### Impact
+- [ ] Breaking change (the default deployment is unchanged)
+- [ ] Requires cluster rollout
+- [ ] Config or examples change only
+- [ ] Documentation only
+
 ## [2026-10-22 00:00] - tokio 1.54.0 (yanked) to 1.54.1; cargo-deny denies yanked crates
 
 **Author:** Erick Bourgeois

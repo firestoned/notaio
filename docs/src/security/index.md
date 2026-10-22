@@ -39,7 +39,8 @@ Image signing, SBOMs and build provenance arrive with the published image (ROADM
 
 ## Known gaps
 
-The development signer keeps its key in a Kubernetes Secret, which the threat model forbids for
-production (T8.2). [ADR-0004](../adr/0004-signing-key-custody.md) moves the production key into
-OpenBao transit, where it cannot be exported; it is not built yet. The other open items
+The default deployment still uses the development signer, which keeps its key in a Kubernetes
+Secret and which the threat model forbids for production (T8.2). The production signer is built:
+[ADR-0004](../adr/0004-signing-key-custody.md)'s non-exportable OpenBao transit key, enabled with
+`deploy/signer/`. Making it the default is ROADMAP M2. The other open items
 are listed under "Known gaps in v0" in the [Architecture](../architecture.md#known-gaps-in-v0).
