@@ -2,6 +2,27 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-22 00:00] - tokio 1.54.0 (yanked) to 1.54.1; cargo-deny denies yanked crates
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `Cargo.lock`: `tokio` 1.54.0 to 1.54.1, and nothing else.
+- `deny.toml`: `yanked = "deny"`, so `make deny` fails on a yanked crate as cargo-audit does.
+  Checked both ways: against the old lockfile it fails on tokio, with the fix it passes.
+
+### Why
+tokio 1.54.0 was yanked from crates.io on 2026-10-19, and cargo-audit (`--deny warnings`) failed the
+Build's security scan on `main`. cargo-deny does not treat a yanked crate as an error, which is
+why its job passed in the same run. Checked locally with cargo-audit, cargo-deny, clippy and the
+93 tests.
+
+### Impact
+- [ ] Breaking change
+- [ ] Requires cluster rollout
+- [x] Config or examples change only
+- [ ] Documentation only
+
 ## [2026-10-21 08:00] - Semgrep: exclude the `args` audit note; document the docker cooldown
 
 **Author:** Erick Bourgeois
