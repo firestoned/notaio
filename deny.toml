@@ -5,6 +5,9 @@ all-features = true
 
 [advisories]
 version = 2
+# A yanked crate fails, as it does in cargo-audit (`--deny warnings`). cargo-deny's default only
+# warns, which let tokio 1.54.0 through `make deny` while the Build's audit job failed.
+yanked = "deny"
 
 [licenses]
 version = 2
