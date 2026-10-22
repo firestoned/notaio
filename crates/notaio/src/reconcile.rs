@@ -12,7 +12,6 @@ use sandboxpolicy_api::{
     ExposureCeiling, GrantPhase, KnobGrant, KnobGrantStatus, SandboxPolicy, SandboxPolicyStatus,
     SandboxProfile, SandboxProfileStatus,
 };
-use sandboxpolicy_bundle::sign_bundle;
 use sandboxpolicy_core::ceilings::Ceilings;
 use sandboxpolicy_core::evaluate::{condition, profile_digest};
 use sandboxpolicy_core::lint::{has_errors, lint_knobs, summarize};
@@ -180,7 +179,34 @@ pub async fn reconcile_policy(policy: Arc<SandboxPolicy>, ctx: Arc<Ctx>) -> Resu
     }
 
     if let (Some(bundle), Some(signer)) = (&out.bundle, &ctx.signer) {
-        let envelope = sign_bundle(bundle, &**signer)?;
+        let envelope = match signer.sign(bundle).await {
+            Ok(e) => e,
+            Err(e) => {
+                // Fail closed: nothing new is published. Say why on the policy, and keep the
+                // previous bundle's version and digest, which are still what consumers hold.
+                let failed = condition(
+                    &prev.conditions,
+                    "Ready",
+                    false,
+                    "SigningFailed",
+                    &e.to_string(),
+                    now,
+                    policy.metadata.generation,
+                );
+                let mut conditions = status.conditions.clone();
+                if let Some(c) = conditions.iter_mut().find(|c| c.type_ == "Ready") {
+                    *c = failed;
+                }
+                Api::<SandboxPolicy>::namespaced(client.clone(), &ns)
+                    .patch_status(
+                        &name,
+                        &PatchParams::default(),
+                        &Patch::Merge(json!({ "status": { "conditions": conditions } })),
+                    )
+                    .await?;
+                return Err(e);
+            }
+        };
         let mut annotations = BTreeMap::new();
         annotations.insert(ANN_VERSION.to_string(), bundle.meta.version.to_string());
         annotations.insert(ANN_DIGEST.to_string(), bundle.content_digest.clone());

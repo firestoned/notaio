@@ -84,15 +84,46 @@ impl Signer for Ed25519Signer {
     }
 }
 
-pub fn sign_bundle(payload: &BundlePayload, signer: &dyn Signer) -> Result<Envelope, BundleError> {
+/// What a signer signs for one bundle, and the payload bytes the envelope will carry.
+pub struct SigningInput {
+    /// The serialised payload, exactly as it goes into the envelope.
+    pub payload: Vec<u8>,
+    /// The DSSE pre-authentication encoding of `payload`: the bytes the signature covers.
+    pub message: Vec<u8>,
+}
+
+/// The bytes to sign for `payload`. For a signer that signs out of band, such as OpenBao transit
+/// (ADR-0004): sign `message`, then call [`envelope`].
+///
+/// # Errors
+/// `BundleError::Malformed` if the payload cannot be serialised.
+pub fn signing_input(payload: &BundlePayload) -> Result<SigningInput, BundleError> {
     let bytes = serde_json::to_vec(payload).map_err(|e| BundleError::Malformed(e.to_string()))?;
-    let sig = signer.sign(&pae(PAYLOAD_TYPE, &bytes))?;
-    Ok(Envelope {
-        payload_type: PAYLOAD_TYPE.to_string(),
-        payload: STANDARD.encode(&bytes),
-        signatures: vec![Signature {
-            keyid: signer.key_id().to_string(),
-            sig: STANDARD.encode(sig),
-        }],
+    let message = pae(PAYLOAD_TYPE, &bytes);
+    Ok(SigningInput {
+        payload: bytes,
+        message,
     })
+}
+
+/// The envelope for `payload` (from [`signing_input`]) with one signature by `key_id`.
+pub fn envelope(payload: &[u8], key_id: &str, signature: &[u8]) -> Envelope {
+    Envelope {
+        payload_type: PAYLOAD_TYPE.to_string(),
+        payload: STANDARD.encode(payload),
+        signatures: vec![Signature {
+            keyid: key_id.to_string(),
+            sig: STANDARD.encode(signature),
+        }],
+    }
+}
+
+/// Signs `payload` with an in-process signer.
+///
+/// # Errors
+/// From [`signing_input`] and from the signer.
+pub fn sign_bundle(payload: &BundlePayload, signer: &dyn Signer) -> Result<Envelope, BundleError> {
+    let input = signing_input(payload)?;
+    let sig = signer.sign(&input.message)?;
+    Ok(envelope(&input.payload, signer.key_id(), &sig))
 }

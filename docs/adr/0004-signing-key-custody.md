@@ -7,8 +7,10 @@
 - **Related:** threat model T8.2 and scenario S6; mediatore's STS key, which uses the same
   OpenBao transit backend (mediatore threat model, asset A-1)
 
-Not implemented. Today the controller only has the development signer, which reads a seed from a
-Secret.
+Implemented 2026-10-22: `crates/notaio/src/openbao.rs` (the transit client and the signer choice),
+`crates/notaio/src/signer.rs`, `deploy/signer/` (the deployment patch and the egress rule), and the
+`e2e_openbao` suite against a real OpenBao (`make kind-e2e-openbao`, `make openbao-e2e`). The
+development signer is still the default in `deploy/controller/` (decision 5, ROADMAP M2).
 
 ## Context
 

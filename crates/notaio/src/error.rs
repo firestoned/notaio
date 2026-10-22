@@ -10,4 +10,6 @@ pub enum Error {
     Serde(#[from] serde_json::Error),
     #[error("object has no namespace")]
     NoNamespace,
+    #[error("signing failed: {0}")]
+    Signing(#[from] notaio::openbao::SignError),
 }

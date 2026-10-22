@@ -88,10 +88,11 @@ async fn run_controller() -> anyhow::Result<()> {
         .and_then(|v| v.parse().ok())
         .unwrap_or(DEFAULT_BUNDLE_LIFETIME_SECONDS);
     let signer = signer::from_env()?;
-    if signer.is_none() {
-        tracing::warn!(
+    match &signer {
+        Some(s) => tracing::info!(signer = %s.describe(), "signing bundles"),
+        None => tracing::warn!(
             "no signing key configured: policies are validated but no bundle is published"
-        );
+        ),
     }
 
     let client = Client::try_default().await?;

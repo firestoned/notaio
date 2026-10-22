@@ -12,7 +12,8 @@ RUST_LOG         ?= info
 .PHONY: help build test lint fmt fmt-check clippy deny manifests manifests-check air air-check \
         ci-code-changed kind-install kind-create kind-delete kind-kubeconfig kind-load \
         kind-deploy kind-e2e kind-e2e-ci kind-e2e-logs \
-        kind-e2e-install kind-e2e-bundle kind-e2e-rbac kind-e2e-admission \
+        kind-e2e-install kind-e2e-bundle kind-e2e-rbac kind-e2e-admission kind-e2e-openbao \
+        kind-cert-manager kind-openbao cluster-deploy cluster-undeploy openbao-e2e \
         docs docs-serve docs-clean docs-linkcheck policy-lint openbao-dev openbao-dev-check
 
 help: ## Show this help
@@ -288,9 +289,12 @@ kind-deploy: kind-load ## Install CRDs, profiles and the controller from deploy/
 #                       and cannot create, edit or delete policy objects
 #   kind-e2e-admission  deploy/admission/gitops-only.yaml refuses direct edits
 #                       and still lets the controller write status
+#   kind-e2e-openbao    bundles signed by the OpenBao transit key verify against
+#                       its public key; without OpenBao nothing is published
 
-# Keep in sync with the matrix in .github/workflows/e2e.yaml.
-E2E_SUITES = install bundle rbac admission
+# Keep in sync with the matrix in .github/workflows/e2e.yaml. openbao runs last in
+# `make kind-e2e`: it switches the signer and restores it afterwards.
+E2E_SUITES = install bundle rbac admission openbao
 
 define run-e2e-suite
 	@echo "Running $(1) against kind-$(KIND_CLUSTER_NAME)..."
@@ -324,6 +328,97 @@ kind-e2e-admission: kind-deploy ## e2e: GitOps-only admission policy refuses dir
 	 $(KIND_KUBECTL) delete --ignore-not-found -f deploy/admission/gitops-only.yaml; \
 	 exit $$rc
 	@echo "✓ e2e_admission passed"
+
+# ----- the OpenBao signer (ADR-0004) -------------------------------------------
+#
+# cert-manager and dev/openbao in kind, the controller switched to the OpenBao
+# transit key (dev/openbao/use-signer.sh), then e2e_openbao. The suite takes
+# OpenBao away to prove the controller fails closed, so the recipe always unseals
+# it again and puts the development signer back, pass or fail.
+CERT_MANAGER_VERSION ?= v1.21.2
+CERT_MANAGER_SHA256  ?= e03b668ec8675214af6b0a671699d088f2601fa3878e0dbe1b41d3feafd1879f
+KIND_OPENBAO_STATE    = $(CURDIR)/.kind-openbao-$(KIND_CLUSTER_NAME)
+
+kind-cert-manager: kind-create ## Install cert-manager $(CERT_MANAGER_VERSION) into kind (checksum verified)
+	@TMP=$$(mktemp -d); \
+	curl -sSLf -o $$TMP/cert-manager.yaml https://github.com/cert-manager/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.yaml; \
+	if command -v sha256sum >/dev/null 2>&1; then GOT=$$(sha256sum $$TMP/cert-manager.yaml | cut -d' ' -f1); \
+	else GOT=$$(shasum -a 256 $$TMP/cert-manager.yaml | cut -d' ' -f1); fi; \
+	if [ "$$GOT" != "$(CERT_MANAGER_SHA256)" ]; then echo "ERROR: cert-manager checksum mismatch"; rm -rf $$TMP; exit 1; fi; \
+	$(KIND_KUBECTL) apply -f $$TMP/cert-manager.yaml >/dev/null; rm -rf $$TMP
+	@$(KIND_KUBECTL) -n cert-manager wait --for=condition=Available deployment --all --timeout=300s >/dev/null
+	@# Available is not enough: the webhook refuses requests for a few seconds after
+	@# it starts, and setup.sh's first Issuer would fail. Wait until it admits one.
+	@for i in $$(seq 1 60); do \
+		printf 'apiVersion: cert-manager.io/v1\nkind: Issuer\nmetadata: {name: webhook-probe, namespace: default}\nspec: {selfSigned: {}}\n' \
+		| $(KIND_KUBECTL) apply --dry-run=server -f - >/dev/null 2>&1 && break; \
+		[ $$i = 60 ] && { echo "ERROR: cert-manager webhook not ready"; exit 1; }; sleep 2; \
+	done
+	@echo "✓ cert-manager $(CERT_MANAGER_VERSION)"
+
+kind-openbao: kind-cert-manager ## Stand up dev/openbao in kind (state in .kind-openbao-<cluster>)
+	@dev/openbao/setup.sh $(KIND_KUBECONFIG) $(KIND_OPENBAO_STATE)
+
+kind-e2e-openbao: kind-deploy kind-openbao ## e2e: bundles signed by the OpenBao transit key; nothing published without it
+	@dev/openbao/use-signer.sh $(KIND_KUBECONFIG) openbao
+	@KUBECONFIG=$(KIND_KUBECONFIG) \
+	 NOTAIO_E2E_NAMESPACE=$(NAMESPACE) \
+	 NOTAIO_E2E_POLICY_NAMESPACE=$(E2E_POLICY_NAMESPACE) \
+	 NOTAIO_E2E_OPENBAO_PUBLIC_KEY="$$(cat $(KIND_OPENBAO_STATE)/notaio-public-key.txt)" \
+	 cargo test -p notaio --test e2e_openbao -- --ignored --nocapture --test-threads=1; \
+	 rc=$$?; \
+	 dev/openbao/setup.sh $(KIND_KUBECONFIG) $(KIND_OPENBAO_STATE) >/dev/null || true; \
+	 dev/openbao/use-signer.sh $(KIND_KUBECONFIG) development || true; \
+	 exit $$rc
+	@echo "✓ e2e_openbao passed"
+
+# ----- an existing test cluster ------------------------------------------------
+#
+# The same deployment as kind-deploy, onto a cluster you name, from an image
+# already pushed (pin it by digest). Nothing defaults: no cluster or registry
+# is ever written into this file.
+CLUSTER_KUBECONFIG ?=
+NOTAIO_IMAGE       ?=
+CLUSTER_KUBECTL     = kubectl --kubeconfig $(CLUSTER_KUBECONFIG)
+
+cluster-deploy: ## Deploy notaio from deploy/ to CLUSTER_KUBECONFIG with NOTAIO_IMAGE (development signer)
+	@test -n "$(CLUSTER_KUBECONFIG)" || { echo "set CLUSTER_KUBECONFIG"; exit 1; }
+	@test -n "$(NOTAIO_IMAGE)" || { echo "set NOTAIO_IMAGE, pinned by digest"; exit 1; }
+	@$(CLUSTER_KUBECTL) apply -f deploy/crds/ >/dev/null
+	@$(CLUSTER_KUBECTL) wait --for=condition=Established --timeout=60s -f deploy/crds/ >/dev/null
+	@$(CLUSTER_KUBECTL) apply -f deploy/controller/00-namespace.yaml >/dev/null
+	@$(CLUSTER_KUBECTL) create namespace $(E2E_POLICY_NAMESPACE) --dry-run=client -o yaml | $(CLUSTER_KUBECTL) apply -f - >/dev/null
+	@$(CLUSTER_KUBECTL) -n $(NAMESPACE) get secret notaio-dev-signing-key >/dev/null 2>&1 || \
+		$(CLUSTER_KUBECTL) -n $(NAMESPACE) create secret generic notaio-dev-signing-key \
+			--from-literal=seed="$$(head -c 32 /dev/urandom | base64)" >/dev/null
+	@$(CLUSTER_KUBECTL) apply -f deploy/controller/ >/dev/null
+	@$(CLUSTER_KUBECTL) -n $(NAMESPACE) set image deployment/notaio notaio=$(NOTAIO_IMAGE) >/dev/null
+	@$(CLUSTER_KUBECTL) -n $(NAMESPACE) rollout status deployment/notaio --timeout=180s >/dev/null
+	@$(CLUSTER_KUBECTL) apply -f deploy/profiles/ >/dev/null
+	@echo "✓ notaio deployed ($(NOTAIO_IMAGE))"
+
+cluster-undeploy: ## Remove everything cluster-deploy created from CLUSTER_KUBECONFIG
+	@test -n "$(CLUSTER_KUBECONFIG)" || { echo "set CLUSTER_KUBECONFIG"; exit 1; }
+	-@$(CLUSTER_KUBECTL) delete --ignore-not-found -f deploy/admission/gitops-only.yaml >/dev/null 2>&1
+	-@$(CLUSTER_KUBECTL) delete --ignore-not-found -f deploy/profiles/ >/dev/null 2>&1
+	-@$(CLUSTER_KUBECTL) delete --ignore-not-found -f deploy/crds/ >/dev/null 2>&1
+	-@$(CLUSTER_KUBECTL) delete --ignore-not-found -f deploy/controller/ --wait=false >/dev/null 2>&1
+	-@$(CLUSTER_KUBECTL) delete namespace $(E2E_POLICY_NAMESPACE) $(NAMESPACE) --ignore-not-found --wait=true --timeout=120s >/dev/null 2>&1
+	@echo "✓ notaio removed"
+
+openbao-e2e: ## e2e_openbao on an existing test cluster with dev/openbao (CLUSTER_KUBECONFIG, OPENBAO_STATE, NOTAIO_IMAGE)
+	@test -n "$(OPENBAO_STATE)" || { echo "set OPENBAO_STATE to the directory setup.sh wrote"; exit 1; }
+	@$(MAKE) -s cluster-deploy
+	@dev/openbao/use-signer.sh $(CLUSTER_KUBECONFIG) openbao
+	@KUBECONFIG=$(CLUSTER_KUBECONFIG) \
+	 NOTAIO_E2E_NAMESPACE=$(NAMESPACE) \
+	 NOTAIO_E2E_POLICY_NAMESPACE=$(E2E_POLICY_NAMESPACE) \
+	 NOTAIO_E2E_OPENBAO_PUBLIC_KEY="$$(cat $(OPENBAO_STATE)/notaio-public-key.txt)" \
+	 cargo test -p notaio --test e2e_openbao -- --ignored --nocapture --test-threads=1; \
+	 rc=$$?; \
+	 dev/openbao/setup.sh $(CLUSTER_KUBECONFIG) $(OPENBAO_STATE) >/dev/null || true; \
+	 $(MAKE) -s cluster-undeploy; \
+	 exit $$rc
 
 kind-e2e: ## Run every e2e suite, in sequence, against one kind cluster
 	@# From the recipe, not as prerequisites: the suites share one cluster and
@@ -361,3 +456,6 @@ kind-e2e-logs: ## Dump controller and policy state (run this when an e2e fails)
 	-@$(KIND_KUBECTL) get configmaps -A -l app.kubernetes.io/managed-by=notaio -o yaml
 	@echo "── events ──"
 	-@$(KIND_KUBECTL) get events -A --sort-by=.lastTimestamp | tail -50
+	@echo "── openbao (if installed) ──"
+	-@$(KIND_KUBECTL) -n openbao get pods -o wide 2>/dev/null
+	-@$(KIND_KUBECTL) -n openbao logs deploy/openbao --tail=200 2>/dev/null | grep -v '"type"' | tail -50
