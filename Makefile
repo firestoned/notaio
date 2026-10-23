@@ -14,7 +14,8 @@ RUST_LOG         ?= info
         kind-deploy kind-e2e kind-e2e-ci kind-e2e-logs \
         kind-e2e-install kind-e2e-bundle kind-e2e-rbac kind-e2e-admission kind-e2e-openbao \
         kind-cert-manager kind-openbao cluster-deploy cluster-undeploy openbao-e2e \
-        docs docs-serve docs-clean docs-linkcheck policy-lint openbao-dev openbao-dev-check
+        docs docs-serve docs-clean docs-linkcheck policy-lint openbao-dev openbao-dev-check \
+        release-binary release-manifest release-manifest-test set-version set-version-test
 
 help: ## Show this help
 	@echo 'Usage: make [target] [VAR=value ...]'
@@ -119,13 +120,66 @@ openbao-dev-check: ## Check the test OpenBao is what ADR-0004 asks for (OPENBAO_
 	@test -n "$(OPENBAO_STATE)" || { echo "set OPENBAO_STATE to the directory setup.sh wrote"; exit 1; }
 	dev/openbao/check.sh "$(OPENBAO_KUBECONFIG)" "$(OPENBAO_STATE)"
 
+# ----- release (ADR-0009) ------------------------------------------------------
+#
+# Tests first: each piece of release logic has a target that proves it on scratch
+# copies, and the Build workflow runs them on every pull request, so the
+# release-only path is not exercised for the first time on a release.
+
+VERSION_FILE  ?= Cargo.toml
+RELEASE_DIR   ?= $(CURDIR)/dist
+IMAGE_DIGEST  ?=
+RELEASE_IMAGE  = ghcr.io/$(ORG)/$(BINARY)
+
+release-binary: ## Release build of notaio for this host's architecture (CI runs it on native runners)
+	cargo build --locked --release -p notaio --bin notaio
+
+release-manifest: ## Render RELEASE_DIR/notaio-VERSION.yaml: CRDs, controller, profiles, image pinned to IMAGE_DIGEST
+	@test -n "$(VERSION)" || { echo "set VERSION, e.g. 1.2.3"; exit 1; }
+	@echo "$(IMAGE_DIGEST)" | grep -Eq '^sha256:[0-9a-f]{64}$$' || { echo "set IMAGE_DIGEST to sha256:<64 hex>, got '$(IMAGE_DIGEST)'"; exit 1; }
+	@mkdir -p "$(RELEASE_DIR)"
+	@out="$(RELEASE_DIR)/notaio-$(VERSION).yaml"; \
+	  { printf '# notaio %s: CRDs, controller and built-in profiles, image pinned by digest (ADR-0009).\n' "$(VERSION)"; \
+	    printf '# Not included: deploy/admission/gitops-only.yaml, which names your GitOps identity.\n'; \
+	    printf '# Needs OpenBao and ConfigMap openbao-ca in notaio-system before the controller starts (ADR-0004).\n'; \
+	    for f in deploy/crds/*.yaml deploy/controller/*.yaml deploy/profiles/*.yaml; do \
+	      printf -- '---\n# Source: %s\n' "$$f"; cat "$$f"; \
+	    done; \
+	  } | sed -E 's#(image: )$(RELEASE_IMAGE):[^[:space:]]+#\1$(RELEASE_IMAGE)@$(IMAGE_DIGEST)#' > "$$out"; \
+	  echo "✓ $$out ($(RELEASE_IMAGE)@$(IMAGE_DIGEST))"
+
+set-version: ## Set [workspace.package] version in VERSION_FILE to VERSION; fails if the file does not then say so
+	@test -n "$(VERSION)" || { echo "set VERSION, e.g. make set-version VERSION=1.2.3"; exit 1; }
+	@perl -i -pe 's/^version = ".*"/version = "$(VERSION)"/ if /^\[workspace\.package\]/ ... /^\[/' $(VERSION_FILE)
+	@got=$$(awk -F'"' '/^\[workspace\.package\]/ { p = 1; next } /^\[/ { p = 0 } p && /^version *=/ { print $$2; exit }' $(VERSION_FILE)); \
+	  if [ "$$got" != "$(VERSION)" ]; then echo "$(VERSION_FILE): workspace version is '$$got', expected '$(VERSION)'"; exit 1; fi; \
+	  echo "$(VERSION_FILE): workspace version $(VERSION)"
+
+release-manifest-test: ## Prove release-manifest pins the image by digest, once, and keeps every kind
+	@tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT; \
+	  digest=sha256:$$(printf 'release-manifest-test' | shasum -a 256 | cut -d' ' -f1); \
+	  $(MAKE) --no-print-directory -s release-manifest VERSION=0.0.0-test \
+	    IMAGE_DIGEST=$$digest RELEASE_DIR="$$tmp" >/dev/null && \
+	  out="$$tmp/notaio-0.0.0-test.yaml" && \
+	  python3 scripts/check_release_manifest.py "$$out" "ghcr.io/$(ORG)/$(BINARY)@$$digest" && \
+	  echo "release-manifest-test: ok"
+
+set-version-test: ## Prove set-version changes the workspace version, and only it, on a scratch copy
+	@tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT; \
+	  cp Cargo.toml "$$tmp/Cargo.toml"; \
+	  $(MAKE) --no-print-directory -s set-version VERSION=0.0.0-set-version-test VERSION_FILE="$$tmp/Cargo.toml" >/dev/null && \
+	  changed=$$(diff Cargo.toml "$$tmp/Cargo.toml" | grep -c '^>'); \
+	  if [ "$$changed" != "1" ]; then echo "set-version changed $$changed lines, expected exactly 1"; exit 1; fi; \
+	  grep -q '^version = "0.0.0-set-version-test"' "$$tmp/Cargo.toml" || { echo "set-version did not set the version"; exit 1; }; \
+	  echo "set-version-test: ok"
+
 # ----- CI gating -------------------------------------------------------------
 #
 # The build workflow has no workflow-level `paths:` filter: a workflow that never
 # triggers reports no status at all, so a required check would stay pending
 # forever. The path filter lives here instead and the `changes` job applies it
 # per job, so a docs-only PR skips the expensive jobs and still reports.
-CI_CODE_PATHS_RE ?= ^(crates/|deploy/|docs/air/|scripts/|Cargo\.toml$$|Cargo\.lock$$|deny\.toml$$|clippy\.toml$$|Makefile$$|Dockerfile|\.github/workflows/build\.yaml$$)
+CI_CODE_PATHS_RE ?= ^(crates/|deploy/|docs/air/|scripts/|Cargo\.toml$$|Cargo\.lock$$|deny\.toml$$|clippy\.toml$$|Makefile$$|Dockerfile|\.github/workflows/build\.yaml$$|\.github/actions/)
 
 ci-code-changed: ## Print true/false: does the diff against BASE_REF touch build-relevant paths?
 	@base="$${BASE_REF:-origin/main}"; \

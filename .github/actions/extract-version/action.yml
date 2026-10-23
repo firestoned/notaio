@@ -1,0 +1,48 @@
+# The version and short SHA one Build run uses everywhere (ADR-0009). Ported from banlieue.
+#   release  version from the release tag (v1.2.3 -> 1.2.3)
+#   pr       pr-<number>
+#   main     0.0.0-main.<date>.<run number>
+name: 'Extract Version Information'
+description: 'Version and short SHA for one workflow run'
+
+inputs:
+  workflow-type:
+    description: 'main, pr or release'
+    required: true
+  pr-number:
+    description: 'Pull request number (pr only)'
+    required: false
+  release-tag:
+    description: 'Release tag name (release only)'
+    required: false
+
+outputs:
+  version:
+    description: 'Version, e.g. 1.2.3'
+    value: ${{ steps.extract.outputs.version }}
+  short-sha:
+    description: 'Short 7-character SHA'
+    value: ${{ steps.extract.outputs.short-sha }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Extract version information
+      id: extract
+      shell: bash
+      env:
+        GH_SHA: ${{ github.sha }}
+        GH_RUN_NUMBER: ${{ github.run_number }}
+        IN_WORKFLOW_TYPE: ${{ inputs.workflow-type }}
+        IN_PR_NUMBER: ${{ inputs.pr-number }}
+        IN_RELEASE_TAG: ${{ inputs.release-tag }}
+      run: |
+        echo "short-sha=${GH_SHA:0:7}" >> "$GITHUB_OUTPUT"
+        case "${IN_WORKFLOW_TYPE}" in
+          release) VERSION="${IN_RELEASE_TAG#v}" ;;
+          pr)      VERSION="pr-${IN_PR_NUMBER}" ;;
+          main)    VERSION="0.0.0-main.$(date +%Y-%m-%d).${GH_RUN_NUMBER}" ;;
+          *) echo "workflow-type must be main, pr or release, got '${IN_WORKFLOW_TYPE}'"; exit 1 ;;
+        esac
+        echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+        echo "version ${VERSION}"

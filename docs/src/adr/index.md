@@ -14,6 +14,7 @@ code that implements it, and every implemented ADR ends with a full pass over th
 | [ADR-0006](0006-notaio-lint-cli.md) | `notaio lint`, the policy check for pull requests |
 | [ADR-0007](0007-exposure-ceiling.md) | ExposureCeiling, the approved maximum exposure of a policy |
 | [ADR-0008](0008-consumer-version-floor.md) | The consumer's persisted version floor |
+| [ADR-0009](0009-release-and-supply-chain.md) | Release images and their supply chain |
 
 ADRs live in [`docs/adr/`](https://github.com/firestoned/notaio/tree/main/docs/adr) in the
 repository and are never renumbered.

@@ -162,6 +162,34 @@ cargo run -p sandboxpolicy-bundle --example verify_and_record -- \
     bundle.dsse.json <key-id> <public-key-base64> floor.json
 ```
 
+## Verifying a release
+
+Images come only from this repository's Build workflow (ADR-0009): `latest`, `main-<date>` and
+`sha-<sha>` from `main`, `v<X.Y.Z>` from a release. Install from a release's
+`notaio-<version>.yaml`, which pins the image by digest. To check what you are about to run:
+
+```sh
+IMAGE=ghcr.io/firestoned/notaio@sha256:<digest from notaio-<version>.yaml>
+ID='^https://github.com/firestoned/notaio/.github/workflows/build.yaml@refs/(heads/main|tags/v.+)$'
+
+# The image was signed by this repository's workflow, keyless.
+cosign verify "$IMAGE" --certificate-identity-regexp "$ID" \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+
+# It was built by this repository's CI, from a commit you can see.
+gh attestation verify "oci://$IMAGE" --repo firestoned/notaio
+
+# The install manifest itself is the one the release built.
+cosign verify-blob notaio-<version>.yaml --bundle notaio-<version>.yaml.sigstore.json \
+  --certificate-identity-regexp "$ID" \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+sha256sum -c checksums.sha256
+```
+
+The release logic is tested on every pull request: `make release-manifest-test` (the image is
+pinned by digest exactly once, every kind is there, the admission policy is not) and
+`make set-version-test`.
+
 ## Documentation
 
 ```sh

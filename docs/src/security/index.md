@@ -35,7 +35,11 @@ The full policy, including response times and scope, is in
 - Dependabot with a 7 day cooldown; updates merge only after the e2e passes.
 - Every commit is signed and verified in CI.
 
-Image signing, SBOMs and build provenance arrive with the published image (ROADMAP M2).
+- Every published image, `ghcr.io/firestoned/notaio`, is built by this repository's CI for
+  amd64 and arm64, Cosign-signed by digest (keyless), and carries a CycloneDX SBOM and build
+  provenance ([ADR-0009](../adr/0009-release-and-supply-chain.md)). A release attaches its install
+  manifest with the image pinned to that digest, signed the same way. How to check it yourself:
+  the developer guide's "Verifying a release".
 
 ## Known gaps
 

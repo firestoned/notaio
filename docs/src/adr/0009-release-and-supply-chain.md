@@ -1,0 +1,1 @@
+--8<-- "adr/0009-release-and-supply-chain.md"
