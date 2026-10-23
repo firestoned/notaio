@@ -21,7 +21,9 @@ Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
   once, every install kind present, the admission policy absent; checked against a wrong digest, a
   surviving tag and an included admission policy, and each is refused.
 - `deploy/controller/20-deployment.yaml`: `ghcr.io/firestoned/notaio:latest` (was a placeholder
-  tag that never existed); a release pins it by digest in its manifest.
+  tag that never existed); a release pins it by digest in its manifest. `imagePullPolicy:
+  IfNotPresent` is explicit, because `latest` defaults to Always, and Always made every kind e2e
+  suite try to pull its side-loaded `local-dev` image from ghcr and time out.
 - Docs: the developer guide (verifying a release), the security page, the ADR on the site,
   `ROADMAP.md` (M2), `docs/threat-model-mapping.md` (the image's integrity implemented; scanning
   and VEX not yet).
