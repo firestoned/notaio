@@ -119,10 +119,11 @@ again to unseal. It is a test instance: one replica, one key share.
 
 ## Signing with OpenBao
 
-The controller signs with the development seed by default. The production signer, an OpenBao
-transit key (ADR-0004), is switched on with `deploy/signer/`: a patch that removes the seed and adds
-the OpenBao address, its CA and a projected token, and a NetworkPolicy for the one new egress path.
-`dev/openbao/use-signer.sh <kubeconfig> openbao` applies both (and `development` reverts).
+The controller signs with an OpenBao transit key (ADR-0004), as it ships. It trusts only the CA in
+ConfigMap `openbao-ca` (key `ca.crt`) and logs in with a projected ServiceAccount token, so a
+cluster needs an OpenBao first; `dev/openbao` provides a test one. Every kind e2e suite runs that
+way: `kind-deploy` installs cert-manager and dev/openbao, and `dev/openbao/use-signer.sh ca`
+copies the CA.
 
 ```sh
 make kind-e2e-openbao                       # kind: cert-manager, dev/openbao, the suite
@@ -130,10 +131,14 @@ make openbao-e2e CLUSTER_KUBECONFIG=<kubeconfig> OPENBAO_STATE=<dir> \
     NOTAIO_IMAGE=ghcr.io/firestoned/notaio@sha256:<digest>   # a test cluster with dev/openbao
 ```
 
-The suite checks that the controller holds no development seed, that a bundle is signed by
+`e2e_openbao` checks that the controller holds no development seed, that a bundle is signed by
 `notaio:v<N>` and verifies against OpenBao's public key, and that with OpenBao gone nothing is
-published and the policy reports `Ready=False, SigningFailed`. Both targets unseal OpenBao again
+published and the policy reports `Ready=False, SigningFailed`. Both targets unseal OpenBao
 afterwards.
+
+For a local experiment without OpenBao, `dev/openbao/use-signer.sh <kubeconfig> development`
+switches to a development seed (`deploy/signer/development-patch.yaml`), and `openbao` switches
+back. Never in production: anyone who can read the seed's Secret can sign.
 
 ## Consuming a bundle
 

@@ -28,10 +28,31 @@ pub const ANN_VERSION: &str = "sandbox.firestoned.io/bundle-version";
 pub const ANN_DIGEST: &str = "sandbox.firestoned.io/bundle-digest";
 pub const MANAGED_BY: &str = "notaio";
 
-/// Name of the development signing key Secret and the key id the Deployment signs with
-/// (`deploy/controller/20-deployment.yaml`).
-pub const SIGNING_SECRET: &str = "notaio-dev-signing-key";
-pub const SIGNING_KEY_ID: &str = "dev";
+/// The key the deployed controller signs with: OpenBao's transit key (ADR-0004), as
+/// dev/openbao/setup.sh printed it, `notaio:v<N> <base64 public key>`, passed by the Makefile.
+pub fn openbao_key() -> (String, [u8; 32]) {
+    use base64::{engine::general_purpose::STANDARD, Engine as _};
+    let line = std::env::var("NOTAIO_E2E_OPENBAO_PUBLIC_KEY")
+        .expect("NOTAIO_E2E_OPENBAO_PUBLIC_KEY is not set: run through make kind-e2e-<suite>");
+    let (key_id, b64) = line
+        .trim()
+        .split_once(' ')
+        .expect("NOTAIO_E2E_OPENBAO_PUBLIC_KEY is `<key id> <base64>`");
+    let raw: [u8; 32] = STANDARD
+        .decode(b64)
+        .expect("base64 public key")
+        .try_into()
+        .expect("an ed25519 public key is 32 bytes");
+    (key_id.to_string(), raw)
+}
+
+/// What a consumer trusts: OpenBao's public key and nothing else.
+pub fn trusted_keys() -> sandboxpolicy_bundle::TrustedKeys {
+    let (key_id, public) = openbao_key();
+    let mut keys = sandboxpolicy_bundle::TrustedKeys::new();
+    keys.insert(&key_id, public).expect("an ed25519 public key");
+    keys
+}
 
 /// Name of the published bundle ConfigMap for a policy.
 pub fn bundle_object_name(policy: &str) -> String {

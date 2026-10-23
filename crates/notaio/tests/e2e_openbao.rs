@@ -1,8 +1,8 @@
 //! e2e: the production signer, an OpenBao transit key (ADR-0004), against the deployed controller.
 //!
-//! Run with `make kind-e2e-openbao` (kind: cert-manager and dev/openbao installed for the run) or
-//! `make openbao-e2e` (a test cluster that already has dev/openbao). The Makefile has switched the
-//! controller to OpenBao with dev/openbao/use-signer.sh and passes OpenBao's public key as
+//! Run with `make kind-e2e-openbao` (kind, with cert-manager and dev/openbao) or `make openbao-e2e`
+//! (a test cluster that already has dev/openbao). OpenBao is the default signer, so this suite
+//! runs the deployment as written; the Makefile passes OpenBao's public key as
 //! `NOTAIO_E2E_OPENBAO_PUBLIC_KEY` (`notaio:v<N> <base64>`, from setup.sh).
 //!
 //! One test, in order, because its second half takes OpenBao away: the Makefile unseals it again
@@ -12,35 +12,18 @@
 
 mod common;
 
-use base64::{engine::general_purpose::STANDARD, Engine as _};
 use chrono::Utc;
 use k8s_openapi::api::apps::v1::Deployment;
 use k8s_openapi::api::core::v1::{ConfigMap, Pod};
 use kube::api::{DeleteParams, ListParams, Patch, PatchParams, PostParams};
 use kube::{Api, Client};
 use sandboxpolicy_api::{ExposureCeiling, SandboxPolicy};
-use sandboxpolicy_bundle::{verify_bundle, Envelope, TrustedKeys, VerifyOptions};
+use sandboxpolicy_bundle::{verify_bundle, Envelope, VerifyOptions};
 use serde_json::json;
 
 use common::*;
 
 const OPENBAO_NAMESPACE: &str = "openbao";
-
-/// The key consumers trust, as setup.sh printed it: `notaio:v<N> <base64 public key>`.
-fn openbao_key() -> (String, [u8; 32]) {
-    let line = std::env::var("NOTAIO_E2E_OPENBAO_PUBLIC_KEY")
-        .expect("NOTAIO_E2E_OPENBAO_PUBLIC_KEY is not set: run through make kind-e2e-openbao");
-    let (key_id, b64) = line
-        .trim()
-        .split_once(' ')
-        .expect("NOTAIO_E2E_OPENBAO_PUBLIC_KEY is `<key id> <base64>`");
-    let raw: [u8; 32] = STANDARD
-        .decode(b64)
-        .expect("base64 public key")
-        .try_into()
-        .expect("an ed25519 public key is 32 bytes");
-    (key_id.to_string(), raw)
-}
 
 async fn create_capped_policy(client: &Client, ns: &str, name: &str) {
     let ceilings: Api<ExposureCeiling> = Api::namespaced(client.clone(), ns);
@@ -91,7 +74,7 @@ async fn wait_ready_reason(policies: &Api<SandboxPolicy>, name: &str, reason: &s
 async fn signs_through_openbao_and_fails_closed_without_it() {
     let client = client().await;
     let ns = policy_namespace();
-    let (key_id, public) = openbao_key();
+    let (key_id, _) = openbao_key();
 
     // 0. The deployed controller is configured for OpenBao and holds no development seed.
     let deployments: Api<Deployment> = Api::namespaced(client.clone(), &controller_namespace());
@@ -128,9 +111,7 @@ async fn signs_through_openbao_and_fails_closed_without_it() {
         key_id.starts_with("notaio:v"),
         "key id names the key version"
     );
-    let mut trusted = TrustedKeys::new();
-    trusted.insert(&key_id, public).expect("key");
-    let payload = verify_bundle(&env, &trusted, &VerifyOptions::at(Utc::now()))
+    let payload = verify_bundle(&env, &trusted_keys(), &VerifyOptions::at(Utc::now()))
         .expect("the bundle verifies against OpenBao's public key");
     assert_eq!(payload.content.policy.name, signed);
 

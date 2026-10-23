@@ -7,8 +7,9 @@
 # profiles, a signed bundle a consumer can verify, the controller's RBAC
 # through SubjectAccessReview, and the GitOps-only admission policy.
 #
-# No secrets, no registry: the image is built on the runner and side-loaded,
-# and the signing key is a throwaway development seed created in the cluster.
+# No secrets, no registry: the image is built on the runner and side-loaded.
+# The controller signs as it ships, with an OpenBao transit key (ADR-0004): each
+# job installs cert-manager and a throwaway dev/openbao into its kind cluster.
 # So this runs on fork PRs.
 #
 # One job per suite, each on its own kind cluster, so a red X names the

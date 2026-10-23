@@ -45,7 +45,8 @@ Out of scope, or known:
 
 - issues that require cluster-admin privileges, which already bypass the admission policy by
   removing it;
-- the development signer keeping its key in a Kubernetes Secret. It is a known gap, documented in
+- the development signer (`deploy/signer/development-patch.yaml`), which keeps its key in a
+  Kubernetes Secret. It is an opt-in for local experiments, not the default, documented in
   `docs/architecture.md`, and is not for production use. ADR-0004 replaces it with a
   non-exportable OpenBao transit key.
 

@@ -12,7 +12,7 @@
 //! | `NOTAIO_OPENBAO_KEY` | transit key | `notaio` |
 //! | `NOTAIO_OPENBAO_AUTH_PATH` | Kubernetes auth mount | `kubernetes` |
 //! | `NOTAIO_OPENBAO_TOKEN_FILE` | projected ServiceAccount token | `/var/run/secrets/openbao/token` |
-//! | `NOTAIO_SIGNING_KEY_FILE`, `NOTAIO_KEY_ID` | development signer, for kind and tests only | none, `dev` |
+//! | `NOTAIO_SIGNING_KEY_FILE`, `NOTAIO_KEY_ID` | development seed, opt-in for local experiments (`deploy/signer/development-patch.yaml`) | none, `dev` |
 //!
 //! Setting both the OpenBao address and the development key is refused.
 
@@ -105,7 +105,7 @@ pub struct TransitConfig {
 pub enum SignerChoice {
     /// None configured: notaio validates and reports, and publishes nothing.
     None,
-    /// A seed on disk, for kind and tests only (ADR-0004, decision 5).
+    /// A seed on disk, opt-in for local experiments only (ADR-0004).
     Development { key_file: PathBuf, key_id: String },
     /// OpenBao transit, the production signer.
     OpenBao(TransitConfig),
