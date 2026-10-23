@@ -19,10 +19,11 @@ The full policy, including response times and scope, is in
 | --- | --- | --- |
 | No unsigned bundle is ever published | the controller has no unsigned publish path; with no key it reports `Ready=False, NoSigner` | unit tests; `e2e_bundle` verifies every published bundle |
 | A consumer refuses a forged, expired or downgraded bundle (T5.4) | `verify_bundle`, failing closed on every check | `sandboxpolicy-bundle` tests; `e2e_bundle` (wrong key, version floor) |
-| The controller cannot create, edit or delete a policy object (T8.2) | `deploy/controller/10-rbac.yaml`: read plus status writes | `e2e_rbac`, through SubjectAccessReview against the deployed role |
+| The controller cannot create, edit or delete a policy object (T8.2) | `deploy/controller/10-rbac.yaml`: read plus status writes, and `create`/`patch` on Events only ([ADR-0010](../adr/0010-health-metrics-and-events.md)) | `e2e_rbac`, through SubjectAccessReview against the deployed role |
 | No direct edits, only reviewed GitOps changes (T8.2, S6) | `deploy/admission/gitops-only.yaml` | `e2e_admission`: denied for cluster-admin, admitted for the GitOps identity |
 | The controller reads no Secrets through the API, and writes bundles only where allowed | per-namespace Role, no Secret verbs | `e2e_rbac` |
-| No inbound connections; egress to DNS and the API server only | `deploy/controller/30-networkpolicy.yaml` | applied in every e2e run |
+| No inbound connection that can influence signing; egress to DNS, the API server and OpenBao only | `deploy/controller/30-networkpolicy.yaml`: ingress only to the health and metrics port, from the monitoring namespace; the listener serves three fixed `GET` paths and reads no body (ADR-0010) | applied in every e2e run; `crates/notaio/src/http_tests.rs` |
+| A bundle the evaluator should never have produced is not signed | the fail-open guard (`crates/notaio/src/guard.rs`), counted in `notaio_fail_open_total`, which must be 0 | unit tests; `e2e_install` reads the deployed counters |
 | Toxic combinations, wildcard audiences, multi-step grants are refused | lint rules L001 to L013 | `sandboxpolicy-core` tests |
 | No policy publishes past its approved exposure, and none publishes without one | ExposureCeiling and lint rules L014 to L016 ([ADR-0007](../adr/0007-exposure-ceiling.md)), checked by `notaio lint` and by the controller | `sandboxpolicy-core` tests; `e2e_bundle` (no ceiling, no bundle) |
 

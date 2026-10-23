@@ -100,6 +100,9 @@ async fn policy_compiles_to_a_signed_verifiable_bundle_that_never_goes_back() {
     let p1 = wait_published(&policies, &name, 0).await;
     let s1 = p1.status.clone().expect("status");
     let v1 = s1.bundle_version.expect("bundle version");
+    // The transition is recorded as an Event on the policy (ADR-0010).
+    let ev = wait_event(&client, &ns, &name, "Published").await;
+    assert_eq!(ev.type_.as_deref(), Some("Normal"));
     let env1 = published_envelope(&cms, &name, v1).await;
     let payload1: BundlePayload =
         verify_bundle(&env1, &keys, &VerifyOptions::at(Utc::now())).expect("bundle verifies");
@@ -240,6 +243,8 @@ async fn a_policy_without_an_approved_ceiling_publishes_nothing() {
         status.max_exposure.is_some(),
         "the exposure to approve is reported"
     );
+    let ev = wait_event(&client, &ns, &name, "NoApprovedCeiling").await;
+    assert_eq!(ev.type_.as_deref(), Some("Warning"));
     assert!(
         cms.get_opt(&bundle_object_name(&name))
             .await

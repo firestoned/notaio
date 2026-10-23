@@ -3,11 +3,15 @@ use std::sync::Arc;
 use std::time::Duration as StdDuration;
 
 use chrono::{Duration, Utc};
-use k8s_openapi::api::core::v1::ConfigMap;
+use k8s_openapi::api::core::v1::{ConfigMap, ObjectReference};
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 use kube::api::{Api, ListParams, Patch, PatchParams};
 use kube::runtime::controller::Action;
+use kube::runtime::events::{Event, EventType, Recorder};
 use kube::{Client, Resource, ResourceExt};
+use notaio::events::{self, Note};
+use notaio::guard::{self, Evaluated};
+use notaio::metrics::Counters;
 use sandboxpolicy_api::{
     ExposureCeiling, GrantPhase, KnobGrant, KnobGrantStatus, SandboxPolicy, SandboxPolicyStatus,
     SandboxProfile, SandboxProfileStatus,
@@ -32,6 +36,53 @@ pub struct Ctx {
     pub ceilings: Ceilings,
     /// How long a compiled bundle stays valid. The upper bound on staleness.
     pub bundle_lifetime: Duration,
+    pub counters: Counters,
+    pub recorder: Recorder,
+}
+
+/// Record `note` on `regarding`, if there is one. A failure is logged, never returned: an Event is
+/// a report, and must not hold back a reconcile (ADR-0010, decision 5).
+async fn record(ctx: &Ctx, regarding: &ObjectReference, note: Option<Note>) {
+    let Some(n) = note else { return };
+    let ev = Event {
+        type_: if n.warning {
+            EventType::Warning
+        } else {
+            EventType::Normal
+        },
+        reason: n.reason,
+        note: Some(n.note),
+        action: events::ACTION.to_string(),
+        secondary: None,
+    };
+    if let Err(e) = ctx.recorder.publish(&ev, regarding).await {
+        tracing::warn!(error = %e, object = ?regarding.name, "could not record an Event");
+    }
+}
+
+/// `status` with its Ready condition replaced by a false one with `reason` and `message`.
+fn not_ready(
+    prev: &SandboxPolicyStatus,
+    status: &SandboxPolicyStatus,
+    reason: &str,
+    message: &str,
+    now: chrono::DateTime<Utc>,
+    generation: Option<i64>,
+) -> SandboxPolicyStatus {
+    let failed = condition(
+        &prev.conditions,
+        "Ready",
+        false,
+        reason,
+        message,
+        now,
+        generation,
+    );
+    let mut out = status.clone();
+    if let Some(c) = out.conditions.iter_mut().find(|c| c.type_ == "Ready") {
+        *c = failed;
+    }
+    out
 }
 
 pub fn bundle_object_name(policy: &str) -> String {
@@ -121,6 +172,14 @@ pub async fn reconcile_policy(policy: Arc<SandboxPolicy>, ctx: Arc<Ctx>) -> Resu
             now,
             g.metadata.generation,
         );
+        if old.phase != r.phase {
+            record(
+                &ctx,
+                &g.object_ref(&()),
+                events::grant(old.phase, r.phase, &r.message),
+            )
+            .await;
+        }
         if old.phase != r.phase
             || old.observed_generation != g.metadata.generation
             || old.conditions.first().map(|c| c.message.as_str()) != Some(r.message.as_str())
@@ -179,31 +238,58 @@ pub async fn reconcile_policy(policy: Arc<SandboxPolicy>, ctx: Arc<Ctx>) -> Resu
     }
 
     if let (Some(bundle), Some(signer)) = (&out.bundle, &ctx.signer) {
+        // Check the bundle again, independently of the evaluator, before it can be signed
+        // (ADR-0010, decision 4). In a correct build this never refuses anything.
+        let active_grant_expiries: Vec<(String, chrono::DateTime<Utc>)> = out
+            .status
+            .active_grants
+            .iter()
+            .filter_map(|n| {
+                grants
+                    .iter()
+                    .find(|g| g.name_any() == *n)
+                    .map(|g| (n.clone(), g.spec.expires_at))
+            })
+            .collect();
+        let failed_checks = guard::check(
+            &Evaluated {
+                not_after: bundle.meta.not_after,
+                has_ceiling: exposure_ceiling.is_some(),
+                findings: &out.findings,
+                active_grant_expiries: &active_grant_expiries,
+            },
+            now,
+        );
+        if !failed_checks.is_empty() {
+            for c in &failed_checks {
+                ctx.counters.fail_open(c);
+            }
+            let msg = format!(
+                "refused to publish: the bundle failed the fail-open checks {}",
+                failed_checks.join(", ")
+            );
+            tracing::error!(policy = %name, checks = ?failed_checks, "{msg}");
+            return refuse(&ctx, &policy, &prev, &status, "FailOpenRefused", &msg, now)
+                .await
+                .map(|()| Action::requeue(StdDuration::from_secs(300)));
+        }
+
         let envelope = match signer.sign(bundle).await {
             Ok(e) => e,
             Err(e) => {
                 // Fail closed: nothing new is published. Say why on the policy, and keep the
                 // previous bundle's version and digest, which are still what consumers hold.
-                let failed = condition(
-                    &prev.conditions,
-                    "Ready",
-                    false,
+                ctx.counters.signing_failures.inc();
+                refuse(
+                    &ctx,
+                    &policy,
+                    &prev,
+                    &status,
                     "SigningFailed",
                     &e.to_string(),
                     now,
-                    policy.metadata.generation,
-                );
-                let mut conditions = status.conditions.clone();
-                if let Some(c) = conditions.iter_mut().find(|c| c.type_ == "Ready") {
-                    *c = failed;
-                }
-                Api::<SandboxPolicy>::namespaced(client.clone(), &ns)
-                    .patch_status(
-                        &name,
-                        &PatchParams::default(),
-                        &Patch::Merge(json!({ "status": { "conditions": conditions } })),
-                    )
-                    .await?;
+                )
+                .await?;
                 return Err(e);
             }
         };
@@ -236,6 +322,7 @@ pub async fn reconcile_policy(policy: Arc<SandboxPolicy>, ctx: Arc<Ctx>) -> Resu
             &Patch::Apply(&cm),
         )
         .await?;
+        ctx.counters.bundles_published.inc();
     }
 
     Api::<SandboxPolicy>::namespaced(client.clone(), &ns)
@@ -245,7 +332,58 @@ pub async fn reconcile_policy(policy: Arc<SandboxPolicy>, ctx: Arc<Ctx>) -> Resu
             &Patch::Merge(json!({ "status": status })),
         )
         .await?;
+    record(
+        &ctx,
+        &policy.object_ref(&()),
+        events::policy(&prev, &status),
+    )
+    .await;
     Ok(Action::requeue(std_dur(out.requeue_after)))
+}
+
+/// Publish nothing: set Ready false with `reason` on the policy, keeping the previous bundle's
+/// version and digest, which are still what consumers hold, and record the transition.
+async fn refuse(
+    ctx: &Ctx,
+    policy: &SandboxPolicy,
+    prev: &SandboxPolicyStatus,
+    status: &SandboxPolicyStatus,
+    reason: &str,
+    message: &str,
+    now: chrono::DateTime<Utc>,
+) -> Result<(), Error> {
+    let ns = policy.namespace().ok_or(Error::NoNamespace)?;
+    let refused = not_ready(
+        prev,
+        status,
+        reason,
+        message,
+        now,
+        policy.metadata.generation,
+    );
+    Api::<SandboxPolicy>::namespaced(ctx.client.clone(), &ns)
+        .patch_status(
+            &policy.name_any(),
+            &PatchParams::default(),
+            &Patch::Merge(json!({ "status": { "conditions": refused.conditions } })),
+        )
+        .await?;
+    // Compared with the conditions only: the version and digest did not move.
+    let before = SandboxPolicyStatus {
+        conditions: prev.conditions.clone(),
+        ..Default::default()
+    };
+    let after = SandboxPolicyStatus {
+        conditions: refused.conditions,
+        ..Default::default()
+    };
+    record(
+        ctx,
+        &policy.object_ref(&()),
+        events::policy(&before, &after),
+    )
+    .await;
+    Ok(())
 }
 
 pub async fn reconcile_profile(
@@ -276,6 +414,12 @@ pub async fn reconcile_profile(
         digest: ok.then(|| profile_digest(&profile.spec)),
     };
     if status != prev {
+        record(
+            &ctx,
+            &profile.object_ref(&()),
+            events::profile(&prev.conditions, &status.conditions),
+        )
+        .await;
         Api::<SandboxProfile>::all(ctx.client.clone())
             .patch_status(
                 &name,
@@ -287,7 +431,8 @@ pub async fn reconcile_profile(
     Ok(Action::await_change())
 }
 
-pub fn error_policy<K>(_obj: Arc<K>, err: &Error, _ctx: Arc<Ctx>) -> Action {
+pub fn error_policy<K>(_obj: Arc<K>, err: &Error, ctx: Arc<Ctx>) -> Action {
+    ctx.counters.reconcile_errors.inc();
     tracing::warn!(error = %err, "reconcile failed, retrying");
     Action::requeue(StdDuration::from_secs(30))
 }

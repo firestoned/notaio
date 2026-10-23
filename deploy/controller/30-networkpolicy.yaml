@@ -1,6 +1,7 @@
-# Notaio takes no inbound connections and makes outbound calls only to DNS, the Kubernetes API
-# server and OpenBao, its signer (ADR-0004). Narrow the API server rule to your control plane CIDR,
-# and the OpenBao rule to where your OpenBao runs.
+# Notaio takes one kind of inbound connection, to its health and metrics port, which reads nothing
+# from the request and cannot influence signing (ADR-0010). It makes outbound calls only to DNS, the
+# Kubernetes API server and OpenBao, its signer (ADR-0004). Narrow the API server rule to your
+# control plane CIDR, and the OpenBao rule to where your OpenBao runs.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -11,7 +12,14 @@ spec:
     matchLabels:
       app.kubernetes.io/name: notaio
   policyTypes: ["Ingress", "Egress"]
-  ingress: []
+  ingress:
+    # Prometheus. Change the label to the namespace your scraper runs in. Kubelet probes come from
+    # the node; if your network plugin applies this policy to them, add an ipBlock for the nodes.
+    - from:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: monitoring }
+      ports:
+        - { protocol: TCP, port: 8080 }
   egress:
     - to:
         - namespaceSelector: {}
