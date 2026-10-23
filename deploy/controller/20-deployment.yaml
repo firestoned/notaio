@@ -37,12 +37,15 @@ spec:
               value: "1"
             - name: NOTAIO_BUNDLE_LIFETIME_SECONDS
               value: "3600"
-            # Development signer only. Remove both lines and the volume below when a KMS, HSM or TPM
-            # backed signer exists. Without a key the controller validates but publishes nothing.
-            - name: NOTAIO_SIGNING_KEY_FILE
-              value: /var/run/notaio/signing/seed
-            - name: NOTAIO_KEY_ID
-              value: dev
+            # The signer: a non-exportable OpenBao transit key (ADR-0004). notaio logs in with its
+            # ServiceAccount (the projected token below) and may only request signatures. Point the
+            # address at your OpenBao, and put the CA that signed its certificate in ConfigMap
+            # openbao-ca (key ca.crt): it is the only root trusted. The pod does not start without
+            # it. For a development seed instead, see deploy/signer/development-patch.yaml.
+            - name: NOTAIO_OPENBAO_ADDR
+              value: https://openbao.openbao.svc:8200
+            - name: NOTAIO_OPENBAO_CA_FILE
+              value: /var/run/notaio/openbao-ca/ca.crt
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -55,11 +58,21 @@ spec:
             limits:
               memory: 128Mi
           volumeMounts:
-            - name: signing
-              mountPath: /var/run/notaio/signing
+            - name: openbao-token
+              mountPath: /var/run/secrets/openbao
+              readOnly: true
+            - name: openbao-ca
+              mountPath: /var/run/notaio/openbao-ca
               readOnly: true
       volumes:
-        - name: signing
-          secret:
-            secretName: notaio-dev-signing-key
-            optional: true
+        # For OpenBao's Kubernetes auth role notaio (audience openbao), rotated by the kubelet.
+        - name: openbao-token
+          projected:
+            sources:
+              - serviceAccountToken:
+                  audience: openbao
+                  expirationSeconds: 3600
+                  path: token
+        - name: openbao-ca
+          configMap:
+            name: openbao-ca

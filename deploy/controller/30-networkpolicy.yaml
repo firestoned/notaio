@@ -1,5 +1,6 @@
-# Notaio takes no inbound connections and makes outbound calls only to DNS and the Kubernetes
-# API server. Narrow the API server rule to your control plane CIDR.
+# Notaio takes no inbound connections and makes outbound calls only to DNS, the Kubernetes API
+# server and OpenBao, its signer (ADR-0004). Narrow the API server rule to your control plane CIDR,
+# and the OpenBao rule to where your OpenBao runs.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -23,3 +24,10 @@ spec:
     - ports:
         - { protocol: TCP, port: 443 }
         - { protocol: TCP, port: 6443 }
+    - to:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: openbao }
+          podSelector:
+            matchLabels: { app.kubernetes.io/name: openbao }
+      ports:
+        - { protocol: TCP, port: 8200 }

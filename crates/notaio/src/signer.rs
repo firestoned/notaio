@@ -11,8 +11,8 @@ use crate::error::Error;
 /// The key that signs bundles (ADR-0004). Unsigned bundles are never published: with no signer the
 /// controller validates and reports, and publishes nothing.
 pub enum BundleSigner {
-    /// A seed on disk, for kind and tests only. Anyone who can read the Secret can sign, which the
-    /// threat model forbids for production (T8.2).
+    /// A seed on disk, opt-in for local experiments only. Anyone who can read the Secret can sign,
+    /// which the threat model forbids for production (T8.2).
     Development(Ed25519Signer),
     /// A non-exportable OpenBao transit key: notaio may ask for signatures, never hold the key.
     OpenBao(TransitSigner),

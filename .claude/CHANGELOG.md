@@ -2,6 +2,38 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-23 00:00] - OpenBao is the default signer; the development seed is opt-in
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `deploy/controller/20-deployment.yaml`: signs with OpenBao transit (address, CA from ConfigMap
+  `openbao-ca`, projected token, audience `openbao`). The development seed's env, Secret mount and
+  creation are gone. `30-networkpolicy.yaml`: one egress rule, to OpenBao on 8200.
+- `deploy/signer/development-patch.yaml` (new) replaces `openbao-patch.yaml` and
+  `openbao-networkpolicy.yaml`: the seed is now the opt-in, for local experiments.
+- `dev/openbao/use-signer.sh`: `ca` (copy OpenBao's CA), `openbao` (the manifest as written),
+  `development` (the opt-in patch and its Secret).
+- `Makefile`: `kind-deploy` depends on `kind-openbao` and copies the CA; every suite gets
+  `NOTAIO_E2E_OPENBAO_PUBLIC_KEY` (`E2E_ENV`); `kind-e2e-openbao` no longer switches signers;
+  `cluster-deploy` copies the CA instead of creating a seed.
+- `crates/notaio/tests`: `common::openbao_key` and `common::trusted_keys` (OpenBao's public key);
+  `e2e_bundle` verifies against it, and its wrong-key check forges OpenBao's key id.
+- Docs: ADR-0004 (implemented and the default), architecture, the security page, `SECURITY.md`,
+  the developer guide, the e2e workflow's header, `ROADMAP.md` (M2), `docs/threat-model-mapping.md`
+  (T8.2 implemented for the default deployment; the "not covered" row is gone).
+
+### Why
+ROADMAP M2 and threat model T8.2: the deployment as shipped no longer holds a key that whoever
+administers the cluster can read. Every e2e suite now tests that configuration, not a development
+one.
+
+### Impact
+- [x] Breaking change (a deployment needs OpenBao and ConfigMap `openbao-ca`; the seed is gone)
+- [x] Requires cluster rollout
+- [ ] Config or examples change only
+- [ ] Documentation only
+
 ## [2026-10-22 12:00] - Implement ADR-0004: the OpenBao transit signer
 
 **Author:** Erick Bourgeois

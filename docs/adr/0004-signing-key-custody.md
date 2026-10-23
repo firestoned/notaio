@@ -10,7 +10,10 @@
 Implemented 2026-10-22: `crates/notaio/src/openbao.rs` (the transit client and the signer choice),
 `crates/notaio/src/signer.rs`, `deploy/signer/` (the deployment patch and the egress rule), and the
 `e2e_openbao` suite against a real OpenBao (`make kind-e2e-openbao`, `make openbao-e2e`). The
-development signer is still the default in `deploy/controller/` (decision 5, ROADMAP M2).
+default since 2026-10-23: `deploy/controller/` signs with OpenBao, and every e2e suite runs that
+deployment as written, on kind with cert-manager and dev/openbao. The development signer survives
+only as the opt-in `deploy/signer/development-patch.yaml`, for local experiments; contrary to
+decision 5's "and the e2e", no e2e suite uses it.
 
 ## Context
 

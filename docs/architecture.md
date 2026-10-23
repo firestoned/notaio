@@ -82,7 +82,7 @@ change, which is why they sit in small crates with their own ADR.
 | Signed bundle: a DSSE envelope over the compiled content, canonicalised with RFC 8785 | notaio, and only notaio | mediatore, mediatore-guest, gateway | `crates/sandboxpolicy-bundle`, [ADR-0002](adr/0002-bundle-contract.md), [ADR-0005](adr/0005-canonical-form-rfc-8785.md) | implemented; schema v2, frozen |
 | Bundle location | notaio | mediatore through the API; guests through mediatore's relay | ConfigMap `<policy>-bundle` beside the policy, with version and digest annotations ([ADR-0003](adr/0003-bundle-distribution.md)) | published today; the relay is M3 |
 | Consumer version floor: the highest version accepted per policy, keyed by namespace and name, with the incarnation's `uid` | each consumer, on its own disk | that consumer | `crates/sandboxpolicy-bundle/src/floor.rs`, [ADR-0008](adr/0008-consumer-version-floor.md) | implemented; consumers adopt it in M3 |
-| Signing key and its public half | OpenBao transit, non-exportable; notaio may only request signatures | every consumer, configured out of band, key id `<name>:v<N>` | [ADR-0004](adr/0004-signing-key-custody.md), `deploy/signer/` | implemented; the default deployment still uses the development signer |
+| Signing key and its public half | OpenBao transit, non-exportable; notaio may only request signatures | every consumer, configured out of band, key id `<name>:v<N>` | [ADR-0004](adr/0004-signing-key-custody.md), `deploy/signer/` | implemented, and the default |
 | Policy status: `Ready`, version, digest, `maxExposure`, active grants | notaio | operators, reviewers, dashboards | `crates/sandboxpolicy-api` | implemented |
 
 ### The life of a change
@@ -268,9 +268,6 @@ and that the version is not below the highest it has accepted. Every failure is 
   yet on a production cluster, and not yet with a real GitOps reconciler as the admitted identity.
 - Distribution is decided (ADR-0003: ConfigMap, read by mediatore, relayed to guests), but the
   mediatore side is not built yet (ROADMAP M3).
-- The default deployment still uses the development signer, a key in a Secret, which the threat
-  model forbids for production (T8.2). The OpenBao transit signer is built (ADR-0004,
-  `deploy/signer/`); making it the default is ROADMAP M2.
 - A policy that becomes invalid leaves the previous bundle in place until it expires. The bundle
   lifetime is therefore the upper bound on how long a tightening takes to land. Faster tightening is
   open decision 3.

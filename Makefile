@@ -249,19 +249,15 @@ kind-load: kind-create ## Build the notaio image for the host arch and side-load
 # carries the per-namespace bundle Role for `sandboxes`, so it must exist first.
 E2E_POLICY_NAMESPACE ?= sandboxes
 
-kind-deploy: kind-load ## Install CRDs, profiles and the controller from deploy/ into kind
+kind-deploy: kind-load kind-openbao ## Install CRDs, profiles and the controller from deploy/ into kind, signing with OpenBao
 	@echo "Applying CRDs..."
 	@$(KIND_KUBECTL) apply -f deploy/crds/
 	@$(KIND_KUBECTL) wait --for=condition=Established --timeout=60s -f deploy/crds/
 	@$(KIND_KUBECTL) apply -f deploy/controller/00-namespace.yaml
 	@$(KIND_KUBECTL) create namespace $(E2E_POLICY_NAMESPACE) --dry-run=client -o yaml | $(KIND_KUBECTL) apply -f -
-	@# Development signer only (ADR-0002, open decision 2). Created once and never
-	@# rotated here: the e2e verifies bundles against the seed it reads back.
-	@if ! $(KIND_KUBECTL) -n $(NAMESPACE) get secret notaio-dev-signing-key >/dev/null 2>&1; then \
-		echo "Creating a throwaway development signing key..."; \
-		$(KIND_KUBECTL) -n $(NAMESPACE) create secret generic notaio-dev-signing-key \
-			--from-literal=seed="$$(head -c 32 /dev/urandom | base64)"; \
-	fi
+	@# The deployment signs with OpenBao (ADR-0004) and trusts only its CA, which
+	@# must be in place before the pod can start.
+	@dev/openbao/use-signer.sh $(KIND_KUBECONFIG) ca
 	@echo "Applying controller manifests..."
 	@$(KIND_KUBECTL) apply -f deploy/controller/
 	@$(KIND_KUBECTL) -n $(NAMESPACE) set image deployment/notaio notaio=$(KIND_IMAGE)
@@ -296,11 +292,15 @@ kind-deploy: kind-load ## Install CRDs, profiles and the controller from deploy/
 # `make kind-e2e`: it switches the signer and restores it afterwards.
 E2E_SUITES = install bundle rbac admission openbao
 
+# Every suite verifies bundles against OpenBao's public key, the one setup.sh printed.
+E2E_ENV = KUBECONFIG=$(KIND_KUBECONFIG) \
+	NOTAIO_E2E_NAMESPACE=$(NAMESPACE) \
+	NOTAIO_E2E_POLICY_NAMESPACE=$(E2E_POLICY_NAMESPACE) \
+	NOTAIO_E2E_OPENBAO_PUBLIC_KEY="$$(cat $(KIND_OPENBAO_STATE)/notaio-public-key.txt)"
+
 define run-e2e-suite
 	@echo "Running $(1) against kind-$(KIND_CLUSTER_NAME)..."
-	@KUBECONFIG=$(KIND_KUBECONFIG) \
-	 NOTAIO_E2E_NAMESPACE=$(NAMESPACE) \
-	 NOTAIO_E2E_POLICY_NAMESPACE=$(E2E_POLICY_NAMESPACE) \
+	@$(E2E_ENV) \
 	 cargo test -p notaio --test $(1) -- --ignored --nocapture --test-threads=1
 	@echo "✓ $(1) passed"
 endef
@@ -320,9 +320,7 @@ kind-e2e-admission: kind-deploy ## e2e: GitOps-only admission policy refuses dir
 	@$(KIND_KUBECTL) apply -f deploy/admission/gitops-only.yaml
 	@# Always remove the policy again, pass or fail: it denies every direct edit,
 	@# so leaving it behind would break any suite run after this one.
-	@KUBECONFIG=$(KIND_KUBECONFIG) \
-	 NOTAIO_E2E_NAMESPACE=$(NAMESPACE) \
-	 NOTAIO_E2E_POLICY_NAMESPACE=$(E2E_POLICY_NAMESPACE) \
+	@$(E2E_ENV) \
 	 cargo test -p notaio --test e2e_admission -- --ignored --nocapture --test-threads=1; \
 	 rc=$$?; \
 	 $(KIND_KUBECTL) delete --ignore-not-found -f deploy/admission/gitops-only.yaml; \
@@ -331,10 +329,10 @@ kind-e2e-admission: kind-deploy ## e2e: GitOps-only admission policy refuses dir
 
 # ----- the OpenBao signer (ADR-0004) -------------------------------------------
 #
-# cert-manager and dev/openbao in kind, the controller switched to the OpenBao
-# transit key (dev/openbao/use-signer.sh), then e2e_openbao. The suite takes
-# OpenBao away to prove the controller fails closed, so the recipe always unseals
-# it again and puts the development signer back, pass or fail.
+# The default deployment signs with OpenBao, so every kind suite runs on
+# cert-manager and dev/openbao (kind-deploy depends on kind-openbao). The openbao
+# suite takes OpenBao away to prove the controller fails closed, so its recipe
+# always unseals it again, pass or fail.
 CERT_MANAGER_VERSION ?= v1.21.2
 CERT_MANAGER_SHA256  ?= e03b668ec8675214af6b0a671699d088f2601fa3878e0dbe1b41d3feafd1879f
 KIND_OPENBAO_STATE    = $(CURDIR)/.kind-openbao-$(KIND_CLUSTER_NAME)
@@ -359,16 +357,11 @@ kind-cert-manager: kind-create ## Install cert-manager $(CERT_MANAGER_VERSION) i
 kind-openbao: kind-cert-manager ## Stand up dev/openbao in kind (state in .kind-openbao-<cluster>)
 	@dev/openbao/setup.sh $(KIND_KUBECONFIG) $(KIND_OPENBAO_STATE)
 
-kind-e2e-openbao: kind-deploy kind-openbao ## e2e: bundles signed by the OpenBao transit key; nothing published without it
-	@dev/openbao/use-signer.sh $(KIND_KUBECONFIG) openbao
-	@KUBECONFIG=$(KIND_KUBECONFIG) \
-	 NOTAIO_E2E_NAMESPACE=$(NAMESPACE) \
-	 NOTAIO_E2E_POLICY_NAMESPACE=$(E2E_POLICY_NAMESPACE) \
-	 NOTAIO_E2E_OPENBAO_PUBLIC_KEY="$$(cat $(KIND_OPENBAO_STATE)/notaio-public-key.txt)" \
+kind-e2e-openbao: kind-deploy ## e2e: bundles signed by the OpenBao transit key; nothing published without it
+	@$(E2E_ENV) \
 	 cargo test -p notaio --test e2e_openbao -- --ignored --nocapture --test-threads=1; \
 	 rc=$$?; \
 	 dev/openbao/setup.sh $(KIND_KUBECONFIG) $(KIND_OPENBAO_STATE) >/dev/null || true; \
-	 dev/openbao/use-signer.sh $(KIND_KUBECONFIG) development || true; \
 	 exit $$rc
 	@echo "✓ e2e_openbao passed"
 
@@ -381,16 +374,15 @@ CLUSTER_KUBECONFIG ?=
 NOTAIO_IMAGE       ?=
 CLUSTER_KUBECTL     = kubectl --kubeconfig $(CLUSTER_KUBECONFIG)
 
-cluster-deploy: ## Deploy notaio from deploy/ to CLUSTER_KUBECONFIG with NOTAIO_IMAGE (development signer)
+cluster-deploy: ## Deploy notaio from deploy/ to CLUSTER_KUBECONFIG with NOTAIO_IMAGE (needs dev/openbao there)
 	@test -n "$(CLUSTER_KUBECONFIG)" || { echo "set CLUSTER_KUBECONFIG"; exit 1; }
 	@test -n "$(NOTAIO_IMAGE)" || { echo "set NOTAIO_IMAGE, pinned by digest"; exit 1; }
 	@$(CLUSTER_KUBECTL) apply -f deploy/crds/ >/dev/null
 	@$(CLUSTER_KUBECTL) wait --for=condition=Established --timeout=60s -f deploy/crds/ >/dev/null
 	@$(CLUSTER_KUBECTL) apply -f deploy/controller/00-namespace.yaml >/dev/null
 	@$(CLUSTER_KUBECTL) create namespace $(E2E_POLICY_NAMESPACE) --dry-run=client -o yaml | $(CLUSTER_KUBECTL) apply -f - >/dev/null
-	@$(CLUSTER_KUBECTL) -n $(NAMESPACE) get secret notaio-dev-signing-key >/dev/null 2>&1 || \
-		$(CLUSTER_KUBECTL) -n $(NAMESPACE) create secret generic notaio-dev-signing-key \
-			--from-literal=seed="$$(head -c 32 /dev/urandom | base64)" >/dev/null
+	@# Signs with the cluster's dev/openbao (ADR-0004): its CA first, or the pod cannot start.
+	@dev/openbao/use-signer.sh $(CLUSTER_KUBECONFIG) ca
 	@$(CLUSTER_KUBECTL) apply -f deploy/controller/ >/dev/null
 	@$(CLUSTER_KUBECTL) -n $(NAMESPACE) set image deployment/notaio notaio=$(NOTAIO_IMAGE) >/dev/null
 	@$(CLUSTER_KUBECTL) -n $(NAMESPACE) rollout status deployment/notaio --timeout=180s >/dev/null
@@ -409,7 +401,6 @@ cluster-undeploy: ## Remove everything cluster-deploy created from CLUSTER_KUBEC
 openbao-e2e: ## e2e_openbao on an existing test cluster with dev/openbao (CLUSTER_KUBECONFIG, OPENBAO_STATE, NOTAIO_IMAGE)
 	@test -n "$(OPENBAO_STATE)" || { echo "set OPENBAO_STATE to the directory setup.sh wrote"; exit 1; }
 	@$(MAKE) -s cluster-deploy
-	@dev/openbao/use-signer.sh $(CLUSTER_KUBECONFIG) openbao
 	@KUBECONFIG=$(CLUSTER_KUBECONFIG) \
 	 NOTAIO_E2E_NAMESPACE=$(NAMESPACE) \
 	 NOTAIO_E2E_POLICY_NAMESPACE=$(E2E_POLICY_NAMESPACE) \

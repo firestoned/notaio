@@ -1,0 +1,40 @@
+# A development seed instead of OpenBao, for local experiments only. Anyone who can read the Secret
+# can sign any bundle, which the threat model forbids for production (T8.2, ADR-0004). The e2e
+# suites never use it: they run the deployment as it ships, with OpenBao.
+#
+#   kubectl -n notaio-system create secret generic notaio-dev-signing-key \
+#     --from-literal=seed="$(head -c 32 /dev/urandom | base64)"
+#   kubectl -n notaio-system patch deployment notaio --type strategic \
+#     --patch-file deploy/signer/development-patch.yaml
+#
+# dev/openbao/use-signer.sh <kubeconfig> development does both; `openbao` goes back.
+spec:
+  template:
+    spec:
+      containers:
+        - name: notaio
+          env:
+            - name: NOTAIO_OPENBAO_ADDR
+              $patch: delete
+            - name: NOTAIO_OPENBAO_CA_FILE
+              $patch: delete
+            - name: NOTAIO_SIGNING_KEY_FILE
+              value: /var/run/notaio/signing/seed
+            - name: NOTAIO_KEY_ID
+              value: dev
+          volumeMounts:
+            - mountPath: /var/run/secrets/openbao
+              $patch: delete
+            - mountPath: /var/run/notaio/openbao-ca
+              $patch: delete
+            - name: signing
+              mountPath: /var/run/notaio/signing
+              readOnly: true
+      volumes:
+        - name: openbao-token
+          $patch: delete
+        - name: openbao-ca
+          $patch: delete
+        - name: signing
+          secret:
+            secretName: notaio-dev-signing-key

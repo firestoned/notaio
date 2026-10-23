@@ -10,9 +10,9 @@
 mod common;
 
 use chrono::Utc;
-use k8s_openapi::api::core::v1::{ConfigMap, Secret};
+use k8s_openapi::api::core::v1::ConfigMap;
 use kube::api::{DeleteParams, PostParams};
-use kube::{Api, Client, ResourceExt};
+use kube::{Api, ResourceExt};
 use sandboxpolicy_api::{ExposureCeiling, GrantPhase, KnobGrant, SandboxPolicy};
 use sandboxpolicy_bundle::floor::{accept, FileFloor};
 use sandboxpolicy_bundle::{
@@ -21,26 +21,6 @@ use sandboxpolicy_bundle::{
 };
 
 use common::*;
-
-/// The public half of the development key the controller signs with, read back from the Secret
-/// the Makefile created. A consumer is configured with exactly this.
-async fn trusted_keys(client: &Client) -> TrustedKeys {
-    let secrets: Api<Secret> = Api::namespaced(client.clone(), &controller_namespace());
-    let secret = secrets
-        .get(SIGNING_SECRET)
-        .await
-        .expect("the development signing key Secret exists");
-    let seed = secret
-        .data
-        .and_then(|d| d.get("seed").cloned())
-        .expect("the signing Secret has a `seed` key");
-    let seed = String::from_utf8(seed.0).expect("seed is base64 text");
-    let signer = Ed25519Signer::from_seed_b64(SIGNING_KEY_ID, &seed).expect("seed is valid");
-    let mut keys = TrustedKeys::new();
-    keys.insert(signer.key_id(), signer.verifying_key_bytes())
-        .expect("a 32 byte ed25519 public key");
-    keys
-}
 
 /// The envelope currently published for `policy`, once its version annotation reaches `version`.
 async fn published_envelope(cms: &Api<ConfigMap>, policy: &str, version: u64) -> Envelope {
@@ -98,7 +78,7 @@ async fn policy_compiles_to_a_signed_verifiable_bundle_that_never_goes_back() {
     let policies: Api<SandboxPolicy> = Api::namespaced(client.clone(), &ns);
     let grants: Api<KnobGrant> = Api::namespaced(client.clone(), &ns);
     let cms: Api<ConfigMap> = Api::namespaced(client.clone(), &ns);
-    let keys = trusted_keys(&client).await;
+    let keys = trusted_keys();
 
     let name = unique_name("bundle");
     // The approved ceiling first: without one nothing publishes (ADR-0007).
@@ -139,7 +119,8 @@ async fn policy_compiles_to_a_signed_verifiable_bundle_that_never_goes_back() {
 
     // A bundle signed by any other key is refused: the consumer's trust is the key, not the
     // ConfigMap it happened to read.
-    let stranger = Ed25519Signer::from_seed(SIGNING_KEY_ID, [7u8; 32]);
+    let (key_id, _) = openbao_key();
+    let stranger = Ed25519Signer::from_seed(&key_id, [7u8; 32]);
     let mut wrong = TrustedKeys::new();
     wrong
         .insert(stranger.key_id(), stranger.verifying_key_bytes())
