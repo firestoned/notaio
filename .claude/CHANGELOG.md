@@ -2,6 +2,40 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-23 12:00] - ADR-0009: release images and their supply chain
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `docs/adr/0009-release-and-supply-chain.md` (new): the core of banlieue's ADR-0006. One distroless
+  image for amd64 and arm64 from native-runner builds; pull requests build and push nothing; `main`
+  publishes `sha-`, `main-<date>` and `latest`; a release publishes `v<X.Y.Z>`, `v<X.Y>`; keyless
+  Cosign by digest, BuildKit SBOM and provenance, `attest-build-provenance`, an image SBOM; each
+  release attaches `notaio-<version>.yaml` pinned by digest, Cosign-signed, with checksums.
+- `.github/workflows/build.yaml`: the `release` trigger and commit verification for it; jobs
+  `extract-version`, `build`, `docker`, `attest`, `release-manifest`, `upload-release-assets`; the
+  test job runs `release-manifest-test` and `set-version-test`. `actionlint` clean.
+- `.github/actions/extract-version`, `.github/actions/prepare-docker-binaries` (new), ported.
+- `Makefile`: `release-binary`, `release-manifest`, `release-manifest-test`, `set-version`,
+  `set-version-test`. `scripts/check_release_manifest.py` (new): the image pinned by digest exactly
+  once, every install kind present, the admission policy absent; checked against a wrong digest, a
+  surviving tag and an included admission policy, and each is refused.
+- `deploy/controller/20-deployment.yaml`: `ghcr.io/firestoned/notaio:latest` (was a placeholder
+  tag that never existed); a release pins it by digest in its manifest.
+- Docs: the developer guide (verifying a release), the security page, the ADR on the site,
+  `ROADMAP.md` (M2), `docs/threat-model-mapping.md` (the image's integrity implemented; scanning
+  and VEX not yet).
+
+### Why
+ROADMAP M2: every image so far was built by hand. notaio signs what the sandboxes enforce, so its
+image has to be checkable without trusting the registry.
+
+### Impact
+- [ ] Breaking change
+- [ ] Requires cluster rollout
+- [x] Config or examples change only
+- [ ] Documentation only
+
 ## [2026-10-23 00:00] - OpenBao is the default signer; the development seed is opt-in
 
 **Author:** Erick Bourgeois

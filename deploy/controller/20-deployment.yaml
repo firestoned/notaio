@@ -26,8 +26,9 @@ spec:
           type: RuntimeDefault
       containers:
         - name: notaio
-          # Placeholder. Pin by digest once images are published and signed.
-          image: ghcr.io/firestoned/notaio:0.0.1
+          # `latest` follows main, for test clusters. A release pins this by digest in its install
+          # manifest, notaio-<version>.yaml (ADR-0009); install from that, not from here.
+          image: ghcr.io/firestoned/notaio:latest
           # One binary, the roles as subcommands (ADR-0006). Parsed by a test in crates/notaio/tests/cli.rs.
           args: ["controller"]
           env:

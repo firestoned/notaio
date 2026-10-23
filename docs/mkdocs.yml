@@ -149,6 +149,7 @@ nav:
       - "ADR-0006: notaio lint": adr/0006-notaio-lint-cli.md
       - "ADR-0007: Exposure ceiling": adr/0007-exposure-ceiling.md
       - "ADR-0008: Consumer version floor": adr/0008-consumer-version-floor.md
+      - "ADR-0009: Release and supply chain": adr/0009-release-and-supply-chain.md
   - Reference:
       - Built-in Profiles: reference/profiles.md
   - Developer:

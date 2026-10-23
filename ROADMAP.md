@@ -54,7 +54,10 @@ Not done: nothing has run on a cluster.
   **Done 2026-10-23:** the signer (`crates/notaio/src/openbao.rs`, 2026-10-22) is the default in
   `deploy/controller/`, every e2e suite runs with it, and the development seed is an opt-in patch
   (`deploy/signer/development-patch.yaml`).
-- Image build, signing and provenance. Pin the deployment by digest.
+- Image build, signing and provenance. Pin the deployment by digest. **Done 2026-10-23**
+  (ADR-0009): multi-arch distroless image from native-runner builds, keyless Cosign by digest,
+  SBOM, build provenance; each release attaches `notaio-<version>.yaml` pinned by digest and
+  signed. Not yet: Grype scanning and VEX.
 
 ## M3: integrate the consumers
 
