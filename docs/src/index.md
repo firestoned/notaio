@@ -64,6 +64,7 @@ flowchart TD
     profile["SandboxProfile<br/>cluster scoped, platform owned<br/>knob steps for Fortress, Hardened, Standard, Lab"]
     policy["SandboxPolicy<br/>namespaced<br/>binds groups to a profile, adds audiences, egress, tools"]
     grant["KnobGrant<br/>namespaced<br/>a time-boxed, approved, one-step relaxation of one knob"]
+    ceiling["ExposureCeiling<br/>namespaced, named after its policy<br/>the approved maximum exposure"]
     notaio["notaio controller<br/>lint, apply grants, compute ceilings, compile, sign"]
     bundle["Signed bundle<br/>DSSE envelope in a ConfigMap<br/>+ status: version, digest, maxExposure"]
     mediatore["mediatore<br/>verify, evaluate at every mint"]
@@ -73,6 +74,7 @@ flowchart TD
     profile --> notaio
     policy --> notaio
     grant --> notaio
+    ceiling --> notaio
     notaio --> bundle
     bundle -- "consumed, never edited" --> mediatore
     bundle --> guest
@@ -86,6 +88,8 @@ It is deliberately **not** in [banlieue](https://github.com/firestoned/banlieue)
 
 | If you want to know | Read |
 | --- | --- |
+| What the four kinds are, how knobs and steps work, and what a bundle promises | [Concepts](concepts/index.md) |
+| How one change travels from pull request to enforcement, and every gate on the way | [The Life of a Change](concepts/life-of-a-change.md) |
 | How notaio, banlieue, mediatore, mediatore-guest and the gateway relate, the contracts between them, and who trusts what | [Where notaio sits in AgentSandbox](architecture.md#where-notaio-sits-in-agentsandbox) |
 | How the four kinds, evaluation and the controller work | [Architecture](architecture.md) |
 | Which threat model items this enforces, and which it does not | [Threat Model Mapping](security/threat-model-mapping.md) |
@@ -99,7 +103,7 @@ It is deliberately **not** in [banlieue](https://github.com/firestoned/banlieue)
 | Crate | Purpose |
 | --- | --- |
 | `sandboxpolicy-types` | Pure data types. No Kubernetes dependency. |
-| `sandboxpolicy-api` | The three CRDs, `sandbox.firestoned.io/v1alpha1`. |
+| `sandboxpolicy-api` | The four CRDs, `sandbox.firestoned.io/v1alpha1`. |
 | `sandboxpolicy-bundle` | Bundle format, DSSE signing, verification. The only crate mediatore-guest needs. |
 | `sandboxpolicy-core` | Knob register, built-in profiles, lint rules, ceilings, `evaluate`. Pure, no I/O. |
 | `notaio` | The controller, and `crdgen`, which generates the checked-in manifests. |
