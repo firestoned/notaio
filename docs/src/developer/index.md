@@ -31,9 +31,9 @@ make kind-delete               # remove the cluster
 
 | Suite | Proves |
 | --- | --- |
-| `install` | the CRDs are established, the controller comes up, every built-in profile is judged Valid, and `examples/` passes a server-side dry run |
+| `install` | the CRDs are established, the controller comes up, every built-in profile is judged Valid, and `examples/` passes a server-side dry run; the controller answers `/healthz`, `/readyz` and `/metrics`, and both must-be-zero series are 0 |
 | `bundle` | a policy and a grant compile to a signed bundle a consumer verifies with the public key; a wrong key and a downgrade are both refused |
-| `rbac` | the controller can read and write status, and cannot create, edit or delete policy objects or read Secrets |
+| `rbac` | the controller can read and write status and record Events, and cannot create, edit or delete policy objects, read Events back, or read Secrets |
 | `admission` | the GitOps-only admission policy denies cluster-admin, admits the GitOps identity, and leaves status writes alone |
 
 On macOS, `make kind-load` cross-compiles and needs a gcc cross toolchain

@@ -187,3 +187,74 @@ pub fn condition_true(
         .iter()
         .any(|c| c.type_ == type_ && c.status == "True" && reason.is_none_or(|r| c.reason == r))
 }
+
+/// The `events.k8s.io` Event notaio recorded about `regarding` in `namespace` with `reason`, once
+/// there is one (ADR-0010, decision 5).
+pub async fn wait_event(
+    client: &Client,
+    namespace: &str,
+    regarding: &str,
+    reason: &str,
+) -> k8s_openapi::api::events::v1::Event {
+    let events: kube::Api<k8s_openapi::api::events::v1::Event> =
+        kube::Api::namespaced(client.clone(), namespace);
+    wait_for(
+        &format!("an Event {reason} on {namespace}/{regarding}"),
+        || {
+            let events = events.clone();
+            async move {
+                let list = events.list(&Default::default()).await.ok()?;
+                list.items.into_iter().find(|e| {
+                    e.reason.as_deref() == Some(reason)
+                        && e.reporting_controller.as_deref() == Some("notaio")
+                        && e.regarding.as_ref().and_then(|r| r.name.as_deref()) == Some(regarding)
+                })
+            }
+        },
+    )
+    .await
+}
+
+/// `GET path` on the controller's health and metrics port, through a port-forward: the kubelet
+/// connects inside the pod, so this reads what the process serves whatever the NetworkPolicy
+/// admits. Returns the status code and the body.
+pub async fn controller_get(client: &Client, path: &str) -> (u16, String) {
+    use k8s_openapi::api::core::v1::Pod;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    let pods: kube::Api<Pod> = kube::Api::namespaced(client.clone(), &controller_namespace());
+    let pod = wait_for("a running notaio pod", || {
+        let pods = pods.clone();
+        async move {
+            let list = pods
+                .list(&kube::api::ListParams::default().labels("app.kubernetes.io/name=notaio"))
+                .await
+                .ok()?;
+            list.items.into_iter().find_map(|p| {
+                let running = p.status.as_ref()?.phase.as_deref() == Some("Running");
+                let deleting = p.metadata.deletion_timestamp.is_some();
+                (running && !deleting)
+                    .then(|| p.metadata.name.clone())
+                    .flatten()
+            })
+        }
+    })
+    .await;
+
+    let mut pf = pods.portforward(&pod, &[8080]).await.expect("port-forward");
+    let mut stream = pf.take_stream(8080).expect("the forwarded stream");
+    let request = format!("GET {path} HTTP/1.1\r\nhost: notaio\r\nconnection: close\r\n\r\n");
+    stream.write_all(request.as_bytes()).await.expect("write");
+    let mut raw = Vec::new();
+    stream.read_to_end(&mut raw).await.expect("read");
+    drop(stream);
+    let _ = pf.join().await;
+    let text = String::from_utf8(raw).expect("utf-8 response");
+    let (head, body) = text.split_once("\r\n\r\n").expect("an HTTP response");
+    let code = head
+        .split_whitespace()
+        .nth(1)
+        .and_then(|c| c.parse().ok())
+        .expect("a status code");
+    (code, body.to_string())
+}

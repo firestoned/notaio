@@ -48,7 +48,11 @@ Not done: nothing has run on a cluster.
 
 - Leader election and more than one replica.
 - Health endpoints, Prometheus metrics (relaxations by age and past expiry, lint failures, bundle
-  age, fail-open counters that must be zero), Kubernetes Events.
+  age, fail-open counters that must be zero), Kubernetes Events. **Done 2026-10-23** (ADR-0010):
+  one listener on 8080 serving `/healthz`, `/readyz` and `/metrics` and nothing else, ingress from
+  the monitoring namespace only; gauges computed from the caches at scrape time; a fail-open guard
+  before signing; Events on transitions, with `create`/`patch` on `events.k8s.io` Events added to
+  the ClusterRole.
 - OpenBao transit `Signer` (ADR-0004): Kubernetes auth bound to notaio's ServiceAccount, a sign-only
   OpenBao policy, one egress rule. Remove the development signer path from the default deployment.
   **Done 2026-10-23:** the signer (`crates/notaio/src/openbao.rs`, 2026-10-22) is the default in

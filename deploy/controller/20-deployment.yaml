@@ -35,7 +35,25 @@ spec:
           imagePullPolicy: IfNotPresent
           # One binary, the roles as subcommands (ADR-0006). Parsed by a test in crates/notaio/tests/cli.rs.
           args: ["controller"]
+          # Health and metrics only (ADR-0010): GET /healthz, /readyz and /metrics, nothing else.
+          # 30-networkpolicy.yaml admits it from the monitoring namespace only.
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 20
+            failureThreshold: 3
+          readinessProbe:
+            httpGet: { path: /readyz, port: http }
+            periodSeconds: 5
+            failureThreshold: 2
           env:
+            # Names the replica in the Events it records.
+            - name: NOTAIO_POD_NAME
+              valueFrom:
+                fieldRef: { fieldPath: metadata.name }
             - name: RUST_LOG
               value: info
             - name: NOTAIO_LOG_JSON

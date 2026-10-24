@@ -2,6 +2,35 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-23 18:00] - ADR-0010: health, metrics and Events
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `docs/adr/0010-health-metrics-and-events.md` (new): one listener on 8080 serving `GET /healthz`,
+  `/readyz` and `/metrics` only, reading no body; ingress from the monitoring namespace only;
+  gauges computed from the caches at scrape time; a fail-open guard before signing; Events on
+  transitions; `create`/`patch` on `events.k8s.io` Events. Amends the no-inbound and RBAC rules in
+  `CLAUDE.md` and `docs/architecture.md` to match.
+- `crates/notaio/src/http.rs`, `metrics.rs`, `guard.rs`, `events.rs` (new), each with tests: exact
+  routes and refused methods over a real socket; the must-be-zero series present at 0 from the
+  start; relaxations by phase, age and expiry; bundle age; each guard check failing on its own;
+  Events only on transitions, notes cut to the API server's 1024 bytes.
+- `crates/notaio/src/reconcile.rs`: the guard runs before signing (`Ready=False, FailOpenRefused`,
+  nothing published); counters for published bundles, signing failures and reconcile errors;
+  Events for policies, grants and profiles. `main.rs`: the listener's own caches of profiles,
+  policies and grants (the controllers' stores wake only one readiness waiter, found on kind),
+  readiness after their first list, the listener bound before the controllers start.
+- `deploy/controller/`: the `http` port and both probes, `NOTAIO_POD_NAME`, the Events rule in the
+  ClusterRole, and the NetworkPolicy's one ingress rule.
+- e2e: `e2e_install` scrapes the deployed controller through a port-forward and checks both
+  must-be-zero series; `e2e_rbac` checks Events are `create`/`patch` only; `e2e_bundle` and
+  `e2e_openbao` wait for the `Published`, `NoApprovedCeiling` and `SigningFailed` Events.
+- New dependency: `prometheus-client` 0.25.1 (Apache-2.0 OR MIT, the Prometheus project);
+  `cargo deny check` passes. Dev only: kube's `ws` feature, for the port-forward.
+- Docs: the architecture, the security page, the developer guide, the threat-model mapping (the
+  relaxation metric moves to implemented), ROADMAP M2, the ADR index and the site nav.
+
 ## [2026-10-23 12:00] - ADR-0009: release images and their supply chain
 
 **Author:** Erick Bourgeois

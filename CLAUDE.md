@@ -67,8 +67,10 @@ write the ADR.
 
 - Do not publish an unsigned bundle, or add a code path that does.
 - Do not make the controller able to create, edit or delete policy objects. Its RBAC is read plus
-  status writes by design.
-- Do not add hypervisor credentials, agent traffic or any inbound listener to the controller.
+  status writes by design, and `create`/`patch` on `events.k8s.io` Events (ADR-0010).
+- Do not add hypervisor credentials, agent traffic or any inbound listener to the controller beyond
+  the health and metrics one of ADR-0010. That listener stays three fixed `GET` paths that read no
+  request body and change nothing.
 - Do not add policy logic to banlieue or mediatore from this repository. They consume the contracts.
 - Do not loosen a lint rule, a ceiling or a knob maximum without a change to the threat model to point
   to.

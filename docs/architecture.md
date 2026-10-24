@@ -158,9 +158,11 @@ sequenceDiagram
   persisted before a bundle is acted on, so a restart does not reopen the downgrade; a recreated
   policy is accepted because its bundle was issued later, and a replay from the old incarnation is
   refused ([ADR-0008](adr/0008-consumer-version-floor.md)).
-- **notaio trusts only the API server.** It takes no inbound connection, holds no hypervisor
-  credentials, and no agent traffic reaches it. Its RBAC is read on the four kinds, status writes,
-  and bundle writes in named namespaces.
+- **notaio trusts only the API server.** It takes no inbound connection that can influence what it
+  signs: its one listener serves health and metrics, reads nothing from a request but its path, and
+  admits only the monitoring namespace ([ADR-0010](adr/0010-health-metrics-and-events.md)). It
+  holds no hypervisor credentials, and no agent traffic reaches it. Its RBAC is read on the four
+  kinds, status writes, Events, and bundle writes in named namespaces.
 - **Duties are split on purpose.** banlieue holds the keys to the VMs, mediatore holds the power to
   mint tokens, and notaio holds the power to sign policy. The threat model requires that whoever
   holds the keys to the VMs does not also sign the policy (T8.2, scenario S6). In production the
@@ -240,9 +242,20 @@ status.
   Unsigned bundles are never published.
 - **Monotonic version.** The previous version is the higher of the status and the published
   ConfigMap annotation, so losing status cannot reset it.
-- **Least privilege.** Read on the four kinds, `patch` on their status, `get/create/patch` on
-  ConfigMaps in named namespaces only. It cannot create, edit or delete a policy object, and it holds
-  no hypervisor credentials. It takes no inbound connections.
+- **Checks the bundle twice.** Before signing, a guard independent of the evaluator checks that a
+  ceiling exists, the evaluation found no error, every relaxation in the bundle is unexpired, and the
+  bundle is not already past `notAfter`. A failure publishes nothing, reports
+  `Ready=False, FailOpenRefused`, and counts in `notaio_fail_open_total`, which must stay 0.
+- **Observable.** `GET /healthz`, `/readyz` and `/metrics` on port 8080, and Events on transitions
+  (a new bundle version, a failure, a grant lapsing or refused, a profile turning invalid). The
+  metrics are computed at scrape time from the listener's own caches of the three kinds: policies by `Ready` reason,
+  lint failures, relaxations by phase, age and time to expiry, bundle age, and two series that
+  must be 0, `notaio_relaxations_past_expiry` and `notaio_fail_open_total`
+  ([ADR-0010](adr/0010-health-metrics-and-events.md)).
+- **Least privilege.** Read on the four kinds, `patch` on their status, `create/patch` on
+  `events.k8s.io` Events, `get/create/patch` on ConfigMaps in named namespaces only. It cannot
+  create, edit or delete a policy object, and it holds no hypervisor credentials. Its only inbound
+  port is health and metrics.
 
 ## The bundle
 

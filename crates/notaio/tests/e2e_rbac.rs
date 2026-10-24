@@ -1,4 +1,5 @@
-//! e2e: the controller's deployed RBAC is read plus status writes, and nothing more.
+//! e2e: the controller's deployed RBAC is read plus status writes, and Events (ADR-0010), and
+//! nothing more.
 //!
 //! Run with `make kind-e2e-rbac`. CLAUDE.md: "Do not make the controller able to create, edit or
 //! delete policy objects. Its RBAC is read plus status writes by design." This suite asks the API
@@ -150,4 +151,34 @@ async fn controller_has_no_reach_beyond_its_bundles() {
     assert!(!may(&client, "create", RBAC, "clusterroles", None, None).await);
     assert!(!may(&client, "bind", RBAC, "clusterroles", None, None).await);
     assert!(!may(&client, "escalate", RBAC, "clusterroles", None, None).await);
+}
+
+#[tokio::test]
+#[ignore = "needs a kind cluster: make kind-e2e-rbac"]
+async fn controller_may_record_events_and_nothing_more() {
+    // ADR-0010, decision 6: what the event recorder needs, create and patch, and no other verb.
+    let client = client().await;
+    let policy_ns = policy_namespace();
+    const EVENTS: &str = "events.k8s.io";
+    for verb in ["create", "patch"] {
+        assert!(
+            may(&client, verb, EVENTS, "events", None, Some(&policy_ns)).await,
+            "controller cannot {verb} events, so it cannot record transitions"
+        );
+    }
+    for verb in [
+        "get",
+        "list",
+        "watch",
+        "update",
+        "delete",
+        "deletecollection",
+    ] {
+        assert!(
+            !may(&client, verb, EVENTS, "events", None, Some(&policy_ns)).await,
+            "controller may {verb} events"
+        );
+    }
+    // Not the core group's events either: one way in, the one the recorder uses.
+    assert!(!may(&client, "create", "", "events", None, Some(&policy_ns)).await);
 }

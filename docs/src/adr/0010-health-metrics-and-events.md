@@ -1,0 +1,1 @@
+--8<-- "adr/0010-health-metrics-and-events.md"

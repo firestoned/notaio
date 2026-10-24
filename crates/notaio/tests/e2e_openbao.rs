@@ -146,6 +146,8 @@ async fn signs_through_openbao_and_fails_closed_without_it() {
         why.contains("OpenBao"),
         "the reason names the signer: {why}"
     );
+    let ev = wait_event(&client, &ns, &refused, "SigningFailed").await;
+    assert_eq!(ev.type_.as_deref(), Some("Warning"));
     assert!(
         cms.get_opt(&bundle_object_name(&refused))
             .await
