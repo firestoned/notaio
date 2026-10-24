@@ -248,9 +248,9 @@ status.
   `Ready=False, FailOpenRefused`, and counts in `notaio_fail_open_total`, which must stay 0.
 - **Observable.** `GET /healthz`, `/readyz` and `/metrics` on port 8080, and Events on transitions
   (a new bundle version, a failure, a grant lapsing or refused, a profile turning invalid). The
-  metrics are computed at scrape time from the listener's own caches of the three kinds: policies by `Ready` reason,
-  lint failures, relaxations by phase, age and time to expiry, bundle age, and two series that
-  must be 0, `notaio_relaxations_past_expiry` and `notaio_fail_open_total`
+  metrics are computed at scrape time from the listener's own caches of profiles, policies and
+  grants: policies by `Ready` reason, lint failures, relaxations by phase, age and time to expiry,
+  bundle age, and two series that must be 0, `notaio_relaxations_past_expiry` and `notaio_fail_open_total`
   ([ADR-0010](adr/0010-health-metrics-and-events.md)).
 - **Least privilege.** Read on the four kinds, `patch` on their status, `create/patch` on
   `events.k8s.io` Events, `get/create/patch` on ConfigMaps in named namespaces only. It cannot

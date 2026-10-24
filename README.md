@@ -141,7 +141,7 @@ It is deliberately **not** in [banlieue](https://github.com/firestoned/banlieue)
 | Path | Purpose |
 | --- | --- |
 | `crates/sandboxpolicy-types` | Pure data types. No Kubernetes dependency. |
-| `crates/sandboxpolicy-api` | The three CRDs, `sandbox.firestoned.io/v1alpha1`. [banlieue](https://github.com/firestoned/banlieue) and tooling depend on this. |
+| `crates/sandboxpolicy-api` | The four CRDs, `sandbox.firestoned.io/v1alpha1`. [banlieue](https://github.com/firestoned/banlieue) and tooling depend on this. |
 | `crates/sandboxpolicy-bundle` | Bundle format, DSSE signing, verification. **The only crate [mediatore-guest](https://github.com/firestoned/mediatore/tree/main/crates/mediatore-guest) needs.** |
 | `crates/sandboxpolicy-core` | Knob register, built-in profiles, lint rules, ceilings, `evaluate`. Pure, no I/O. |
 | `crates/notaio` | The controller, and `crdgen` which generates the checked-in manifests. |

@@ -2,6 +2,26 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-23 21:00] - Docs: the Concepts section
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `docs/src/concepts/` (new), in the site nav after Home: an overview; knobs and steps (the eight
+  boundaries, approvers, the toxic-combination legs as `lint.rs` computes them, the numeric
+  ceilings per step); one page each for SandboxProfile, SandboxPolicy (every field with the rule
+  that checks it, every `Ready` reason), KnobGrant (its rules, phases, and how a relaxation ends
+  without revocation) and ExposureCeiling; the bundle (contents, the seven checks
+  `verify_bundle` makes, in order, and why the transport is untrusted); and the life of a change,
+  with the eight gates between a pull request and enforcement. Claims about consumers are limited
+  to what ADR-0002, 0003 and 0008 decide.
+- `docs/src/index.md`: links to Concepts; ExposureCeiling in the diagram; "four CRDs". `README.md`:
+  "four CRDs".
+- `docs/architecture.md`: the observability bullet rewrapped.
+- `Makefile` `docs-linkcheck`: skips the site's own absolute URLs, which are canonical tags and
+  404 for any page not deployed yet, so the check reports real breakage only. Every relative and
+  external link is still checked.
+
 ## [2026-10-23 18:00] - ADR-0010: health, metrics and Events
 
 **Author:** Erick Bourgeois
