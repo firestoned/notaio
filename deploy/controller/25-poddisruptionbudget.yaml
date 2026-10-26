@@ -1,0 +1,12 @@
+# Keep one replica through voluntary disruptions (node drains, upgrades), so a follower is there to
+# take the Lease (ADR-0011).
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: notaio
+  namespace: notaio-system
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: notaio

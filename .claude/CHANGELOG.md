@@ -2,6 +2,32 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-26 23:30] - ADR-0011: leader election and replicas
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `docs/adr/0011-leader-election.md` (new): one leader by a Lease `notaio` in the controller's
+  namespace; our own loop, no new dependency; 15 s Lease, renew every 5 s, give up at 10 s; losing
+  the Lease ends the process; the pod name is the identity; a namespaced Role only; two replicas,
+  a PDB, preferred anti-affinity; why an overlap cannot loosen a sandbox (the consumer floor).
+- `crates/notaio/src/leader.rs` (new): `decide` (pure: create, renew, take over, wait) with seven
+  tests, including that the leader gives up before its Lease can expire; `Elector` (`acquire`,
+  `hold`, `release`), every write by `resourceVersion`, a 409 meaning another replica won.
+- `main.rs`: every replica runs its caches and the listener; only the Lease holder polls the
+  controllers; losing the Lease returns an error, so the process exits; a clean shutdown releases.
+  `NOTAIO_POD_NAME` is required; `NOTAIO_NAMESPACE` names the Lease's namespace.
+  `reconcile.rs`: no write unless leading, checked again before signing. `metrics.rs`:
+  `notaio_leader`.
+- `deploy/controller/`: two replicas, anti-affinity, `NOTAIO_NAMESPACE`; the `notaio-leader` Role
+  and RoleBinding; `25-poddisruptionbudget.yaml` (new). `check_release_manifest.py` expects them.
+- e2e: `e2e_leader` (new, in the matrix and `E2E_SUITES`): one leader agreeing with its metrics,
+  the leader's pod deleted, a new leader, the take-over counted, a policy published by it.
+  `e2e_rbac`: its own Lease only, nowhere else, no delete or list.
+- Docs: architecture, security page, install and troubleshooting guides, a `NotaioNoLeader`
+  alert, the regenerated reference (environment, metrics), ROADMAP M2, CHANGELOG.md, CLAUDE.md,
+  CONTRIBUTING.md, the ADR index and nav.
+
 ## [2026-10-26 21:00] - Governance, licence and release notes
 
 **Author:** Erick Bourgeois

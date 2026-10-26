@@ -27,6 +27,9 @@ No release has been cut yet. Everything below is on `main`.
   `sandboxpolicy-bundle`.
 - **`notaio lint`** for policy repositories: the controller's own rules on files, with text and
   SARIF output (ADR-0006).
+- **Two replicas with leader election** on a Lease: the leader reconciles, signs and publishes,
+  and a follower takes over within 15 seconds, or at once on a clean shutdown (ADR-0011).
+  `NOTAIO_POD_NAME` is now required.
 - **Health, metrics and Events**: `/healthz`, `/readyz` and `/metrics` on port 8080, two
   must-be-zero series, a fail-open guard before signing, and Events on transitions (ADR-0010).
 - **Release pipeline**: multi-arch images built on native runners, keyless Cosign signatures,
@@ -38,7 +41,8 @@ No release has been cut yet. Everything below is on `main`.
 
 ### Security
 
-- The controller's RBAC is read on the policy kinds, status writes, `create`/`patch` on Events and
-  ConfigMap writes in named namespaces; it cannot create, edit or delete a policy object.
+- The controller's RBAC is read on the policy kinds, status writes, `create`/`patch` on Events, its
+  own Lease and ConfigMap writes in named namespaces; it cannot create, edit or delete a policy
+  object.
 - Its NetworkPolicy allows egress only to DNS, the API server and OpenBao, and ingress only to the
   health and metrics port from the monitoring namespace.

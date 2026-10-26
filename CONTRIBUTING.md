@@ -64,8 +64,8 @@ for anything a user would notice.
 - **Changing the canonical form of the bundle content is a schema change.** Bump `SCHEMA` and
   update ADR-0002.
 - **The controller never gets more power.** Its RBAC is read on the policy kinds, status writes,
-  Events and bundle ConfigMaps; it never creates, edits or deletes a policy object, and it never
-  publishes an unsigned bundle.
+  Events, its own leader Lease and bundle ConfigMaps; it never creates, edits or deletes a policy
+  object, and it never publishes an unsigned bundle.
 - **Generated files are never edited by hand.** `deploy/crds/`, `deploy/profiles/` and
   `docs/src/reference/` come from the code: `make manifests`.
 - **Raw Kubernetes manifests only**, no Helm. **New dependencies** must be permissively licensed

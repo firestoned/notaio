@@ -7,6 +7,7 @@ pub mod cli;
 pub mod events;
 pub mod guard;
 pub mod http;
+pub mod leader;
 pub mod lint;
 pub mod metrics;
 pub mod openbao;

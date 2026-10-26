@@ -46,7 +46,10 @@ Not done: nothing has run on a cluster.
 
 ## M2: production controller
 
-- Leader election and more than one replica.
+- Leader election and more than one replica. **Done 2026-10-26** (ADR-0011): two replicas, a Lease
+  in the controller's namespace, our own loop with a pure `decide`; the leader exits when it cannot
+  renew, and releases on a clean shutdown; `e2e_leader` deletes the leader and checks the other
+  takes over and publishes.
 - Health endpoints, Prometheus metrics (relaxations by age and past expiry, lint failures, bundle
   age, fail-open counters that must be zero), Kubernetes Events. **Done 2026-10-23** (ADR-0010):
   one listener on 8080 serving `/healthz`, `/readyz` and `/metrics` and nothing else, ingress from

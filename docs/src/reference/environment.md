@@ -9,7 +9,8 @@ What `notaio controller` reads from its environment, with the default when it is
 | `NOTAIO_BUNDLE_LIFETIME_SECONDS` | `3600` | How long a bundle is valid, in seconds. Bounds how long a tightening takes to land. |
 | `NOTAIO_HTTP_ADDR` | `0.0.0.0:8080` | The health and metrics listener's address. |
 | `NOTAIO_LOG_JSON` | unset | `1` for JSON logs. `RUST_LOG` sets the level, `info` by default. |
-| `NOTAIO_POD_NAME` | unset | The pod's name, from the downward API: names the replica in Events. |
+| `NOTAIO_POD_NAME` | unset; required | The pod's name, from the downward API: this replica's identity in leader election and in Events. |
+| `NOTAIO_NAMESPACE` | `notaio-system` | The namespace holding the leader Lease: the pod's own, from the downward API. |
 | `NOTAIO_OPENBAO_ADDR` | unset | OpenBao's `https://` address. Selects the OpenBao signer. |
 | `NOTAIO_OPENBAO_CA_FILE` | unset; required with the address | The CA that signed OpenBao's certificate: the only root trusted. |
 | `NOTAIO_OPENBAO_AUTH_PATH` | `kubernetes` | The Kubernetes auth mount. |

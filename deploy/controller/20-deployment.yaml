@@ -6,8 +6,8 @@ metadata:
   labels:
     app.kubernetes.io/name: notaio
 spec:
-  # One replica until leader election lands (ROADMAP M2).
-  replicas: 1
+  # Two replicas; the one holding the Lease reconciles and signs, the other waits (ADR-0011).
+  replicas: 2
   selector:
     matchLabels:
       app.kubernetes.io/name: notaio
@@ -18,6 +18,16 @@ spec:
     spec:
       serviceAccountName: notaio
       automountServiceAccountToken: true
+      # Spread the replicas over nodes, so one node failing does not stop signing.
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: notaio
       securityContext:
         runAsNonRoot: true
         runAsUser: 65532
@@ -50,10 +60,14 @@ spec:
             periodSeconds: 5
             failureThreshold: 2
           env:
-            # Names the replica in the Events it records.
+            # This replica's identity in leader election and in the Events it records. Required.
             - name: NOTAIO_POD_NAME
               valueFrom:
                 fieldRef: { fieldPath: metadata.name }
+            # Where the leader Lease lives: this pod's own namespace.
+            - name: NOTAIO_NAMESPACE
+              valueFrom:
+                fieldRef: { fieldPath: metadata.namespace }
             - name: RUST_LOG
               value: info
             - name: NOTAIO_LOG_JSON

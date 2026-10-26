@@ -162,7 +162,7 @@ sequenceDiagram
   signs: its one listener serves health and metrics, reads nothing from a request but its path, and
   admits only the monitoring namespace ([ADR-0010](adr/0010-health-metrics-and-events.md)). It
   holds no hypervisor credentials, and no agent traffic reaches it. Its RBAC is read on the four
-  kinds, status writes, Events, and bundle writes in named namespaces.
+  kinds, status writes, Events, its own leader Lease, and bundle writes in named namespaces.
 - **Duties are split on purpose.** banlieue holds the keys to the VMs, mediatore holds the power to
   mint tokens, and notaio holds the power to sign policy. The threat model requires that whoever
   holds the keys to the VMs does not also sign the policy (T8.2, scenario S6). In production the
@@ -252,10 +252,15 @@ status.
   grants: policies by `Ready` reason, lint failures, relaxations by phase, age and time to expiry,
   bundle age, and two series that must be 0, `notaio_relaxations_past_expiry` and `notaio_fail_open_total`
   ([ADR-0010](adr/0010-health-metrics-and-events.md)).
+- **One leader.** Two replicas run; the one holding the Lease `notaio` in its own namespace
+  reconciles, signs and publishes, and the other waits with warm caches. A leader that cannot renew
+  within 10 seconds, or finds another holder, exits; a clean shutdown releases the Lease at once. A
+  brief overlap from clock skew can at worst republish an older bundle, which consumers' version
+  floor refuses ([ADR-0011](adr/0011-leader-election.md)).
 - **Least privilege.** Read on the four kinds, `patch` on their status, `create/patch` on
-  `events.k8s.io` Events, `get/create/patch` on ConfigMaps in named namespaces only. It cannot
-  create, edit or delete a policy object, and it holds no hypervisor credentials. Its only inbound
-  port is health and metrics.
+  `events.k8s.io` Events, `get/update` on its own Lease, `get/create/patch` on ConfigMaps in named
+  namespaces only. It cannot create, edit or delete a policy object, and it holds no hypervisor
+  credentials. Its only inbound port is health and metrics.
 
 ## The bundle
 

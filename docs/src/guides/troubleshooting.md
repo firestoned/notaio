@@ -58,8 +58,22 @@ kubectl -n notaio-system logs deploy/notaio | grep -i openbao
 | Stuck in `ContainerCreating`, `FailedMount` Events | ConfigMap `openbao-ca` is missing in `notaio-system`. |
 | Exits at start: both signers configured | The Deployment has both `NOTAIO_OPENBAO_ADDR` and `NOTAIO_SIGNING_KEY_FILE`; notaio refuses to guess which key signs. |
 | Exits at start: binding the health and metrics listener | Port 8080 is taken, or `NOTAIO_HTTP_ADDR` is invalid. |
+| Exits at start: `NOTAIO_POD_NAME is required` | The Deployment lost its downward API env; it is the replica's identity in leader election. |
+| Restarts with `stopped leading` in the last log | The leader could not renew its Lease for 10 seconds (the API server was unreachable or slow), or found another holder. It restarts as a follower; one restart is normal after an API server outage. |
 | Running, `/readyz` 503 | The controller cannot list a kind: check its RBAC and the NetworkPolicy egress to the API server. |
 | `ImagePullBackOff` | The image reference; install from a release manifest, which pins it by digest. |
+
+## Nothing reconciles, though both pods are ready
+
+Only the replica holding the Lease reconciles. See who holds it:
+
+```sh
+kubectl -n notaio-system get lease notaio -o jsonpath='{.spec.holderIdentity}{"\n"}'
+kubectl -n notaio-system logs <pod> | grep -i lease
+```
+
+No holder, and `Lease check failed` in the logs, means neither replica can create or update it:
+check the `notaio-leader` Role and RoleBinding in the controller's namespace.
 
 ## A policy never gets a status, or keeps an old one
 

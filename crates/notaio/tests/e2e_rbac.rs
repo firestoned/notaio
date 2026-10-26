@@ -1,5 +1,5 @@
-//! e2e: the controller's deployed RBAC is read plus status writes, and Events (ADR-0010), and
-//! nothing more.
+//! e2e: the controller's deployed RBAC is read plus status writes, Events (ADR-0010) and its own
+//! Lease (ADR-0011), and nothing more.
 //!
 //! Run with `make kind-e2e-rbac`. CLAUDE.md: "Do not make the controller able to create, edit or
 //! delete policy objects. Its RBAC is read plus status writes by design." This suite asks the API
@@ -181,4 +181,79 @@ async fn controller_may_record_events_and_nothing_more() {
     }
     // Not the core group's events either: one way in, the one the recorder uses.
     assert!(!may(&client, "create", "", "events", None, Some(&policy_ns)).await);
+}
+
+/// As [`may`], for one named object.
+async fn may_named(
+    client: &Client,
+    verb: &str,
+    group: &str,
+    resource: &str,
+    name: &str,
+    namespace: &str,
+) -> bool {
+    let ns = controller_namespace();
+    let review = SubjectAccessReview {
+        spec: SubjectAccessReviewSpec {
+            user: Some(controller_user()),
+            groups: Some(vec![
+                "system:serviceaccounts".to_string(),
+                format!("system:serviceaccounts:{ns}"),
+                "system:authenticated".to_string(),
+            ]),
+            resource_attributes: Some(ResourceAttributes {
+                verb: Some(verb.to_string()),
+                group: Some(group.to_string()),
+                resource: Some(resource.to_string()),
+                name: Some(name.to_string()),
+                namespace: Some(namespace.to_string()),
+                ..Default::default()
+            }),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let reviews: Api<SubjectAccessReview> = Api::all(client.clone());
+    reviews
+        .create(&PostParams::default(), &review)
+        .await
+        .expect("SubjectAccessReview")
+        .status
+        .expect("SubjectAccessReview status")
+        .allowed
+}
+
+#[tokio::test]
+#[ignore = "needs a kind cluster: make kind-e2e-rbac"]
+async fn controller_may_hold_its_own_lease_and_no_other() {
+    // ADR-0011, decision 6: get and update on the Lease named notaio, create in its own namespace,
+    // and nothing else.
+    let client = client().await;
+    let ns = controller_namespace();
+    let policy_ns = policy_namespace();
+    const COORD: &str = "coordination.k8s.io";
+    for verb in ["get", "update"] {
+        assert!(
+            may_named(&client, verb, COORD, "leases", "notaio", &ns).await,
+            "controller cannot {verb} its Lease"
+        );
+        assert!(
+            !may_named(&client, verb, COORD, "leases", "kube-scheduler", &ns).await,
+            "controller may {verb} a Lease that is not its own"
+        );
+    }
+    assert!(may(&client, "create", COORD, "leases", None, Some(&ns)).await);
+    for verb in ["delete", "patch", "list", "watch"] {
+        assert!(
+            !may_named(&client, verb, COORD, "leases", "notaio", &ns).await,
+            "controller may {verb} its Lease"
+        );
+    }
+    // Nowhere else.
+    for scope in [Some(policy_ns.as_str()), Some("kube-system"), None] {
+        assert!(
+            !may(&client, "create", COORD, "leases", None, scope).await,
+            "controller may create Leases in {scope:?}"
+        );
+    }
 }
