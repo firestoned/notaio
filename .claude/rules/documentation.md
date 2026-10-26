@@ -18,7 +18,9 @@ configuration, deployment and architecture changes all have a docs half.
 | AIR framework mapping | `docs/air/*.yaml`, generating `docs/framework-mapping.md` (`make air`) |
 | Roadmap | `ROADMAP.md` (milestones M0 to M5) |
 | Examples | `examples/*.yaml` |
-| Change log | `.claude/CHANGELOG.md` |
+| Change log | `.claude/CHANGELOG.md` (detailed, for maintainers) |
+| Release notes | `CHANGELOG.md` (Keep a Changelog: an Unreleased entry for anything a user would notice) |
+| Governance | `GOVERNANCE.md`, `MAINTAINERS.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` (the Contributor Covenant 2.1, verbatim but for the contact) |
 | Generated manifests | `deploy/crds/`, `deploy/profiles/` (`make manifests`, never hand edited) |
 | Generated reference | `docs/src/reference/` (`make docs-reference`, run by `make manifests`; never hand edited; `docs-reference-check` in CI) |
 | Security policy | `SECURITY.md` |

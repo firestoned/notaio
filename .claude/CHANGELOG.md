@@ -2,6 +2,27 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-26 21:00] - Governance, licence and release notes
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `LICENSE` (new): Apache-2.0, the canonical text from apache.org, verbatim. Confirms what
+  `Cargo.toml` already said; the README's "assumption" caveat is gone.
+- `GOVERNANCE.md` (new), adapted from banlieue's and foundation neutral: roles, lazy consensus,
+  ADRs, the threat model as the source of truth for security posture, votes, maintainership,
+  releases and support. `MAINTAINERS.md` (new).
+- `CODE_OF_CONDUCT.md` (new): the Contributor Covenant 2.1, checked verbatim against the
+  published text except the reporting contact, which is the maintainers.
+- `CONTRIBUTING.md` (new): sign-off and signature, ADR first, the rules from `CLAUDE.md` a
+  contributor needs before writing code, and the gate (`lint`, `test`, `manifests-check`,
+  `docs-reference-check`).
+- `CHANGELOG.md` (new): release notes in Keep a Changelog style, with an Unreleased section that
+  summarises everything on `main`; no release has been cut.
+- Docs: a Governance section (governance, maintainers, contributing, code of conduct) and the
+  changelog under Reference, all as snippet stubs. README: Contributing and Licence sections.
+- `.claude/rules/documentation.md`: where release notes and governance live.
+
 ## [2026-10-26 18:00] - Docs: the generated Reference section
 
 **Author:** Erick Bourgeois

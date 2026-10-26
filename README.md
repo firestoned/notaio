@@ -179,7 +179,13 @@ work is to read `crates/sandboxpolicy-core/tests/evaluate.rs`: each test is a sc
 threat model (a grant that jumps two steps, a grant that completes the exfiltration triangle, a
 missing approval, an expired grant).
 
+## Contributing
+
+Contributions are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md), and
+[GOVERNANCE.md](GOVERNANCE.md) for how decisions are made. Everyone taking part follows the
+[Code of Conduct](CODE_OF_CONDUCT.md). Report security issues privately, as described in
+[SECURITY.md](SECURITY.md). Notable changes are in [CHANGELOG.md](CHANGELOG.md).
+
 ## Licence
 
-Apache-2.0 is set in `Cargo.toml` as an assumption. Confirm it, and add a `LICENSE` file, before the
-first public push.
+[Apache-2.0](LICENSE).
