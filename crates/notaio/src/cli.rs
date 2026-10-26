@@ -13,8 +13,12 @@ pub const DEFAULT_BUNDLE_LIFETIME_SECONDS: i64 = 3600;
 pub const ENV_LOG_JSON: &str = "NOTAIO_LOG_JSON";
 /// The health and metrics listener's address (ADR-0010). Default `crate::http::DEFAULT_ADDR`.
 pub const ENV_HTTP_ADDR: &str = "NOTAIO_HTTP_ADDR";
-/// The pod's name, from the downward API, naming the replica in Events.
+/// The pod's name, from the downward API: this replica's identity in leader election (ADR-0011)
+/// and in the Events it records. Required by `notaio controller`.
 pub const ENV_POD_NAME: &str = "NOTAIO_POD_NAME";
+/// The namespace that holds the leader Lease: the pod's own, from the downward API.
+pub const ENV_NAMESPACE: &str = "NOTAIO_NAMESPACE";
+pub const DEFAULT_NAMESPACE: &str = "notaio-system";
 
 #[derive(Debug, Parser)]
 #[command(

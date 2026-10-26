@@ -12,7 +12,7 @@ RUST_LOG         ?= info
 .PHONY: help build test lint fmt fmt-check clippy deny manifests manifests-check air air-check \
         ci-code-changed kind-install kind-create kind-delete kind-kubeconfig kind-load \
         kind-deploy kind-e2e kind-e2e-ci kind-e2e-logs \
-        kind-e2e-install kind-e2e-bundle kind-e2e-rbac kind-e2e-admission kind-e2e-openbao \
+        kind-e2e-install kind-e2e-bundle kind-e2e-rbac kind-e2e-admission kind-e2e-leader kind-e2e-openbao \
         kind-cert-manager kind-openbao cluster-deploy cluster-undeploy openbao-e2e \
         docs docs-serve docs-clean docs-linkcheck docs-reference docs-reference-check policy-lint openbao-dev openbao-dev-check \
         release-binary release-manifest release-manifest-test set-version set-version-test
@@ -353,12 +353,14 @@ kind-deploy: kind-load kind-openbao ## Install CRDs, profiles and the controller
 #                       and cannot create, edit or delete policy objects
 #   kind-e2e-admission  deploy/admission/gitops-only.yaml refuses direct edits
 #                       and still lets the controller write status
+#   kind-e2e-leader     two replicas, one leader by Lease; the other takes over
+#                       when the leader's pod goes, and publishes
 #   kind-e2e-openbao    bundles signed by the OpenBao transit key verify against
 #                       its public key; without OpenBao nothing is published
 
 # Keep in sync with the matrix in .github/workflows/e2e.yaml. openbao runs last in
 # `make kind-e2e`: it switches the signer and restores it afterwards.
-E2E_SUITES = install bundle rbac admission openbao
+E2E_SUITES = install bundle rbac admission leader openbao
 
 # Every suite verifies bundles against OpenBao's public key, the one setup.sh printed.
 E2E_ENV = KUBECONFIG=$(KIND_KUBECONFIG) \
@@ -383,6 +385,9 @@ kind-e2e-bundle: kind-deploy ## e2e: signed bundle published, verified, versione
 
 kind-e2e-rbac: kind-deploy ## e2e: controller RBAC is read plus status writes only
 	$(call run-e2e-suite,e2e_rbac)
+
+kind-e2e-leader: kind-deploy ## e2e: one leader by Lease; a follower takes over and publishes
+	$(call run-e2e-suite,e2e_leader)
 
 kind-e2e-admission: kind-deploy ## e2e: GitOps-only admission policy refuses direct edits
 	@$(KIND_KUBECTL) apply -f deploy/admission/gitops-only.yaml

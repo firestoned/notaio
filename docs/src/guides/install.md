@@ -82,6 +82,13 @@ kubectl -n notaio-system rollout status deployment/notaio
 kubectl get sandboxprofiles
 ```
 
+Two replicas start. One takes the Lease and leads; the other waits, ready to take over
+([ADR-0011](../adr/0011-leader-election.md)):
+
+```sh
+kubectl -n notaio-system get lease notaio -o jsonpath='{.spec.holderIdentity}{"\n"}'
+```
+
 The four built-in profiles should all show `Valid` `True` within a few seconds.
 
 ## 5. Allow bundle writes, and lock down direct edits

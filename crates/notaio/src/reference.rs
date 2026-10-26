@@ -491,8 +491,13 @@ pub fn environment_variables() -> Vec<(&'static str, String, &'static str)> {
         ),
         (
             cli::ENV_POD_NAME,
-            "unset".to_string(),
-            "The pod's name, from the downward API: names the replica in Events.",
+            "unset; required".to_string(),
+            "The pod's name, from the downward API: this replica's identity in leader election and in Events.",
+        ),
+        (
+            cli::ENV_NAMESPACE,
+            cli::DEFAULT_NAMESPACE.to_string(),
+            "The namespace holding the leader Lease: the pod's own, from the downward API.",
         ),
         (
             openbao::ENV_ADDR,

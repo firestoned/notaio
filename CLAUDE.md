@@ -67,7 +67,8 @@ write the ADR.
 
 - Do not publish an unsigned bundle, or add a code path that does.
 - Do not make the controller able to create, edit or delete policy objects. Its RBAC is read plus
-  status writes by design, and `create`/`patch` on `events.k8s.io` Events (ADR-0010).
+  status writes by design, `create`/`patch` on `events.k8s.io` Events (ADR-0010), and its own
+  leader Lease in its own namespace (ADR-0011).
 - Do not add hypervisor credentials, agent traffic or any inbound listener to the controller beyond
   the health and metrics one of ADR-0010. That listener stays three fixed `GET` paths that read no
   request body and change nothing.

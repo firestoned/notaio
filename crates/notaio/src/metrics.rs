@@ -33,6 +33,8 @@ pub struct Counters {
     pub bundles_published: Counter,
     pub signing_failures: Counter,
     pub reconcile_errors: Counter,
+    /// 1 on the replica holding the leader Lease, 0 on the others (ADR-0011).
+    pub leader: Gauge,
     fail_open: Family<Labels, Counter>,
 }
 
@@ -234,6 +236,11 @@ pub fn render(counters: &Counters, snap: &Snapshot<'_>) -> String {
         bundle_expires_in,
     );
 
+    registry.register(
+        "notaio_leader",
+        "1 on the replica holding the leader Lease, 0 on the others",
+        counters.leader.clone(),
+    );
     registry.register(
         "notaio_bundles_published",
         "Bundles signed and published",

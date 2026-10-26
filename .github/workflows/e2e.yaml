@@ -94,6 +94,8 @@ jobs:
             name: Controller RBAC
           - suite: admission
             name: GitOps-only admission
+          - suite: leader
+            name: Leader election
           - suite: openbao
             name: OpenBao signer
 

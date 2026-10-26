@@ -68,11 +68,20 @@ groups:
         expr: sum(notaio_policies{reason!="Published"}) > 0
         for: 30m
         labels: { severity: info }
+      - alert: NotaioNoLeader
+        expr: sum(notaio_leader) != 1
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "notaio has {{ $value }} leaders: nothing is being signed, or two replicas both lead"
       - alert: NotaioDown
         expr: absent(up{job=~".*notaio.*"} == 1)
         for: 5m
         labels: { severity: warning }
 ```
+
+`NotaioNoLeader` sums across replicas: exactly one should report 1. A take-over takes up to the
+Lease's 15 seconds, so two minutes rules out a normal failover.
 
 `NotaioRelaxationPastExpiry` waits five minutes because the gauge is briefly non-zero between an
 expiry and the reconcile it schedules. A bundle normally refreshes at half its lifetime, so

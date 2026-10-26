@@ -14,6 +14,7 @@ Served on `GET /metrics`, port 8080, in the OpenMetrics text format ([ADR-0010](
 | `notaio_relaxations_past_expiry` | gauge |  | Active relaxations whose expiresAt has passed. Must be 0. |
 | `notaio_bundle_age_seconds` | gauge | `namespace`, `policy` | Age of each policy's published bundle. |
 | `notaio_bundle_expires_in_seconds` | gauge | `namespace`, `policy` | Time until each policy's published bundle passes notAfter. |
+| `notaio_leader` | gauge |  | 1 on the replica holding the leader Lease, 0 on the others. |
 | `notaio_bundles_published_total` | counter |  | Bundles signed and published. |
 | `notaio_signing_failures_total` | counter |  | Signing attempts that failed, so nothing was published. |
 | `notaio_reconcile_errors_total` | counter |  | Reconciles that returned an error and were retried. |

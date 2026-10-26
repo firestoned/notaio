@@ -16,9 +16,10 @@ EXPECTED = {
     "ServiceAccount": 1,
     "ClusterRole": 1,
     "ClusterRoleBinding": 1,
-    "Role": 1,
-    "RoleBinding": 1,
+    "Role": 2,
+    "RoleBinding": 2,
     "Deployment": 1,
+    "PodDisruptionBudget": 1,
     "NetworkPolicy": 1,
     "SandboxProfile": 4,
 }

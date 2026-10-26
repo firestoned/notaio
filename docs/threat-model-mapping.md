@@ -1,6 +1,6 @@
 # Mapping to the AgentSandbox threat model
 
-Last full pass 2026-10-23, against ADR-0001 to ADR-0010.
+Last full pass 2026-10-26, against ADR-0001 to ADR-0011.
 
 What this project implements, what it only supports, and what it does not cover. Identifiers refer
 to the AgentSandbox Threat Model and Security Roadmap. When that document changes, update

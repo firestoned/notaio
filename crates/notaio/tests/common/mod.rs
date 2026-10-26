@@ -215,33 +215,46 @@ pub async fn wait_event(
     .await
 }
 
-/// `GET path` on the controller's health and metrics port, through a port-forward: the kubelet
-/// connects inside the pod, so this reads what the process serves whatever the NetworkPolicy
-/// admits. Returns the status code and the body.
+/// The names of the controller's running pods that are not being deleted.
+pub async fn running_controller_pods(client: &Client) -> Vec<String> {
+    use k8s_openapi::api::core::v1::Pod;
+    let pods: kube::Api<Pod> = kube::Api::namespaced(client.clone(), &controller_namespace());
+    let Ok(list) = pods
+        .list(&kube::api::ListParams::default().labels("app.kubernetes.io/name=notaio"))
+        .await
+    else {
+        return Vec::new();
+    };
+    list.items
+        .into_iter()
+        .filter_map(|p| {
+            let running = p.status.as_ref()?.phase.as_deref() == Some("Running");
+            let deleting = p.metadata.deletion_timestamp.is_some();
+            (running && !deleting)
+                .then(|| p.metadata.name.clone())
+                .flatten()
+        })
+        .collect()
+}
+
+/// `GET path` on one running controller pod. See [`controller_get_from`].
 pub async fn controller_get(client: &Client, path: &str) -> (u16, String) {
+    let pod = wait_for("a running notaio pod", || async {
+        running_controller_pods(client).await.into_iter().next()
+    })
+    .await;
+    controller_get_from(client, &pod, path).await
+}
+
+/// `GET path` on `pod`'s health and metrics port, through a port-forward: the kubelet connects
+/// inside the pod, so this reads what the process serves whatever the NetworkPolicy admits.
+/// Returns the status code and the body.
+pub async fn controller_get_from(client: &Client, pod: &str, path: &str) -> (u16, String) {
     use k8s_openapi::api::core::v1::Pod;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
     let pods: kube::Api<Pod> = kube::Api::namespaced(client.clone(), &controller_namespace());
-    let pod = wait_for("a running notaio pod", || {
-        let pods = pods.clone();
-        async move {
-            let list = pods
-                .list(&kube::api::ListParams::default().labels("app.kubernetes.io/name=notaio"))
-                .await
-                .ok()?;
-            list.items.into_iter().find_map(|p| {
-                let running = p.status.as_ref()?.phase.as_deref() == Some("Running");
-                let deleting = p.metadata.deletion_timestamp.is_some();
-                (running && !deleting)
-                    .then(|| p.metadata.name.clone())
-                    .flatten()
-            })
-        }
-    })
-    .await;
-
-    let mut pf = pods.portforward(&pod, &[8080]).await.expect("port-forward");
+    let mut pf = pods.portforward(pod, &[8080]).await.expect("port-forward");
     let mut stream = pf.take_stream(8080).expect("the forwarded stream");
     let request = format!("GET {path} HTTP/1.1\r\nhost: notaio\r\nconnection: close\r\n\r\n");
     stream.write_all(request.as_bytes()).await.expect("write");

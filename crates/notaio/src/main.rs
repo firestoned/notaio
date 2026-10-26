@@ -22,10 +22,11 @@ use kube::runtime::reflector::{self, ObjectRef, Store};
 use kube::runtime::{watcher, WatchStreamExt};
 use kube::{Api, Client};
 use notaio::cli::{
-    Cli, Command, Format, LintArgs, DEFAULT_BUNDLE_LIFETIME_SECONDS, ENV_BUNDLE_LIFETIME,
-    ENV_HTTP_ADDR, ENV_LOG_JSON, ENV_POD_NAME,
+    Cli, Command, Format, LintArgs, DEFAULT_BUNDLE_LIFETIME_SECONDS, DEFAULT_NAMESPACE,
+    ENV_BUNDLE_LIFETIME, ENV_HTTP_ADDR, ENV_LOG_JSON, ENV_NAMESPACE, ENV_POD_NAME,
 };
 use notaio::http::Observed;
+use notaio::leader::Elector;
 use notaio::metrics::{Counters, Snapshot};
 use sandboxpolicy_api::{ExposureCeiling, KnobGrant, SandboxPolicy, SandboxProfile};
 use sandboxpolicy_core::ceilings::Ceilings;
@@ -54,6 +55,7 @@ fn main() -> ExitCode {
 
 /// What the health and metrics listener reads: the controller's own caches (ADR-0010).
 struct Observer {
+    leading: Arc<AtomicBool>,
     policies: Store<SandboxPolicy>,
     profiles: Store<SandboxProfile>,
     grants: Store<KnobGrant>,
@@ -68,6 +70,9 @@ impl Observed for Observer {
     }
 
     fn metrics(&self) -> String {
+        self.counters
+            .leader
+            .set(i64::from(self.leading.load(Ordering::Acquire)));
         notaio::metrics::render(
             &self.counters,
             &Snapshot {
@@ -151,14 +156,23 @@ async fn run_controller() -> anyhow::Result<()> {
         ),
     }
 
+    // Two replicas with one identity would both lead, so there is no default (ADR-0011).
+    let identity = std::env::var(ENV_POD_NAME).map_err(|_| {
+        anyhow::anyhow!(
+            "{ENV_POD_NAME} is required: it is this replica's identity in leader election"
+        )
+    })?;
+    let namespace = std::env::var(ENV_NAMESPACE).unwrap_or_else(|_| DEFAULT_NAMESPACE.to_string());
+
     let client = Client::try_default().await?;
+    let elector = Elector::new(client.clone(), &namespace, &identity);
     let counters = Counters::default();
     let reporter = Reporter {
         controller: "notaio".to_string(),
-        // The pod's name, from the downward API, so each replica's Events say which one.
-        instance: std::env::var(ENV_POD_NAME).ok(),
+        instance: Some(identity.clone()),
     };
     let ctx = Arc::new(Ctx {
+        leading: elector.leading(),
         client: client.clone(),
         signer,
         ceilings: Ceilings::default(),
@@ -222,6 +236,7 @@ async fn run_controller() -> anyhow::Result<()> {
 
     let profile_controller = Controller::new(profiles, watcher::Config::default());
     let observer = Arc::new(Observer {
+        leading: elector.leading(),
         policies: policy_cache,
         profiles: profile_cache,
         grants: grant_cache,
@@ -253,17 +268,47 @@ async fn run_controller() -> anyhow::Result<()> {
             }
         });
 
-    tracing::info!("notaio started");
-    // The caches' watches never end by themselves; the controllers end on a signal.
-    futures::future::select(
-        Box::pin(async {
-            futures::join!(policy_task, profile_task);
-        }),
-        Box::pin(async {
-            futures::join!(policy_cache_task, profile_cache_task, grant_cache_task);
-        }),
-    )
-    .await;
+    // Every replica keeps its caches and serves health and metrics.
+    let caches = tokio::spawn(async move {
+        futures::join!(policy_cache_task, profile_cache_task, grant_cache_task);
+    });
+
+    // Only the Lease holder reconciles, signs and publishes (ADR-0011). The controllers are lazy
+    // streams: nothing watches or reconciles until they are polled below.
+    tracing::info!(%identity, %namespace, "notaio started: contending for the Lease");
+    tokio::select! {
+        () = elector.acquire() => {}
+        () = shutdown_signal() => {
+            server.abort();
+            caches.abort();
+            return Ok(());
+        }
+    }
+    let outcome = tokio::select! {
+        () = async { futures::join!(policy_task, profile_task); } => Ok(()),
+        // Losing the Lease ends the process; the pod restarts as a follower.
+        reason = elector.hold() => Err(anyhow::anyhow!("stopped leading: {reason}")),
+    };
+    if outcome.is_ok() {
+        elector.release().await;
+    }
     server.abort();
-    Ok(())
+    caches.abort();
+    outcome
+}
+
+/// SIGTERM or Ctrl-C, for a replica that is not leading. The controllers handle their own.
+async fn shutdown_signal() {
+    let term = async {
+        match tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()) {
+            Ok(mut s) => {
+                s.recv().await;
+            }
+            Err(_) => futures::future::pending::<()>().await,
+        }
+    };
+    tokio::select! {
+        _ = tokio::signal::ctrl_c() => {}
+        () = term => {}
+    }
 }

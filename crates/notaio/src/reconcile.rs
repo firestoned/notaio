@@ -38,6 +38,14 @@ pub struct Ctx {
     pub bundle_lifetime: Duration,
     pub counters: Counters,
     pub recorder: Recorder,
+    /// True while this replica holds the leader Lease (ADR-0011).
+    pub leading: Arc<std::sync::atomic::AtomicBool>,
+}
+
+impl Ctx {
+    fn leading(&self) -> bool {
+        self.leading.load(std::sync::atomic::Ordering::Acquire)
+    }
 }
 
 /// Record `note` on `regarding`, if there is one. A failure is logged, never returned: an Event is
@@ -103,6 +111,10 @@ fn same_modulo_expiry(a: &SandboxPolicyStatus, b: &SandboxPolicyStatus) -> bool 
 }
 
 pub async fn reconcile_policy(policy: Arc<SandboxPolicy>, ctx: Arc<Ctx>) -> Result<Action, Error> {
+    // A replica that has lost the Lease writes nothing; it is about to exit (ADR-0011).
+    if !ctx.leading() {
+        return Ok(Action::await_change());
+    }
     let ns = policy.namespace().ok_or(Error::NoNamespace)?;
     let name = policy.name_any();
     let client = &ctx.client;
@@ -274,6 +286,9 @@ pub async fn reconcile_policy(policy: Arc<SandboxPolicy>, ctx: Arc<Ctx>) -> Resu
                 .map(|()| Action::requeue(StdDuration::from_secs(300)));
         }
 
+        if !ctx.leading() {
+            return Ok(Action::await_change());
+        }
         let envelope = match signer.sign(bundle).await {
             Ok(e) => e,
             Err(e) => {
@@ -390,6 +405,9 @@ pub async fn reconcile_profile(
     profile: Arc<SandboxProfile>,
     ctx: Arc<Ctx>,
 ) -> Result<Action, Error> {
+    if !ctx.leading() {
+        return Ok(Action::await_change());
+    }
     let now = Utc::now();
     let name = profile.name_any();
     let prev = profile.status.clone().unwrap_or_default();

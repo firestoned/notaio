@@ -94,7 +94,8 @@ fn every_metric_is_documented_with_its_labels() {
         assert!(p.contains(row), "{row} missing from:\n{p}");
     }
     // Every family the renderer serves has a row.
-    assert_eq!(metric_rows().len(), 12, "{p}");
+    assert_eq!(metric_rows().len(), 13, "{p}");
+    assert!(p.contains("| `notaio_leader` | gauge |  |"), "{p}");
 }
 
 #[test]
