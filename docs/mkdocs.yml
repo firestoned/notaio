@@ -156,6 +156,11 @@ nav:
       - ExposureCeiling: concepts/ceilings.md
       - The Bundle: concepts/bundle.md
       - The Life of a Change: concepts/life-of-a-change.md
+  - Governance:
+      - Governance: governance/index.md
+      - Maintainers: governance/maintainers.md
+      - Contributing: governance/contributing.md
+      - Code of Conduct: governance/code-of-conduct.md
   - Security:
       - Overview: security/index.md
       - Threat Model Mapping: security/threat-model-mapping.md
@@ -180,5 +185,6 @@ nav:
       - Metrics: reference/metrics.md
       - Command Line: reference/cli.md
       - Environment Variables: reference/environment.md
+      - Changelog: changelog.md
   - Developer:
       - Local Development: developer/index.md
