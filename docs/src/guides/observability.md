@@ -29,24 +29,11 @@ keeping pods labelled `app.kubernetes.io/name=notaio` and port name `http`, does
 
 ## The metrics
 
-| Metric | Type | Meaning |
-| --- | --- | --- |
-| `notaio_policies{reason}` | gauge | Policies by their `Ready` reason |
-| `notaio_lint_failures{kind}` | gauge | Profiles and policies with `Valid` false, and rejected grants |
-| `notaio_relaxations{phase}` | gauge | Knob grants by phase |
-| `notaio_relaxation_age_seconds{namespace,grant}` | gauge | Age of each active relaxation |
-| `notaio_relaxation_expires_in_seconds{namespace,grant}` | gauge | Time until each active relaxation expires |
-| `notaio_relaxations_past_expiry` | gauge | Active grants past `expiresAt`. **Must be 0.** |
-| `notaio_bundle_age_seconds{namespace,policy}` | gauge | Age of each published bundle |
-| `notaio_bundle_expires_in_seconds{namespace,policy}` | gauge | Time until each published bundle passes `notAfter` |
-| `notaio_bundles_published_total` | counter | Bundles signed and published |
-| `notaio_signing_failures_total` | counter | Signing attempts that failed |
-| `notaio_reconcile_errors_total` | counter | Reconciles that failed and were retried |
-| `notaio_fail_open_total{check}` | counter | Bundles refused by the fail-open guard. **Must be 0.** |
-
-Gauges are computed at scrape time, so a deleted object leaves no stale series. Counters reset when
-the pod restarts. Both must-be-zero series exist at 0 from the start, so an alert compares a value,
-not an absence.
+Every metric, its labels and its meaning are in the [Metrics reference](../reference/metrics.md),
+generated from what notaio serves. Two must stay at 0: `notaio_relaxations_past_expiry` and
+`notaio_fail_open_total`. Gauges are computed at scrape time, so a deleted object leaves no stale
+series. Counters reset when the pod restarts. Both must-be-zero series exist at 0 from the start,
+so an alert compares a value, not an absence.
 
 ## Alerts to start from
 

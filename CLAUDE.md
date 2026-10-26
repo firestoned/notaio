@@ -43,9 +43,9 @@ write the ADR.
 1. Explore before editing. Do not assume a file, field or behaviour exists. Do not invent file paths,
    API fields or Kubernetes behaviour. If you are unsure, say so and ask.
 2. Small, reviewable changes. One topic per branch and per pull request.
-3. Run `make lint`, `make test` and `make manifests-check` before proposing a change. If you change a
-   CRD type or a built-in profile, run `make manifests` and commit the result. Never hand edit
-   `deploy/crds` or `deploy/profiles`.
+3. Run `make lint`, `make test`, `make manifests-check` and `make docs-reference-check` before
+   proposing a change. If you change a CRD type or a built-in profile, run `make manifests` and
+   commit the result. Never hand edit `deploy/crds`, `deploy/profiles` or `docs/src/reference`.
 4. Raw Kubernetes manifests only. No Helm. No HashiCorp tooling for new decisions.
 5. Every new dependency must be permissive and foundation friendly. Screen for BSL, AGPL and
    single-vendor control before adding one, and run it past `deny.toml`.

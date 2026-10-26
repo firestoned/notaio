@@ -135,6 +135,11 @@ jobs:
       - name: Check generated manifests
         run: make manifests-check
 
+      # docs/src/reference is generated from the code (lint rules, knobs,
+      # profiles, CRDs, metrics, CLI, environment) and must never drift from it.
+      - name: Check generated reference docs
+        run: make docs-reference-check
+
       # notaio lint on the repository's own examples and profiles (ADR-0006).
       - name: Lint example policies
         run: make policy-lint

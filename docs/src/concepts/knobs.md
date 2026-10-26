@@ -31,8 +31,8 @@ A step above the knob's loosest is refused (lint `L002`), and an unknown knob id
 | 7 | K7.1 to K7.4 | Authentication, eligibility, lease limits, unattended runs |
 | 8 | K8.1 to K8.4 | Image source, policy change control, logging, break-glass |
 
-The full register, with each knob's name, loosest step and approvers, is in
-[`registry.rs`](https://github.com/firestoned/notaio/blob/main/crates/sandboxpolicy-core/src/registry.rs).
+The full register, with each knob's name, loosest step and approvers, is in the
+[Knob Register](../reference/knobs.md).
 
 ## Approvers
 

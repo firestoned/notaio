@@ -9,9 +9,11 @@ use crate::Approval;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct CeilingAudience {
+    /// The audience.
     pub name: String,
     /// `Write` allows `Read`.
     pub access: Access,
+    /// The longest token lifetime, in seconds.
     pub max_ttl_seconds: u32,
 }
 
@@ -32,6 +34,7 @@ pub struct CeilingAudience {
 #[serde(rename_all = "camelCase")]
 pub struct ExposureCeilingSpec {
     #[serde(default)]
+    /// The audiences the policy may expose.
     pub audiences: Vec<CeilingAudience>,
     /// `host:port`, as in `status.maxExposure.egressHosts`.
     #[serde(default)]
@@ -39,6 +42,7 @@ pub struct ExposureCeilingSpec {
     /// Tool names.
     #[serde(default)]
     pub tools: Vec<String>,
+    /// The longest lease, in seconds.
     pub max_lease_seconds: u32,
     /// Must include one from the `Security` role (lint L016).
     pub approvals: Vec<Approval>,

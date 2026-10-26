@@ -11,9 +11,8 @@ the profile's (`L011`). If you need two steps, you need a different profile.
 
 ## 2. Find the approvers and the longest expiry
 
-The register names the roles that must approve each knob (in
-[`registry.rs`](https://github.com/firestoned/notaio/blob/main/crates/sandboxpolicy-core/src/registry.rs)),
-and the target step caps how far away `expiresAt` may be:
+The register names the roles that must approve each knob (in the
+[Knob Register](../reference/knobs.md)), and the target step caps how far away `expiresAt` may be:
 
 | Target step | Longest expiry from now |
 | --- | --- |
