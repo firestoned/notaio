@@ -95,7 +95,10 @@ docs-serve: ## Serve the documentation with live reload at http://127.0.0.1:8000
 
 docs-linkcheck: ## Check docs/site/ for broken links (run `make docs` first)
 	@npm --prefix .github/tools/linkinator ci --silent
-	@.github/tools/linkinator/node_modules/.bin/linkinator docs/site/ --recurse --verbosity error
+	@# The site's own absolute URLs are canonical tags, which 404 for any page not yet deployed.
+	@# Every relative link between pages is still checked, as is every external one.
+	@.github/tools/linkinator/node_modules/.bin/linkinator docs/site/ --recurse --verbosity error \
+		--skip '^https://firestoned\.github\.io/notaio/'
 
 docs-clean: ## Remove docs/site/ and docs/.venv/
 	@rm -rf docs/site/ docs/.venv/

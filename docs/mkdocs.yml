@@ -135,6 +135,15 @@ nav:
       - index.md
       - Architecture: architecture.md
       - Roadmap: roadmap.md
+  - Concepts:
+      - Overview: concepts/index.md
+      - Knobs and Steps: concepts/knobs.md
+      - SandboxProfile: concepts/profiles.md
+      - SandboxPolicy: concepts/policies.md
+      - KnobGrant: concepts/grants.md
+      - ExposureCeiling: concepts/ceilings.md
+      - The Bundle: concepts/bundle.md
+      - The Life of a Change: concepts/life-of-a-change.md
   - Security:
       - Overview: security/index.md
       - Threat Model Mapping: security/threat-model-mapping.md
