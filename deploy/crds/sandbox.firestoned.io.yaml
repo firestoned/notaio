@@ -40,6 +40,7 @@ spec:
                 type: string
               description:
                 default: ""
+                description: What the profile is for.
                 type: string
               knobs:
                 additionalProperties:
@@ -63,26 +64,32 @@ spec:
             properties:
               conditions:
                 default: []
+                description: "`Valid`: whether the profile passes lint rules L001 to L004."
                 items:
                   description: |-
                     A minimal condition type. Kept local so the CRD schema does not depend on the time
                     representation used by `k8s-openapi`.
                   properties:
                     lastTransitionTime:
+                      description: When the status last changed.
                       format: date-time
                       type: string
                     message:
+                      description: A human-readable explanation, with lint codes when findings caused it.
                       type: string
                     observedGeneration:
+                      description: The object generation this condition was computed from.
                       format: int64
                       nullable: true
                       type: integer
                     reason:
+                      description: The reason for the status, in CamelCase, such as `Published` or `SigningFailed`.
                       type: string
                     status:
                       description: "`True`, `False` or `Unknown`."
                       type: string
                     type:
+                      description: "The condition: `Ready`, `Valid`, `ProfileResolved` or `Applied`, by kind."
                       type: string
                   required:
                   - lastTransitionTime
@@ -99,6 +106,7 @@ spec:
                 nullable: true
                 type: string
               observedGeneration:
+                description: The generation the status was computed from.
                 format: int64
                 nullable: true
                 type: integer
@@ -148,19 +156,23 @@ spec:
             properties:
               audiences:
                 default: []
+                description: Downstream services the sandbox may obtain tokens for.
                 items:
                   description: One downstream audience the sandbox may obtain tokens for.
                   properties:
                     access:
                       default: Read
+                      description: "`Read` or `Write`. `Write` needs K5.2 above R0 (lint L006)."
                       enum:
                       - Read
                       - Write
                       type: string
                     name:
+                      description: "The audience: the downstream service."
                       type: string
                     scopes:
                       default: []
+                      description: Scopes requested for the token.
                       items:
                         type: string
                       type: array
@@ -179,14 +191,17 @@ spec:
                 nullable: true
                 properties:
                   maxEgressBytes:
+                    description: The most bytes of egress per lease.
                     format: int64
                     minimum: 0.0
                     type: integer
                   maxToolCalls:
+                    description: The most tool calls per lease.
                     format: int64
                     minimum: 0.0
                     type: integer
                   maxWallClockSeconds:
+                    description: The most wall-clock time per lease, in seconds.
                     format: int64
                     minimum: 0.0
                     type: integer
@@ -197,12 +212,14 @@ spec:
                 type: object
               egress:
                 default: []
+                description: The egress allowlist.
                 items:
                   description: >-
                     One egress allowlist entry, enforced at the gateway and in the host or network
                     layer.
                   properties:
                     host:
+                      description: A DNS name. IP literals are refused (lint L007).
                       type: string
                     methods:
                       description: Method restriction. Only accepted at K4.1 R2 and above.
@@ -215,6 +232,7 @@ spec:
                         type: string
                       type: array
                     port:
+                      description: The TCP port.
                       format: int32
                       maximum: 65535.0
                       minimum: 0.0
@@ -229,11 +247,13 @@ spec:
                 nullable: true
                 properties:
                   maxConcurrent:
+                    description: How many sandboxes one person may run at once.
                     format: int32
                     maximum: 255.0
                     minimum: 0.0
                     type: integer
                   maxDurationSeconds:
+                    description: The longest a sandbox may run, in seconds.
                     format: int64
                     minimum: 0.0
                     type: integer
@@ -247,6 +267,7 @@ spec:
               subjects:
                 default:
                   groups: []
+                description: Who may claim a sandbox under this policy.
                 properties:
                   groups:
                     default: []
@@ -257,6 +278,7 @@ spec:
                 type: object
               tools:
                 default: []
+                description: Tools and MCP servers the agent may use.
                 items:
                   description: A tool or MCP server the agent may use, pinned by manifest digest.
                   properties:
@@ -264,6 +286,7 @@ spec:
                       description: "`sha256:<hex>` of the tool manifest."
                       type: string
                     name:
+                      description: The tool or MCP server's name.
                       type: string
                   required:
                   - manifestDigest
@@ -287,6 +310,7 @@ spec:
                 nullable: true
                 type: string
               bundleNotAfter:
+                description: When the published bundle stops being valid.
                 format: date-time
                 nullable: true
                 type: string
@@ -298,26 +322,32 @@ spec:
                 type: integer
               conditions:
                 default: []
+                description: "`Ready`, `Valid` and `ProfileResolved`."
                 items:
                   description: |-
                     A minimal condition type. Kept local so the CRD schema does not depend on the time
                     representation used by `k8s-openapi`.
                   properties:
                     lastTransitionTime:
+                      description: When the status last changed.
                       format: date-time
                       type: string
                     message:
+                      description: A human-readable explanation, with lint codes when findings caused it.
                       type: string
                     observedGeneration:
+                      description: The object generation this condition was computed from.
                       format: int64
                       nullable: true
                       type: integer
                     reason:
+                      description: The reason for the status, in CamelCase, such as `Published` or `SigningFailed`.
                       type: string
                     status:
                       description: "`True`, `False` or `Unknown`."
                       type: string
                     type:
+                      description: "The condition: `Ready`, `Valid`, `ProfileResolved` or `Applied`, by kind."
                       type: string
                   required:
                   - lastTransitionTime
@@ -334,17 +364,21 @@ spec:
                 nullable: true
                 properties:
                   audiences:
+                    description: Every audience the sandbox can get a token for.
                     items:
                       description: One audience in the computed maximum exposure.
                       properties:
                         access:
+                          description: "`Read` or `Write`."
                           enum:
                           - Read
                           - Write
                           type: string
                         name:
+                          description: The audience.
                           type: string
                         ttlSeconds:
+                          description: The token lifetime, in seconds.
                           format: int64
                           minimum: 0.0
                           type: integer
@@ -355,18 +389,22 @@ spec:
                       type: object
                     type: array
                   egressHosts:
+                    description: Every `host:port` it can reach.
                     items:
                       type: string
                     type: array
                   leaseMaxSeconds:
+                    description: The longest lease, in seconds.
                     format: int64
                     minimum: 0.0
                     type: integer
                   tools:
+                    description: Every tool it can use.
                     items:
                       type: string
                     type: array
                   writeCapable:
+                    description: Whether any audience grants `Write`.
                     type: boolean
                 required:
                 - audiences
@@ -376,14 +414,17 @@ spec:
                 - writeCapable
                 type: object
               nextGrantExpiry:
+                description: The soonest expiry among the active grants.
                 format: date-time
                 nullable: true
                 type: string
               observedGeneration:
+                description: The generation the status was computed from.
                 format: int64
                 nullable: true
                 type: integer
               profileDigest:
+                description: Digest of the profile the bundle was built on.
                 nullable: true
                 type: string
             type: object
@@ -438,12 +479,14 @@ spec:
             properties:
               approvals:
                 default: []
+                description: One approval from every role the knob register names for this knob (lint L013).
                 items:
                   description: |-
                     A recorded approval by a role named in the knob register. `reference` points at the reviewed
                     change (a pull request URL, for example), because policy changes only arrive through review.
                   properties:
                     reference:
+                      description: "Where the approval was given: a link to the reviewed change."
                       type: string
                     role:
                       description: Approver roles named in the knob register.
@@ -461,6 +504,7 @@ spec:
                   type: object
                 type: array
               expiresAt:
+                description: When it ends. At most 90, 30 or 7 days away for R1, R2 or R3 (lint L012).
                 format: date-time
                 type: string
               knob:
@@ -469,11 +513,13 @@ spec:
                   linter, not at deserialisation time, so an unknown id produces a finding instead of a parse error.
                 type: string
               owner:
+                description: The team or person accountable for the relaxation.
                 type: string
               policyRef:
                 description: SandboxPolicy in the same namespace.
                 type: string
               reason:
+                description: Why it is needed, for whoever reviews the relaxation dashboard.
                 type: string
               step:
                 description: Target step. Must be exactly one step above the profile's step for this knob.
@@ -496,26 +542,32 @@ spec:
             properties:
               conditions:
                 default: []
+                description: "`Applied`: whether the grant is applied, with the findings when it is not."
                 items:
                   description: |-
                     A minimal condition type. Kept local so the CRD schema does not depend on the time
                     representation used by `k8s-openapi`.
                   properties:
                     lastTransitionTime:
+                      description: When the status last changed.
                       format: date-time
                       type: string
                     message:
+                      description: A human-readable explanation, with lint codes when findings caused it.
                       type: string
                     observedGeneration:
+                      description: The object generation this condition was computed from.
                       format: int64
                       nullable: true
                       type: integer
                     reason:
+                      description: The reason for the status, in CamelCase, such as `Published` or `SigningFailed`.
                       type: string
                     status:
                       description: "`True`, `False` or `Unknown`."
                       type: string
                     type:
+                      description: "The condition: `Ready`, `Valid`, `ProfileResolved` or `Applied`, by kind."
                       type: string
                   required:
                   - lastTransitionTime
@@ -526,11 +578,13 @@ spec:
                   type: object
                 type: array
               observedGeneration:
+                description: The generation the status was computed from.
                 format: int64
                 nullable: true
                 type: integer
               phase:
                 default: Pending
+                description: "`Pending`, `Active`, `Rejected` or `Expired`."
                 enum:
                 - Pending
                 - Active
@@ -588,6 +642,7 @@ spec:
                     change (a pull request URL, for example), because policy changes only arrive through review.
                   properties:
                     reference:
+                      description: "Where the approval was given: a link to the reviewed change."
                       type: string
                     role:
                       description: Approver roles named in the knob register.
@@ -606,6 +661,7 @@ spec:
                 type: array
               audiences:
                 default: []
+                description: The audiences the policy may expose.
                 items:
                   description: >-
                     One audience a policy may expose, with the most access and the longest token it
@@ -618,10 +674,12 @@ spec:
                       - Write
                       type: string
                     maxTtlSeconds:
+                      description: The longest token lifetime, in seconds.
                       format: int64
                       minimum: 0.0
                       type: integer
                     name:
+                      description: The audience.
                       type: string
                   required:
                   - access
@@ -636,6 +694,7 @@ spec:
                   type: string
                 type: array
               maxLeaseSeconds:
+                description: The longest lease, in seconds.
                 format: int64
                 minimum: 0.0
                 type: integer

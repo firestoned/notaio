@@ -5,6 +5,17 @@ use std::path::PathBuf;
 use chrono::{DateTime, Utc};
 use clap::{Parser, Subcommand, ValueEnum};
 
+/// How long a bundle stays valid, in seconds. A consumer refuses a bundle past `notAfter`, so this
+/// bounds how long a tightening takes to land (ADR-0002, decision 3).
+pub const ENV_BUNDLE_LIFETIME: &str = "NOTAIO_BUNDLE_LIFETIME_SECONDS";
+pub const DEFAULT_BUNDLE_LIFETIME_SECONDS: i64 = 3600;
+/// `1` for JSON logs.
+pub const ENV_LOG_JSON: &str = "NOTAIO_LOG_JSON";
+/// The health and metrics listener's address (ADR-0010). Default `crate::http::DEFAULT_ADDR`.
+pub const ENV_HTTP_ADDR: &str = "NOTAIO_HTTP_ADDR";
+/// The pod's name, from the downward API, naming the replica in Events.
+pub const ENV_POD_NAME: &str = "NOTAIO_POD_NAME";
+
 #[derive(Debug, Parser)]
 #[command(
     name = "notaio",
@@ -20,7 +31,7 @@ pub struct Cli {
 pub enum Command {
     /// Run the controller: watch policy objects, publish signed bundles.
     Controller,
-    /// Check SandboxProfile, SandboxPolicy and KnobGrant files, for pull requests.
+    /// Check SandboxProfile, SandboxPolicy, KnobGrant and ExposureCeiling files, for pull requests.
     Lint(LintArgs),
 }
 

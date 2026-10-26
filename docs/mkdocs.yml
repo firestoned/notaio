@@ -173,6 +173,12 @@ nav:
       - "ADR-0009: Release and supply chain": adr/0009-release-and-supply-chain.md
       - "ADR-0010: Health, metrics and Events": adr/0010-health-metrics-and-events.md
   - Reference:
+      - CRD API: reference/crds.md
+      - Lint Rules: reference/lint-rules.md
+      - Knob Register: reference/knobs.md
       - Built-in Profiles: reference/profiles.md
+      - Metrics: reference/metrics.md
+      - Command Line: reference/cli.md
+      - Environment Variables: reference/environment.md
   - Developer:
       - Local Development: developer/index.md

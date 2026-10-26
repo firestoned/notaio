@@ -20,6 +20,7 @@ configuration, deployment and architecture changes all have a docs half.
 | Examples | `examples/*.yaml` |
 | Change log | `.claude/CHANGELOG.md` |
 | Generated manifests | `deploy/crds/`, `deploy/profiles/` (`make manifests`, never hand edited) |
+| Generated reference | `docs/src/reference/` (`make docs-reference`, run by `make manifests`; never hand edited; `docs-reference-check` in CI) |
 | Security policy | `SECURITY.md` |
 | Documentation site | `docs/mkdocs.yml`, `docs/src/` (`make docs`, published to GitHub Pages from `main`) |
 
@@ -65,9 +66,13 @@ while you are there.
 `make manifests`; the threat model pass (`rules/threat-modeling.md`);
 `docs/air/` if a control moved.
 
-**Lint rule**: the rule's code and meaning in rustdoc, the test that fails
-when the rule is weakened, and the "Implemented here" row it backs in
-`docs/threat-model-mapping.md`.
+**Lint rule**: the rule's code and meaning in rustdoc and in `RULES`, the test
+that fails when the rule is weakened, the "Implemented here" row it backs in
+`docs/threat-model-mapping.md`, and `make docs-reference`.
+
+**Metric, CLI flag or environment variable**: `make docs-reference`. A new
+`NOTAIO_*` variable goes into `notaio::reference::environment_variables`; the
+`every_variable_read_is_documented` test fails until it does.
 
 **Bundle format or verification** (`sandboxpolicy-bundle`): ADR-0002 (and a
 `SCHEMA` bump for a canonical form change), the threat model pass.

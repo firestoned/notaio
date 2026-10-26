@@ -10,8 +10,10 @@ and `deploy/profiles/builtin.yaml` are **generated** by the `crdgen` binary;
 never edit either by hand (CLAUDE.md).
 
 ```sh
-make manifests         # crdgen crds > deploy/crds/…, crdgen profiles > deploy/profiles/…
+make manifests         # crdgen crds > deploy/crds/…, crdgen profiles > deploy/profiles/…,
+                       # and docgen > docs/src/reference/ (the CRD fields, knobs, profiles)
 make manifests-check   # what CI runs: fails on any drift
+make docs-reference-check   # also in CI: the generated reference pages
 ```
 
 ## When to run

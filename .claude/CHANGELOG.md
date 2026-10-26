@@ -2,6 +2,32 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-26 18:00] - Docs: the generated Reference section
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `crates/notaio/src/reference.rs` (new) renders seven pages from the code: the CRD API (every
+  field from the generated schemas), lint rules (`RULES`, `INPUT_RULES`), the knob register
+  (`REGISTRY`, Lab-only knobs, grant lifetimes, numeric ceilings), the built-in profiles (the full
+  knob by profile matrix), metrics (parsed from what `/metrics` renders for a sample snapshot, so
+  labels are real), the command line (clap's help) and the environment variables. Seven tests,
+  including one that fails when the code reads a `NOTAIO_*` variable the page does not list, or
+  lists one the code no longer reads.
+- `crates/notaio/src/bin/docgen.rs` (new); `make docs-reference` writes `docs/src/reference/`,
+  `make manifests` now runs it too, and `make docs-reference-check` fails on drift. The Build
+  workflow's test job runs the check.
+- Doc comments on every CRD field that had none, so the reference and `kubectl explain` describe
+  every field. Descriptions only: `make manifests` regenerated `deploy/crds/`; the bundle's
+  canonical form is unchanged.
+- The controller's environment names and defaults are constants in `notaio::cli`, and the OpenBao
+  defaults in `notaio::openbao` are public, so the generated page reads the values the code uses.
+  `notaio lint`'s help now names ExposureCeiling files too.
+- Docs: the Reference nav; Concepts and Guides link to the generated pages, and the metrics and
+  input-code tables in the guides are replaced by links, so each exists once.
+- Rules: `CLAUDE.md` (run `docs-reference-check`; never hand edit `docs/src/reference`),
+  `.claude/rules/documentation.md` and the `regen-manifests` skill.
+
 ## [2026-10-26 14:00] - Docs: the Guides section
 
 **Author:** Erick Bourgeois

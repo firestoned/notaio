@@ -14,7 +14,7 @@ RUST_LOG         ?= info
         kind-deploy kind-e2e kind-e2e-ci kind-e2e-logs \
         kind-e2e-install kind-e2e-bundle kind-e2e-rbac kind-e2e-admission kind-e2e-openbao \
         kind-cert-manager kind-openbao cluster-deploy cluster-undeploy openbao-e2e \
-        docs docs-serve docs-clean docs-linkcheck policy-lint openbao-dev openbao-dev-check \
+        docs docs-serve docs-clean docs-linkcheck docs-reference docs-reference-check policy-lint openbao-dev openbao-dev-check \
         release-binary release-manifest release-manifest-test set-version set-version-test
 
 help: ## Show this help
@@ -51,9 +51,20 @@ deny: ## cargo-deny: licences, advisories, sources (deny.toml)
 	cargo deny check
 
 # deploy/crds and deploy/profiles are generated, never hand edited.
-manifests: ## Regenerate deploy/crds and deploy/profiles from the Rust types
+manifests: ## Regenerate deploy/crds, deploy/profiles and docs/src/reference from the Rust types
 	cargo run -q -p notaio --bin crdgen -- crds > deploy/crds/sandbox.firestoned.io.yaml
 	cargo run -q -p notaio --bin crdgen -- profiles > deploy/profiles/builtin.yaml
+	@$(MAKE) --no-print-directory docs-reference
+
+docs-reference: ## Regenerate docs/src/reference/ from the code (lint rules, knobs, profiles, CRDs, metrics, CLI, environment)
+	cargo run -q -p notaio --bin docgen -- docs/src/reference
+
+docs-reference-check: ## Fail if a page in docs/src/reference/ drifted from the code
+	@tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT; \
+	  cargo run -q -p notaio --bin docgen -- "$$tmp" && \
+	  for f in "$$tmp"/*.md; do \
+	    diff -u "docs/src/reference/$$(basename "$$f")" "$$f" || { echo "docs/src/reference is stale: run make docs-reference"; exit 1; }; \
+	  done
 
 manifests-check: ## Fail if deploy/crds or deploy/profiles drifted from the Rust types
 	@cargo run -q -p notaio --bin crdgen -- crds | diff -u deploy/crds/sandbox.firestoned.io.yaml -

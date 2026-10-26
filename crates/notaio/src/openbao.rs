@@ -43,11 +43,11 @@ pub const ENV_TOKEN_FILE: &str = "NOTAIO_OPENBAO_TOKEN_FILE";
 pub const ENV_DEV_KEY_FILE: &str = "NOTAIO_SIGNING_KEY_FILE";
 pub const ENV_DEV_KEY_ID: &str = "NOTAIO_KEY_ID";
 
-const DEFAULT_ROLE: &str = "notaio";
-const DEFAULT_KEY: &str = "notaio";
-const DEFAULT_AUTH_PATH: &str = "kubernetes";
-const DEFAULT_TOKEN_FILE: &str = "/var/run/secrets/openbao/token";
-const DEFAULT_DEV_KEY_ID: &str = "dev";
+pub const DEFAULT_ROLE: &str = "notaio";
+pub const DEFAULT_KEY: &str = "notaio";
+pub const DEFAULT_AUTH_PATH: &str = "kubernetes";
+pub const DEFAULT_TOKEN_FILE: &str = "/var/run/secrets/openbao/token";
+pub const DEFAULT_DEV_KEY_ID: &str = "dev";
 
 /// Length of an ed25519 signature.
 const ED25519_SIGNATURE_LEN: usize = 64;

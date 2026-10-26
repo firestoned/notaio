@@ -22,19 +22,9 @@ present.
 | 1 | At least one error finding. |
 | 2 | An input could not be read or parsed. |
 
-Findings carry the lint codes `L001` to `L016` (see [Concepts](../concepts/index.md)), and input
-codes about the set of files:
-
-| Code | Meaning |
-| --- | --- |
-| `I001` | An object in the `sandbox.firestoned.io` group is not a valid object of its kind |
-| `I002` | The same object (kind, namespace, name) appears more than once |
-| `I003` | A policy references a profile that is neither in the inputs nor built in |
-| `I004` | A grant references a policy that is not in the inputs |
-| `I005` | The compiled content has no RFC 8785 canonical form (ADR-0005) |
-| `I006` | A grant has expired |
-| `I007` | A policy's profile does not lint clean; the profile's findings are reported against it |
-| `I008` | An ExposureCeiling names a policy that is not in the inputs |
+Findings carry the policy codes `L001` to `L016` and the input codes `I001` to `I008`, about the
+set of files given (a duplicate object, a policy whose profile is missing, and so on). All of them
+are in [Lint Rules](../reference/lint-rules.md).
 
 Grant expiry and lifetime checks depend on the clock. CI uses the real time, so a grant that is
 fine today can fail a later, unrelated pull request once it has expired: that is the point. Use

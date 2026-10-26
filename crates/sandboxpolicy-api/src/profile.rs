@@ -22,6 +22,7 @@ use crate::Condition;
 #[serde(rename_all = "camelCase")]
 pub struct SandboxProfileSpec {
     #[serde(default)]
+    /// What the profile is for.
     pub description: String,
     /// `LabOnly` profiles hold no sensitive data, which is what allows them to combine untrusted
     /// content with an open outbound channel.
@@ -35,8 +36,10 @@ pub struct SandboxProfileSpec {
 #[serde(rename_all = "camelCase")]
 pub struct SandboxProfileStatus {
     #[serde(default)]
+    /// `Valid`: whether the profile passes lint rules L001 to L004.
     pub conditions: Vec<Condition>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// The generation the status was computed from.
     pub observed_generation: Option<i64>,
     /// Digest of the validated spec. Recorded in every bundle so a change to the profile is visible.
     #[serde(default, skip_serializing_if = "Option::is_none")]

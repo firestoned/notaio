@@ -21,7 +21,10 @@ use kube::runtime::events::{Recorder, Reporter};
 use kube::runtime::reflector::{self, ObjectRef, Store};
 use kube::runtime::{watcher, WatchStreamExt};
 use kube::{Api, Client};
-use notaio::cli::{Cli, Command, Format, LintArgs};
+use notaio::cli::{
+    Cli, Command, Format, LintArgs, DEFAULT_BUNDLE_LIFETIME_SECONDS, ENV_BUNDLE_LIFETIME,
+    ENV_HTTP_ADDR, ENV_LOG_JSON, ENV_POD_NAME,
+};
 use notaio::http::Observed;
 use notaio::metrics::{Counters, Snapshot};
 use sandboxpolicy_api::{ExposureCeiling, KnobGrant, SandboxPolicy, SandboxProfile};
@@ -29,10 +32,6 @@ use sandboxpolicy_core::ceilings::Ceilings;
 use tracing_subscriber::EnvFilter;
 
 use reconcile::{error_policy, reconcile_policy, reconcile_profile, Ctx};
-
-/// Bundle lifetime when `NOTAIO_BUNDLE_LIFETIME_SECONDS` is not set. A consumer refuses a bundle
-/// past `notAfter`, so this bounds how long a tightening takes to land (ADR-0002, decision 3).
-const DEFAULT_BUNDLE_LIFETIME_SECONDS: i64 = 3600;
 
 /// `notaio lint` exit codes (ADR-0006, decision 6). 0 is success.
 const EXIT_FINDINGS: u8 = 1;
@@ -131,7 +130,7 @@ fn run_lint(args: &LintArgs) -> ExitCode {
 #[tokio::main]
 async fn run_controller() -> anyhow::Result<()> {
     let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
-    if std::env::var("NOTAIO_LOG_JSON").is_ok_and(|v| v == "1") {
+    if std::env::var(ENV_LOG_JSON).is_ok_and(|v| v == "1") {
         tracing_subscriber::fmt()
             .json()
             .with_env_filter(filter)
@@ -140,7 +139,7 @@ async fn run_controller() -> anyhow::Result<()> {
         tracing_subscriber::fmt().with_env_filter(filter).init();
     }
 
-    let lifetime_secs: i64 = std::env::var("NOTAIO_BUNDLE_LIFETIME_SECONDS")
+    let lifetime_secs: i64 = std::env::var(ENV_BUNDLE_LIFETIME)
         .ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(DEFAULT_BUNDLE_LIFETIME_SECONDS);
@@ -157,7 +156,7 @@ async fn run_controller() -> anyhow::Result<()> {
     let reporter = Reporter {
         controller: "notaio".to_string(),
         // The pod's name, from the downward API, so each replica's Events say which one.
-        instance: std::env::var("NOTAIO_POD_NAME").ok(),
+        instance: std::env::var(ENV_POD_NAME).ok(),
     };
     let ctx = Arc::new(Ctx {
         client: client.clone(),
@@ -169,8 +168,8 @@ async fn run_controller() -> anyhow::Result<()> {
     });
 
     // Bind before anything else, so a taken port fails the start rather than the first probe.
-    let addr = std::env::var("NOTAIO_HTTP_ADDR")
-        .unwrap_or_else(|_| notaio::http::DEFAULT_ADDR.to_string());
+    let addr =
+        std::env::var(ENV_HTTP_ADDR).unwrap_or_else(|_| notaio::http::DEFAULT_ADDR.to_string());
     let listener = tokio::net::TcpListener::bind(&addr)
         .await
         .map_err(|e| anyhow::anyhow!("binding the health and metrics listener on {addr}: {e}"))?;
