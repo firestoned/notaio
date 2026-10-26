@@ -2,6 +2,26 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-26 14:00] - Docs: the Guides section
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `docs/src/guides/` (new), in the site nav before Concepts: install a release (verify it, the
+  three site-specific edits, the OpenBao CA, per-namespace bundle RBAC, the admission policy, a
+  health check; management cluster only); set up the OpenBao signer; write a policy; grant a
+  relaxation; approve an exposure ceiling; lint a policy repository (exit and input codes, the
+  Actions job, a layout that keeps the ceiling review separate); consume a bundle (trusted keys,
+  `accept` and every refusal); observe notaio (scraping, every metric, starter alerts, Events,
+  probes); rotate the signing key; troubleshooting by `Ready` reason, signer error and pod symptom.
+- Checked against the code and a running kind cluster: the Event field selector, lint's output for
+  a missing ceiling (it names no exposure, so the guides use an empty ceiling to list it), the
+  signer's error strings, and the example consumer's output.
+- `docs/src/developer/index.md`: the lint and consumer sections now point to their guides.
+- `docs/src/index.md`: links to Guides.
+- `ROADMAP.md` M2: pinning the transit key version, found while writing the rotation guide. Today
+  the controller signs with the latest version, so a rotation cannot be staged at consumers first.
+
 ## [2026-10-23 21:00] - Docs: the Concepts section
 
 **Author:** Erick Bourgeois

@@ -135,6 +135,18 @@ nav:
       - index.md
       - Architecture: architecture.md
       - Roadmap: roadmap.md
+  - Guides:
+      - Overview: guides/index.md
+      - Install notaio: guides/install.md
+      - Set up the OpenBao Signer: guides/openbao-signer.md
+      - Write a Policy: guides/write-a-policy.md
+      - Grant a Relaxation: guides/grant-a-relaxation.md
+      - Approve an Exposure Ceiling: guides/approve-a-ceiling.md
+      - Lint a Policy Repository: guides/lint-in-ci.md
+      - Consume a Bundle: guides/consume-a-bundle.md
+      - Observe notaio: guides/observability.md
+      - Rotate the Signing Key: guides/rotate-the-signing-key.md
+      - Troubleshooting: guides/troubleshooting.md
   - Concepts:
       - Overview: concepts/index.md
       - Knobs and Steps: concepts/knobs.md
