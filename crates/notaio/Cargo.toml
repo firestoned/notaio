@@ -24,10 +24,10 @@ kube = { version = "4.0.0", features = ["runtime", "derive"] }
 prometheus-client = "0.25.1"
 rustls = { version = "0.23.46", default-features = false, features = ["ring", "std"] }
 rustls-pki-types = { version = "1.15.1", features = ["std"] }
-sandboxpolicy-api = { version = "0.0.1", path = "../sandboxpolicy-api" }
-sandboxpolicy-bundle = { version = "0.0.1", path = "../sandboxpolicy-bundle" }
-sandboxpolicy-core = { version = "0.0.1", path = "../sandboxpolicy-core" }
-sandboxpolicy-types = { version = "0.0.1", path = "../sandboxpolicy-types" }
+sandboxpolicy-api = { path = "../sandboxpolicy-api" }
+sandboxpolicy-bundle = { path = "../sandboxpolicy-bundle" }
+sandboxpolicy-core = { path = "../sandboxpolicy-core" }
+sandboxpolicy-types = { path = "../sandboxpolicy-types" }
 serde = { version = "1.0.229", features = ["derive"] }
 serde-saphyr = "2.0.0"
 serde_json = "1.0.151"

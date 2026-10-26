@@ -178,13 +178,17 @@ release-manifest-test: ## Prove release-manifest pins the image by digest, once,
 	  python3 scripts/check_release_manifest.py "$$out" "ghcr.io/$(ORG)/$(BINARY)@$$digest" && \
 	  echo "release-manifest-test: ok"
 
-set-version-test: ## Prove set-version changes the workspace version, and only it, on a scratch copy
+set-version-test: ## Prove set-version changes the workspace version, and only it, and the workspace still resolves
 	@tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT; \
 	  cp Cargo.toml "$$tmp/Cargo.toml"; \
 	  $(MAKE) --no-print-directory -s set-version VERSION=0.0.0-set-version-test VERSION_FILE="$$tmp/Cargo.toml" >/dev/null && \
 	  changed=$$(diff Cargo.toml "$$tmp/Cargo.toml" | grep -c '^>'); \
 	  if [ "$$changed" != "1" ]; then echo "set-version changed $$changed lines, expected exactly 1"; exit 1; fi; \
 	  grep -q '^version = "0.0.0-set-version-test"' "$$tmp/Cargo.toml" || { echo "set-version did not set the version"; exit 1; }; \
+	  cp -R Cargo.toml Cargo.lock crates "$$tmp/" && \
+	  $(MAKE) --no-print-directory -s set-version VERSION=9.8.7 VERSION_FILE="$$tmp/Cargo.toml" >/dev/null && \
+	  ( cd "$$tmp" && cargo metadata --format-version 1 >/dev/null 2>"$$tmp/metadata.err" ) || \
+	    { cat "$$tmp/metadata.err"; echo "the workspace does not resolve at a new version: does an internal dependency pin one?"; exit 1; }; \
 	  echo "set-version-test: ok"
 
 # ----- CI gating -------------------------------------------------------------

@@ -10,9 +10,9 @@ publish.workspace = true
 [dependencies]
 chrono = { version = "0.4.45", features = ["serde"] }
 hex = "0.4.3"
-sandboxpolicy-api = { version = "0.0.1", path = "../sandboxpolicy-api" }
-sandboxpolicy-bundle = { version = "0.0.1", path = "../sandboxpolicy-bundle" }
-sandboxpolicy-types = { version = "0.0.1", path = "../sandboxpolicy-types" }
+sandboxpolicy-api = { path = "../sandboxpolicy-api" }
+sandboxpolicy-bundle = { path = "../sandboxpolicy-bundle" }
+sandboxpolicy-types = { path = "../sandboxpolicy-types" }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 sha2 = "0.11.0"

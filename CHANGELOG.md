@@ -10,7 +10,12 @@ a release, the maintainer renames Unreleased to the version and date.
 
 ## Unreleased
 
-No release has been cut yet. Everything below is on `main`.
+Nothing yet.
+
+## [0.1.0] - 2026-10-26
+
+The first release: the controller, the four policy kinds, signed bundles, and everything an
+operator needs to run it with two replicas and an OpenBao signer.
 
 ### Added
 
@@ -46,3 +51,5 @@ No release has been cut yet. Everything below is on `main`.
   object.
 - Its NetworkPolicy allows egress only to DNS, the API server and OpenBao, and ingress only to the
   health and metrics port from the monitoring namespace.
+
+[0.1.0]: https://github.com/firestoned/notaio/releases/tag/v0.1.0
