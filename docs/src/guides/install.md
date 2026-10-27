@@ -38,6 +38,16 @@ cosign verify "$IMAGE" --certificate-identity-regexp "$ID" \
 gh attestation verify "oci://$IMAGE" --repo firestoned/notaio
 ```
 
+!!! note "Cosign 3 or later"
+    Images are signed by Cosign 3, which stores signatures as OCI referrers in the new bundle
+    format. Cosign 2 does not look there and reports `no signatures found`, which reads like an
+    unsigned image. Check `cosign version` first.
+
+!!! note "`gh attestation verify` says the token was denied"
+    `gh` reads ghcr.io through your Docker credential store. A stale ghcr login there is refused
+    even though the image is public. Run it with an empty Docker config, which reads anonymously:
+    `DOCKER_CONFIG=$(mktemp -d) gh attestation verify ...`
+
 The manifest holds `deploy/crds/`, `deploy/controller/` and `deploy/profiles/` from the tagged
 commit. It does not hold the admission policy, which names your GitOps identity (step 5).
 

@@ -244,6 +244,10 @@ jobs:
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
 
+      # Embeds the dependency tree in the binary, so the image SBOM lists notaio's crates.
+      - name: Install cargo-auditable
+        run: make cargo-auditable
+
       - name: Build notaio
         run: make release-binary
 
@@ -327,6 +331,11 @@ jobs:
           format: cyclonedx-json
           output-file: notaio-image.cdx.json
           upload-release-assets: false
+
+      # Fails when the SBOM no longer lists notaio's Rust crates.
+      - name: Check the SBOM covers notaio's crates
+        if: github.event_name != 'pull_request'
+        run: make sbom-check SBOM=notaio-image.cdx.json
 
       - name: Upload image SBOM
         if: github.event_name != 'pull_request'

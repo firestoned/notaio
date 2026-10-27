@@ -2,6 +2,22 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-27 01:30] - v0.1.0 verification follow-ups: the SBOM and the verify docs
+
+**Author:** Erick Bourgeois
+
+### Changed
+- Verifying v0.1.0 found its image SBOM listed 14 Debian packages and no Rust crates. `make
+  release-binary` now builds with `cargo auditable` 0.7.7 (screened: MIT OR Apache-2.0, Rust Secure
+  Code working group; a build tool, nothing new in the image), installed by `make cargo-auditable`
+  in the Build workflow. Proven on slate: the same image's Syft SBOM goes from 0 to 200 crates.
+- `make sbom-check` (new, in the image job): at least 50 Rust crates, including notaio,
+  sandboxpolicy-bundle, sandboxpolicy-core, kube, rustls and tokio. It passes on the new SBOM and
+  fails on v0.1.0's.
+- Docs: Cosign 3 or later (Cosign 2 cannot see the new bundle format), and `DOCKER_CONFIG` for `gh
+  attestation verify` past a stale ghcr login, in the install guide and the developer page.
+  ADR-0009 amended for the SBOM. `CHANGELOG.md` Unreleased: Fixed.
+
 ## [2026-10-26 23:55] - Release prep: v0.1.0
 
 **Author:** Erick Bourgeois

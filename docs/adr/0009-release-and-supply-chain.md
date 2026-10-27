@@ -37,6 +37,12 @@ does not need yet.
    - a GitHub build-provenance attestation (`actions/attest-build-provenance`);
    - a CycloneDX SBOM of the image, kept as a workflow artifact and, for a release, a release
      asset.
+
+     *Amended 2026-10-27:* the SBOM of v0.1.0 listed only the distroless base's packages, because a
+     plain release binary carries no record of its crates. The binary is now built with
+     `cargo auditable` (Rust Secure Code working group, MIT OR Apache-2.0), which embeds its
+     dependency tree, so the SBOM lists every Rust crate at the version built, and
+     `make sbom-check` fails the image job when it does not.
 4. **The digest pin is a release asset.** Each release attaches `notaio-<version>.yaml`: the CRDs,
    the controller manifests and the built-in profiles, with the image pinned to that release's
    digest. It is signed with keyless Cosign (`notaio-<version>.yaml.sigstore.json`), and its

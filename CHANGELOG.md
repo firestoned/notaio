@@ -10,7 +10,12 @@ a release, the maintainer renames Unreleased to the version and date.
 
 ## Unreleased
 
-Nothing yet.
+### Fixed
+
+- The image SBOM lists notaio's Rust crates. In 0.1.0 it held only the base image's packages; the
+  binary is now built with `cargo auditable`, and the build fails if the SBOM loses them.
+- The install guide says Cosign 3 or later is needed to verify the image signature (Cosign 2
+  reports "no signatures found"), and how to run `gh attestation verify` past a stale ghcr login.
 
 ## [0.1.0] - 2026-10-26
 

@@ -15,7 +15,7 @@ RUST_LOG         ?= info
         kind-e2e-install kind-e2e-bundle kind-e2e-rbac kind-e2e-admission kind-e2e-leader kind-e2e-openbao \
         kind-cert-manager kind-openbao cluster-deploy cluster-undeploy openbao-e2e \
         docs docs-serve docs-clean docs-linkcheck docs-reference docs-reference-check policy-lint openbao-dev openbao-dev-check \
-        release-binary release-manifest release-manifest-test set-version set-version-test
+        cargo-auditable release-binary sbom-check release-manifest release-manifest-test set-version set-version-test
 
 help: ## Show this help
 	@echo 'Usage: make [target] [VAR=value ...]'
@@ -145,8 +145,30 @@ RELEASE_DIR   ?= $(CURDIR)/dist
 IMAGE_DIGEST  ?=
 RELEASE_IMAGE  = ghcr.io/$(ORG)/$(BINARY)
 
-release-binary: ## Release build of notaio for this host's architecture (CI runs it on native runners)
-	cargo build --locked --release -p notaio --bin notaio
+# cargo-auditable embeds the dependency tree in the binary, so the image SBOM and any scanner see
+# notaio's Rust crates, not only the base image's packages. Pinned; bump deliberately.
+CARGO_AUDITABLE_VERSION ?= 0.7.7
+
+cargo-auditable: ## Install cargo-auditable CARGO_AUDITABLE_VERSION, if it is not there already
+	@cargo install --list | grep -q '^cargo-auditable v$(CARGO_AUDITABLE_VERSION):' || \
+	  cargo install --locked cargo-auditable --version $(CARGO_AUDITABLE_VERSION)
+
+release-binary: ## Release build of notaio for this host's architecture, with its dependency tree embedded (needs cargo-auditable)
+	cargo auditable build --locked --release -p notaio --bin notaio
+
+# An image SBOM that does not list notaio's own crates hides most of what it ships. Each
+# required name is a workspace crate or a direct dependency, so every release must contain it.
+SBOM_REQUIRED_CRATES = notaio sandboxpolicy-bundle sandboxpolicy-core kube rustls tokio
+
+sbom-check: ## Fail unless SBOM (a CycloneDX file) lists notaio's Rust crates
+	@test -n "$(SBOM)" || { echo "set SBOM=<cyclonedx.json>"; exit 1; }
+	@n=$$(jq '[.components[] | select((.purl // "") | startswith("pkg:cargo/"))] | length' "$(SBOM)"); \
+	  [ "$$n" -ge 50 ] || { echo "$(SBOM): $$n Rust crates; was the binary built without cargo auditable?"; exit 1; }; \
+	  for c in $(SBOM_REQUIRED_CRATES); do \
+	    jq -e --arg c "$$c" 'any(.components[]; .name == $$c and ((.purl // "") | startswith("pkg:cargo/")))' "$(SBOM)" >/dev/null \
+	      || { echo "$(SBOM): no Rust crate $$c"; exit 1; }; \
+	  done; \
+	  echo "sbom-check: $$n Rust crates, including $(SBOM_REQUIRED_CRATES)"
 
 release-manifest: ## Render RELEASE_DIR/notaio-VERSION.yaml: CRDs, controller, profiles, image pinned to IMAGE_DIGEST
 	@test -n "$(VERSION)" || { echo "set VERSION, e.g. 1.2.3"; exit 1; }
