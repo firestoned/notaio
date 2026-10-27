@@ -2,6 +2,21 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-26 23:55] - Release prep: v0.1.0
+
+**Author:** Erick Bourgeois
+
+### Changed
+- Found while preparing the first release: every internal path dependency pinned
+  `version = "0.0.1"`, which Cargo reads as exactly 0.0.1. The release workflow stamps the tag's
+  version into the workspace before building, so any release would have failed to resolve. The
+  pins are gone (the workspace is `publish = false`, so a path dependency needs no version).
+- `make set-version-test` now also stamps a scratch copy of the workspace with a new version and
+  runs `cargo metadata` on it; it fails, with that diagnosis, if a pin comes back. Checked against
+  the old pins: it fails.
+- Workspace version 0.1.0 (`make set-version`), so `main` and the release agree; `CHANGELOG.md`
+  gains its `[0.1.0]` section.
+
 ## [2026-10-26 23:30] - ADR-0011: leader election and replicas
 
 **Author:** Erick Bourgeois

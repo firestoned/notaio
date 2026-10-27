@@ -11,7 +11,7 @@ publish.workspace = true
 base64 = "0.23.1"
 chrono = { version = "0.4.45", features = ["serde"] }
 ed25519-dalek = "3.0.0"
-sandboxpolicy-types = { version = "0.0.1", path = "../sandboxpolicy-types" }
+sandboxpolicy-types = { path = "../sandboxpolicy-types" }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 sha2 = "0.11.0"
