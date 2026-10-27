@@ -135,6 +135,20 @@ cosign verify-blob notaio-<version>.yaml --bundle notaio-<version>.yaml.sigstore
 sha256sum -c checksums.sha256
 ```
 
+!!! note "Cosign 3 or later"
+    Images are signed by Cosign 3, which stores signatures as OCI referrers in the new bundle
+    format. Cosign 2 does not look there and reports `no signatures found`, which reads like an
+    unsigned image. Check `cosign version` first.
+
+!!! note "`gh attestation verify` says the token was denied"
+    `gh` reads ghcr.io through your Docker credential store. A stale ghcr login there is refused
+    even though the image is public. Run it with an empty Docker config, which reads anonymously:
+    `DOCKER_CONFIG=$(mktemp -d) gh attestation verify ...`
+
+The image's SBOM (`notaio-image.cdx.json` on each release) lists the base image's packages and
+every Rust crate in the binary, at the version built: the binary is built with `cargo auditable`,
+which embeds its dependency tree, and `make sbom-check` fails the build if the SBOM loses it.
+
 The release logic is tested on every pull request: `make release-manifest-test` (the image is
 pinned by digest exactly once, every kind is there, the admission policy is not) and
 `make set-version-test`.
