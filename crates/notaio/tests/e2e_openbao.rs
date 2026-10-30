@@ -48,6 +48,39 @@ async fn delete_capped_policy(client: &Client, ns: &str, name: &str) {
     let _ = ceilings.delete(name, &DeleteParams::default()).await;
 }
 
+/// Sets, or with None removes, NOTAIO_OPENBAO_KEY_VERSION on the controller, and waits for the
+/// rollout to finish.
+async fn pin_key_version(client: &Client, version: Option<&str>) {
+    let deployments: Api<Deployment> = Api::namespaced(client.clone(), &controller_namespace());
+    let env = match version {
+        Some(v) => json!([{ "name": "NOTAIO_OPENBAO_KEY_VERSION", "value": v }]),
+        None => json!([{ "name": "NOTAIO_OPENBAO_KEY_VERSION", "$patch": "delete" }]),
+    };
+    deployments
+        .patch(
+            "notaio",
+            &PatchParams::default(),
+            &Patch::Strategic(json!({ "spec": { "template": { "spec": {
+                "containers": [{ "name": "notaio", "env": env }] } } } })),
+        )
+        .await
+        .expect("set the key version on the controller");
+    wait_for("the controller's rollout", || {
+        let deployments = deployments.clone();
+        async move {
+            let d = deployments.get("notaio").await.ok()?;
+            let want = d.spec.as_ref()?.replicas.unwrap_or(1);
+            let s = d.status?;
+            let done = s.observed_generation >= d.metadata.generation
+                && s.updated_replicas == Some(want)
+                && s.available_replicas == Some(want)
+                && s.replicas == Some(want);
+            done.then_some(())
+        }
+    })
+    .await;
+}
+
 /// The policy's Ready condition, once its reason is `reason`.
 async fn wait_ready_reason(policies: &Api<SandboxPolicy>, name: &str, reason: &str) -> String {
     wait_for(
@@ -115,7 +148,42 @@ async fn signs_through_openbao_and_fails_closed_without_it() {
         .expect("the bundle verifies against OpenBao's public key");
     assert_eq!(payload.content.policy.name, signed);
 
-    // 2. Without OpenBao the controller fails closed: nothing is published, and the policy says
+    // 2. A pinned key version is the one used (ADR-0004, amended). A version OpenBao does not have
+    //    is refused, so the pin reaches OpenBao; the version it has signs, and nothing else does.
+    pin_key_version(&client, Some("99")).await;
+    let missing = unique_name("pin99");
+    create_capped_policy(&client, &ns, &missing).await;
+    let why = wait_ready_reason(&policies, &missing, "SigningFailed").await;
+    assert!(
+        why.contains("OpenBao"),
+        "the reason names the signer: {why}"
+    );
+    delete_capped_policy(&client, &ns, &missing).await;
+
+    let (pinned_id, _) = openbao_key();
+    let version = pinned_id
+        .rsplit(":v")
+        .next()
+        .expect("notaio:v<N>")
+        .to_string();
+    pin_key_version(&client, Some(&version)).await;
+    let pinned = unique_name("pinned");
+    create_capped_policy(&client, &ns, &pinned).await;
+    wait_ready_reason(&policies, &pinned, "Published").await;
+    let cm = cms
+        .get(&bundle_object_name(&pinned))
+        .await
+        .expect("bundle ConfigMap");
+    let env: Envelope =
+        serde_json::from_str(&cm.data.unwrap()[BUNDLE_KEY]).expect("a DSSE envelope");
+    assert_eq!(
+        env.signatures[0].keyid, pinned_id,
+        "signed by the pinned version"
+    );
+    delete_capped_policy(&client, &ns, &pinned).await;
+    pin_key_version(&client, None).await;
+
+    // 3. Without OpenBao the controller fails closed: nothing is published, and the policy says
     //    why. Wait on the controller's verdict, not on the absence of a ConfigMap.
     let openbao: Api<Deployment> = Api::namespaced(client.clone(), OPENBAO_NAMESPACE);
     openbao

@@ -525,6 +525,11 @@ pub fn environment_variables() -> Vec<(&'static str, String, &'static str)> {
             "The transit key.",
         ),
         (
+            openbao::ENV_KEY_VERSION,
+            "unset (latest)".to_string(),
+            "Pins the transit key version notaio signs with, so a rotation can be staged at every consumer first. A signature from any other version is refused.",
+        ),
+        (
             openbao::ENV_TOKEN_FILE,
             openbao::DEFAULT_TOKEN_FILE.to_string(),
             "The projected ServiceAccount token, audience `openbao`.",

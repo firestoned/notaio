@@ -40,6 +40,9 @@ pub const ENV_ROLE: &str = "NOTAIO_OPENBAO_ROLE";
 pub const ENV_KEY: &str = "NOTAIO_OPENBAO_KEY";
 pub const ENV_AUTH_PATH: &str = "NOTAIO_OPENBAO_AUTH_PATH";
 pub const ENV_TOKEN_FILE: &str = "NOTAIO_OPENBAO_TOKEN_FILE";
+/// Pins the transit key version notaio signs with, so a rotation can be staged at every consumer
+/// before notaio uses the new version (ADR-0004, amended). Unset signs with the latest.
+pub const ENV_KEY_VERSION: &str = "NOTAIO_OPENBAO_KEY_VERSION";
 pub const ENV_DEV_KEY_FILE: &str = "NOTAIO_SIGNING_KEY_FILE";
 pub const ENV_DEV_KEY_ID: &str = "NOTAIO_KEY_ID";
 
@@ -98,6 +101,8 @@ pub struct TransitConfig {
     pub key: String,
     pub auth_path: String,
     pub token_file: PathBuf,
+    /// The key version to sign with; None for the latest.
+    pub key_version: Option<u32>,
 }
 
 /// Which signer the environment asks for.
@@ -140,7 +145,19 @@ pub fn choose_signer(lookup: impl Fn(&str) -> Option<String>) -> Result<SignerCh
                     "{ENV_CA_FILE} is required with {ENV_ADDR}"
                 )));
             };
+            let key_version = match lookup(ENV_KEY_VERSION) {
+                None => None,
+                Some(v) => match v.trim().parse::<u32>() {
+                    Ok(n) if n >= 1 => Some(n),
+                    _ => {
+                        return Err(SignError::Config(format!(
+                            "{ENV_KEY_VERSION} must be a key version, 1 or more, got {v:?}"
+                        )))
+                    }
+                },
+            };
             Ok(SignerChoice::OpenBao(TransitConfig {
+                key_version,
                 addr: addr.trim_end_matches('/').to_string(),
                 ca_file: ca_file.into(),
                 role: or(ENV_ROLE, DEFAULT_ROLE),
@@ -149,6 +166,26 @@ pub fn choose_signer(lookup: impl Fn(&str) -> Option<String>) -> Result<SignerCh
                 token_file: or(ENV_TOKEN_FILE, DEFAULT_TOKEN_FILE).into(),
             }))
         }
+    }
+}
+
+/// The body of a transit sign request for `message`, naming `key_version` when one is pinned.
+pub fn sign_request(message: &[u8], key_version: Option<u32>) -> Value {
+    let mut body = json!({ "input": STANDARD.encode(message) });
+    if let Some(v) = key_version {
+        body["key_version"] = json!(v);
+    }
+    body
+}
+
+/// Refuses a signature made with any version but the pinned one: a bundle signed by a version
+/// consumers may not trust yet is never published.
+pub fn ensure_version(key: &str, key_id: &str, pinned: Option<u32>) -> Result<(), SignError> {
+    match pinned {
+        Some(v) if key_id != format!("{key}:v{v}") => Err(SignError::Response(format!(
+            "OpenBao signed with {key_id}, but {ENV_KEY_VERSION} pins v{v}"
+        ))),
+        _ => Ok(()),
     }
 }
 
@@ -245,6 +282,11 @@ impl TransitSigner {
         &self.cfg.key
     }
 
+    /// The pinned key version, or None for the latest.
+    pub fn key_version(&self) -> Option<u32> {
+        self.cfg.key_version
+    }
+
     /// The key id and the raw ed25519 signature of `message`. Retries an unreachable, sealed or
     /// overloaded OpenBao with backoff, and logs in again once if the token is refused.
     ///
@@ -285,7 +327,7 @@ impl TransitSigner {
         }
         let token = self.token(fresh_login).await?;
         let path = format!("transit/sign/{}", self.cfg.key);
-        let body = json!({ "input": STANDARD.encode(message) });
+        let body = sign_request(message, self.cfg.key_version);
         let (status, bytes) = self.post(&path, Some(&token), &body).await?;
         if status == StatusCode::FORBIDDEN {
             return Err(SignError::Forbidden);
@@ -295,7 +337,9 @@ impl TransitSigner {
         }
         let signed: Signed = serde_json::from_slice(&bytes)
             .map_err(|e| SignError::Response(format!("sign: {e}")))?;
-        parse_signature(&self.cfg.key, &signed.data.signature)
+        let (key_id, sig) = parse_signature(&self.cfg.key, &signed.data.signature)?;
+        ensure_version(&self.cfg.key, &key_id, self.cfg.key_version)?;
+        Ok((key_id, sig))
     }
 
     /// A client token, from the cache unless it is due for refresh or `fresh` is set.

@@ -2,6 +2,21 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-30 14:00] - Pin the transit key version (ADR-0004, amended)
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `crates/notaio/src/openbao.rs`: `NOTAIO_OPENBAO_KEY_VERSION` (optional; 1 or more, anything else
+  refused at startup), `sign_request` (pure) sends `key_version` when pinned, and `ensure_version`
+  refuses a signature from any other version, so nothing is published under a key consumers were
+  not given. Four new tests. The startup log names the pinned version.
+- `e2e_openbao`: pin v99, which OpenBao lacks (SigningFailed: the pin reaches OpenBao), then the
+  real version (Published, signed by it), then unpin; before the step that takes OpenBao down.
+- ADR-0004 amended; the rotation guide stages rotations (pin, rotate, distribute, move the pin,
+  retire) and its "known limitation" is gone; troubleshooting rows; a Deployment comment; the
+  generated environment reference; ROADMAP M2; CHANGELOG.md.
+
 ## [2026-10-29 16:00] - ADR-0012: image scanning and VEX
 
 **Author:** Erick Bourgeois
