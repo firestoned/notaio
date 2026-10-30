@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Erick Bourgeois, notaio
+// SPDX-License-Identifier: Apache-2.0
 //! Pure policy logic: the knob register, the built-in profiles, the lint rules, the ceilings and the
 //! compiler that turns a policy plus its profile plus its grants into a bundle.
 //!

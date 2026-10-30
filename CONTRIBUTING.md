@@ -70,6 +70,15 @@ for anything a user would notice.
   `docs/src/reference/` come from the code: `make manifests`.
 - **Raw Kubernetes manifests only**, no Helm. **New dependencies** must be permissively licensed
   and pass `cargo deny check`.
+- **Every source file starts with the licence header.** Rust:
+
+    ```rust
+    // Copyright (c) 2026 Erick Bourgeois, notaio
+    // SPDX-License-Identifier: Apache-2.0
+    ```
+
+    Shell, Python, the Makefile, the Dockerfile and workflows use `#`, after any shebang.
+    `make license-check` runs in CI on every pull request.
 - **Never commit real infrastructure identifiers**: no real hostnames, IPs or account ids, anywhere.
   See [`no-real-infrastructure.md`](https://github.com/firestoned/notaio/blob/main/.claude/rules/no-real-infrastructure.md).
 - **No em-dashes in prose** you write: docs, comments, commit messages.

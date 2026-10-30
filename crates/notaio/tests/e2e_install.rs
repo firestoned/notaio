@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Erick Bourgeois, notaio
+// SPDX-License-Identifier: Apache-2.0
 //! e2e: install from `deploy/` and check the controller comes up and judges the built-in profiles.
 //!
 //! Run with `make kind-e2e-install`. The Makefile has already applied the CRDs, the controller

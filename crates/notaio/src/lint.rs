@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Erick Bourgeois, notaio
+// SPDX-License-Identifier: Apache-2.0
 //! `notaio lint`: the controller's checks, run on files, for pull requests (ADR-0006).
 //!
 //! The decisions are `sandboxpolicy_core`'s: [`lint_knobs`] on every profile and

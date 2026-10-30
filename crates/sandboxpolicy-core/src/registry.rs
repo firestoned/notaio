@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Erick Bourgeois, notaio
+// SPDX-License-Identifier: Apache-2.0
 //! The knob register, transcribed from section 9 of the AgentSandbox threat model.
 //!
 //! `max` is the loosest step that exists for the knob. `approvers` are the roles that must all

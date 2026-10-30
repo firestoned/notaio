@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Erick Bourgeois, notaio
+// SPDX-License-Identifier: Apache-2.0
 //! Leader election on a Kubernetes Lease (ADR-0011).
 //!
 //! Every replica serves health and metrics; only the one holding the Lease reconciles, signs and

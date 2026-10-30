@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Erick Bourgeois, notaio
+// SPDX-License-Identifier: Apache-2.0
 //! The consumer loop (ADR-0008): verify a bundle, check it against the persisted version floor,
 //! record the new floor, and only then act on it. mediatore, mediatore-guest and the gateway do
 //! exactly this, with their own way of obtaining the envelope and the trusted key.

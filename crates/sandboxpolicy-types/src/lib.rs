@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Erick Bourgeois, notaio
+// SPDX-License-Identifier: Apache-2.0
 //! Pure data types shared by the SandboxPolicy CRDs, the compiler and the signed bundle.
 //!
 //! This crate deliberately has no Kubernetes dependency. `mediatore-guest` runs as root in every

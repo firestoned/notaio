@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Copyright (c) 2026 Erick Bourgeois, notaio
+# SPDX-License-Identifier: Apache-2.0
 # Prepare or switch the signer of a notaio controller (ADR-0004).
 #
 #   use-signer.sh <kubeconfig> ca            ConfigMap openbao-ca in notaio-system from the CA of

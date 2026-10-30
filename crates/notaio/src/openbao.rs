@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Erick Bourgeois, notaio
+// SPDX-License-Identifier: Apache-2.0
 //! The production signer (ADR-0004): signatures from a non-exportable ed25519 key in OpenBao
 //! transit. notaio never holds the key: it logs in with its ServiceAccount (Kubernetes auth,
 //! projected token, audience `openbao`) and asks for one signature at a time.

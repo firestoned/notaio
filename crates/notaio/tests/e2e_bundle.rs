@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Erick Bourgeois, notaio
+// SPDX-License-Identifier: Apache-2.0
 //! e2e: a policy goes in, a signed bundle comes out, and a consumer can verify it.
 //!
 //! Run with `make kind-e2e-bundle`. This is the M1 loop from ROADMAP.md ("a policy, a grant, a

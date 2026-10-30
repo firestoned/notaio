@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Erick Bourgeois, notaio
+// SPDX-License-Identifier: Apache-2.0
 //! `evaluate` is the whole decision: given a policy, its profile and its grants at an instant, say
 //! what is valid, what the compiled bundle is, and what the status should be.
 //!

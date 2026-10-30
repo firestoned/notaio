@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Erick Bourgeois, notaio
+// SPDX-License-Identifier: Apache-2.0
 //! The `notaio` command line (ADR-0006): one binary, the roles as subcommands.
 
 use std::path::PathBuf;

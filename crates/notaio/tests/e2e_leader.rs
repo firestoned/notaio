@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Erick Bourgeois, notaio
+// SPDX-License-Identifier: Apache-2.0
 //! e2e: two replicas, one leader (ADR-0011).
 //!
 //! Run with `make kind-e2e-leader`. Exactly one replica holds the Lease and says so in its metrics;

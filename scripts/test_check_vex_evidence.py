@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Erick Bourgeois, notaio
+# SPDX-License-Identifier: Apache-2.0
 """Tests for check_vex_evidence.py: each kind of evidence fails when the fact behind it changes."""
 
 import unittest

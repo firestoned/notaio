@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright (c) 2026 Erick Bourgeois, notaio
+# SPDX-License-Identifier: Apache-2.0
 """Validate docs/air/mapping.yaml against the repo and render docs/framework-mapping.md.
 
     python3 scripts/check_air_mapping.py          # validate and render

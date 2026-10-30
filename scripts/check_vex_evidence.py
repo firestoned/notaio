@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Erick Bourgeois, notaio
+# SPDX-License-Identifier: Apache-2.0
 """Check that every VEX statement's evidence still holds for the release binary (ADR-0012).
 
 Each `.vex/<CVE>.json` says notaio is not affected, for a reason that is a fact about the binary.

@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Erick Bourgeois, notaio
+// SPDX-License-Identifier: Apache-2.0
 //! Numeric ceilings that hang off knob steps.
 //!
 //! The threat model calls these "starting points to tune, not commitments", so they are data with

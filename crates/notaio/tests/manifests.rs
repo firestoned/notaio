@@ -1,4 +1,6 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
+// Copyright (c) 2026 Erick Bourgeois, notaio
+// SPDX-License-Identifier: Apache-2.0
 
 //! The checked-in YAML must parse into the typed objects and behave under the real evaluator.
 

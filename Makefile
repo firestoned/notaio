@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Erick Bourgeois, notaio
+# SPDX-License-Identifier: Apache-2.0
 .DEFAULT_GOAL := help
 
 BINARY           ?= notaio
@@ -15,7 +17,7 @@ RUST_LOG         ?= info
         kind-e2e-install kind-e2e-bundle kind-e2e-rbac kind-e2e-admission kind-e2e-leader kind-e2e-openbao \
         kind-cert-manager kind-openbao cluster-deploy cluster-undeploy openbao-e2e \
         docs docs-serve docs-clean docs-linkcheck docs-reference docs-reference-check policy-lint openbao-dev openbao-dev-check \
-        cargo-auditable release-binary sbom-check grype-install vexctl-install vex-evidence vex-evidence-test vex-assemble image-scan image-gate release-manifest release-manifest-test set-version set-version-test
+        license-check cargo-auditable release-binary sbom-check grype-install vexctl-install vex-evidence vex-evidence-test vex-assemble image-scan image-gate release-manifest release-manifest-test set-version set-version-test
 
 help: ## Show this help
 	@echo 'Usage: make [target] [VAR=value ...]'
@@ -144,6 +146,9 @@ VERSION_FILE  ?= Cargo.toml
 RELEASE_DIR   ?= $(CURDIR)/dist
 IMAGE_DIGEST  ?=
 RELEASE_IMAGE  = ghcr.io/$(ORG)/$(BINARY)
+
+license-check: ## Every tracked Rust, shell, Python, Makefile, Dockerfile and workflow file carries the SPDX header
+	@scripts/check_license_headers.sh
 
 # cargo-auditable embeds the dependency tree in the binary, so the image SBOM and any scanner see
 # notaio's Rust crates, not only the base image's packages. Pinned; bump deliberately.

@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Erick Bourgeois, notaio
+# SPDX-License-Identifier: Apache-2.0
 name: Build
 
 on:
@@ -30,9 +32,6 @@ env:
 # Every `run:` is a Makefile target (.claude/rules/github-workflows.md), so each
 # job runs identically on a laptop: `make lint`, `make test`, and so on.
 #
-# Not here yet, on purpose:
-#   - license-check (SPDX headers): no file carries a header yet. Add the job
-#     with the headers.
 
 jobs:
   changes:
@@ -56,6 +55,18 @@ jobs:
           else
             echo "code=$(make ci-code-changed)" >> "$GITHUB_OUTPUT"
           fi
+
+  # Every source file carries the licence's SPDX identifier. Never gated on
+  # changed paths: a docs-only pull request can add a workflow or a script too.
+  license-check:
+    name: ⚖️ SPDX License Headers
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Check license headers
+        run: make license-check
 
   verify-commits:
     name: 🔐 Verify Signed Commits

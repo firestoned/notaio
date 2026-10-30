@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Erick Bourgeois, notaio
+// SPDX-License-Identifier: Apache-2.0
 //! CRD types for the SandboxPolicy API, `sandbox.firestoned.io/v1alpha1`.
 //!
 //! Consumers (banlieue admission, notaio controller, tooling) depend on this crate. Nothing

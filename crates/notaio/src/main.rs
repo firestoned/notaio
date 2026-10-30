@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Erick Bourgeois, notaio
+// SPDX-License-Identifier: Apache-2.0
 //! Notaio: validates SandboxProfile, SandboxPolicy and KnobGrant objects, compiles each
 //! policy into a signed, versioned bundle and publishes it. It holds no hypervisor credentials and
 //! no agent traffic ever reaches it. See docs/architecture.md.

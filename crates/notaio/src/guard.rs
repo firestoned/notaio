@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Erick Bourgeois, notaio
+// SPDX-License-Identifier: Apache-2.0
 //! The fail-open guard (ADR-0010, decision 4).
 //!
 //! Before a bundle is signed, the controller checks it again, independently of the evaluator in

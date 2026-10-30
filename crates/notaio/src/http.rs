@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Erick Bourgeois, notaio
+// SPDX-License-Identifier: Apache-2.0
 //! The health and metrics listener (ADR-0010, decisions 1 to 3).
 //!
 //! Narrow by construction: three fixed paths, `GET` only, the request body never read, no

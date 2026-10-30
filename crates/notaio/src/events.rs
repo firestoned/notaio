@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Erick Bourgeois, notaio
+// SPDX-License-Identifier: Apache-2.0
 //! Which Kubernetes Events to record (ADR-0010, decision 5).
 //!
 //! Events mark transitions, never steady state: a reconcile that changes nothing records nothing.
