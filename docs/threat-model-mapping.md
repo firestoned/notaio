@@ -1,6 +1,6 @@
 # Mapping to the AgentSandbox threat model
 
-Last full pass 2026-10-26, against ADR-0001 to ADR-0011.
+Last full pass 2026-10-29, against ADR-0001 to ADR-0012.
 
 What this project implements, what it only supports, and what it does not cover. Identifiers refer
 to the AgentSandbox Threat Model and Security Roadmap. When that document changes, update
@@ -29,6 +29,7 @@ to the AgentSandbox Threat Model and Security Roadmap. When that document change
 | The integrity of notaio's own image, the component that signs policy | Built only by this repository's CI on native runners, keyless Cosign signature by digest, CycloneDX SBOM, build provenance (`actions/attest-build-provenance`); each release attaches its install manifest pinned to the image digest and signed (ADR-0009, `.github/workflows/build.yaml`). The release logic is tested on every pull request (`release-manifest-test`, `set-version-test`). |
 | Metric "relaxations past their expiry: 0" and the relaxation dashboard | `notaio_relaxations_past_expiry` (active grants past `expiresAt`, must be 0), and per active grant `notaio_relaxation_age_seconds` and `notaio_relaxation_expires_in_seconds`, served on `/metrics` (ADR-0010, `crates/notaio/src/metrics.rs`). `e2e_install` reads the deployed value. The dashboard itself belongs to the site's Prometheus. |
 | A fail-open bug in the evaluator | a guard independent of `evaluate` refuses to sign a bundle without a ceiling, with an error finding, with an expired relaxation, or already past `notAfter`; `Ready=False, FailOpenRefused` and `notaio_fail_open_total`, which must be 0 (ADR-0010, `crates/notaio/src/guard.rs`). |
+| Known vulnerabilities in notaio's image | Grype scans every published image (ADR-0012), its SBOM covering every Rust crate (`cargo auditable`), findings in Code Scanning, the build failing on a fixable High or Critical. Findings that cannot affect notaio are suppressed only by OpenVEX statements in `.vex/`, each backed by a fact about the binary that `make vex-evidence` re-checks on every pull request; the VEX document is attested to the image and attached to each release. cargo-audit and cargo-deny cover the Rust dependencies on every change. |
 | Policy profiles as reviewed bundles of knobs (section 10) | `builtin.rs`, `deploy/profiles/builtin.yaml` |
 
 ## Supported, enforced elsewhere
@@ -47,4 +48,3 @@ to the AgentSandbox Threat Model and Security Roadmap. When that document change
 | --- | --- |
 | Lab audiences only (K5.2, K5.3 for Lab) | Needs an audience classification |
 | Knob prerequisites proven by passing control tests | Grants record approvals, not test results |
-| Known vulnerabilities in notaio's image | Not scanned yet (Grype) and no VEX; the follow-ups to ADR-0009. cargo-audit and cargo-deny cover the Rust dependencies on every change. |

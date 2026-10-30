@@ -10,6 +10,14 @@ a release, the maintainer renames Unreleased to the version and date.
 
 ## Unreleased
 
+### Added
+
+- Every published image is scanned with Grype; findings go to Code Scanning, and a fixable High or
+  Critical fails the build (ADR-0012).
+- OpenVEX statements for the base image findings that cannot affect notaio, each backed by a fact
+  about the binary that CI re-checks on every pull request. The VEX document is attested to each
+  image and attached to each release as `notaio.vex.json`.
+
 ### Fixed
 
 - The image SBOM lists notaio's Rust crates. In 0.1.0 it held only the base image's packages; the

@@ -64,7 +64,8 @@ Not done: nothing has run on a cluster.
 - Image build, signing and provenance. Pin the deployment by digest. **Done 2026-10-23**
   (ADR-0009): multi-arch distroless image from native-runner builds, keyless Cosign by digest,
   SBOM, build provenance; each release attaches `notaio-<version>.yaml` pinned by digest and
-  signed. Not yet: Grype scanning and VEX.
+  signed. Grype scanning and VEX: **done 2026-10-29** (ADR-0012), with an SBOM that covers every
+  Rust crate and VEX statements re-checked against the binary on every pull request.
 - Pin the transit key version the controller signs with, so a rotation can be staged at every
   consumer before notaio starts using the new version. Today it signs with the latest, which opens
   a window where a consumer without the new public key refuses fresh bundles

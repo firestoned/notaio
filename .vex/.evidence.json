@@ -1,0 +1,186 @@
+{
+  "_comment": "The mechanical facts each .vex/*.json statement rests on, checked against the release binary by `make vex-evidence` (ADR-0012). Dot-prefixed so the .vex/*.json glob skips it; it is not an OpenVEX document. Every statement needs an entry here, and every entry a statement.",
+  "CVE-2010-4756": {
+    "symbols_not_imported": [
+      "glob",
+      "glob64",
+      "globfree",
+      "globfree64"
+    ]
+  },
+  "CVE-2018-20796": {
+    "symbols_not_imported": [
+      "regcomp",
+      "regexec",
+      "regerror",
+      "regfree",
+      "re_compile_pattern",
+      "re_search",
+      "re_match",
+      "re_exec",
+      "re_comp"
+    ]
+  },
+  "CVE-2019-9192": {
+    "symbols_not_imported": [
+      "regcomp",
+      "regexec",
+      "regerror",
+      "regfree",
+      "re_compile_pattern",
+      "re_search",
+      "re_match",
+      "re_exec",
+      "re_comp"
+    ]
+  },
+  "CVE-2026-102010": {
+    "libraries_not_linked": [
+      "libstdc++.so.6",
+      "libgomp.so.1"
+    ]
+  },
+  "CVE-2026-18374": {
+    "symbols_not_imported": [
+      "fopen",
+      "fopen64",
+      "freopen",
+      "freopen64",
+      "fdopen"
+    ]
+  },
+  "CVE-2026-19499": {
+    "symbols_not_imported": [
+      "strfmon",
+      "strfmon_l",
+      "__strfmon_l",
+      "vstrfmon",
+      "vstrfmon_l"
+    ]
+  },
+  "CVE-2026-19542": {
+    "symbols_not_imported": [
+      "tdelete",
+      "tsearch",
+      "tfind",
+      "twalk",
+      "twalk_r",
+      "tdestroy"
+    ]
+  },
+  "CVE-2026-27171": {
+    "libraries_not_linked": [
+      "libz.so.1"
+    ]
+  },
+  "CVE-2026-5435": {
+    "symbols_not_imported": [
+      "ns_printrrf",
+      "ns_printrr",
+      "fp_nquery",
+      "ns_sprintrr",
+      "ns_sprintrrf",
+      "fp_query",
+      "p_query"
+    ]
+  },
+  "CVE-2026-6238": {
+    "symbols_not_imported": [
+      "ns_printrrf",
+      "ns_printrr",
+      "fp_nquery",
+      "ns_sprintrr",
+      "ns_sprintrrf",
+      "fp_query",
+      "p_query"
+    ]
+  },
+  "CVE-2026-6368": {
+    "symbols_not_imported": [
+      "wordexp",
+      "wordfree"
+    ]
+  },
+  "CVE-2026-6791": {
+    "symbols_not_imported": [
+      "wordexp",
+      "wordfree",
+      "glob",
+      "glob64",
+      "globfree",
+      "globfree64"
+    ]
+  },
+  "CVE-2026-77117": {
+    "symbols_not_imported": [
+      "iconv",
+      "iconv_open",
+      "iconv_close",
+      "__iconv_open",
+      "__gconv_open",
+      "mbrtowc",
+      "mbsrtowcs",
+      "mbstowcs",
+      "wcrtomb",
+      "wcsrtombs",
+      "wcstombs",
+      "setlocale",
+      "newlocale",
+      "uselocale",
+      "nl_langinfo",
+      "nl_langinfo_l"
+    ]
+  },
+  "CVE-2026-80489": {
+    "symbols_not_imported": [
+      "iconv",
+      "iconv_open",
+      "iconv_close",
+      "__iconv_open",
+      "__gconv_open",
+      "mbrtowc",
+      "mbsrtowcs",
+      "mbstowcs",
+      "wcrtomb",
+      "wcsrtombs",
+      "wcstombs",
+      "setlocale",
+      "newlocale",
+      "uselocale",
+      "nl_langinfo",
+      "nl_langinfo_l"
+    ]
+  },
+  "CVE-2026-85091": {
+    "libraries_not_linked": [
+      "libz.so.1"
+    ]
+  },
+  "CVE-2026-86805": {
+    "no_rpath": true
+  },
+  "CVE-2026-95619": {
+    "libraries_not_linked": [
+      "libstdc++.so.6",
+      "libgomp.so.1"
+    ],
+    "symbols_not_imported": [
+      "_ZnwmSt11align_val_t",
+      "_ZnamSt11align_val_t"
+    ]
+  },
+  "CVE-2026-95818": {
+    "no_rpath": true
+  },
+  "CVE-2026-97399": {
+    "architectures": [
+      "x86-64",
+      "aarch64"
+    ],
+    "symbols_not_imported": [
+      "strncasecmp",
+      "strncasecmp_l",
+      "__strncasecmp_l"
+    ]
+  }
+}

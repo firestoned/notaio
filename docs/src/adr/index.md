@@ -17,6 +17,7 @@ code that implements it, and every implemented ADR ends with a full pass over th
 | [ADR-0009](0009-release-and-supply-chain.md) | Release images and their supply chain |
 | [ADR-0010](0010-health-metrics-and-events.md) | Health, metrics and Events |
 | [ADR-0011](0011-leader-election.md) | Leader election and replicas |
+| [ADR-0012](0012-image-scanning-and-vex.md) | Image scanning and VEX |
 
 ADRs live in [`docs/adr/`](https://github.com/firestoned/notaio/tree/main/docs/adr) in the
 repository and are never renumbered.
