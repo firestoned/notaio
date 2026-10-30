@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Erick Bourgeois, notaio
+// SPDX-License-Identifier: Apache-2.0
 //! e2e: `deploy/admission/gitops-only.yaml` refuses direct edits to policy objects, lets the GitOps
 //! reconciler through, and does not block the controller's status writes.
 //!

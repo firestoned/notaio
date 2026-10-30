@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Erick Bourgeois, notaio
+// SPDX-License-Identifier: Apache-2.0
 //! The generated reference pages under `docs/src/reference/`.
 //!
 //! Each page is rendered from the code it describes: the lint rules from `RULES` and

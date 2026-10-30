@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Erick Bourgeois, notaio
+# SPDX-License-Identifier: Apache-2.0
 # Distroless image for the notaio controller.
 #
 # This Dockerfile expects a pre-built Linux binary at

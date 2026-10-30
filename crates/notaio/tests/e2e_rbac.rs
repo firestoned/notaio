@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Erick Bourgeois, notaio
+// SPDX-License-Identifier: Apache-2.0
 //! e2e: the controller's deployed RBAC is read plus status writes, Events (ADR-0010) and its own
 //! Lease (ADR-0011), and nothing more.
 //!

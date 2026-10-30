@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Erick Bourgeois, notaio
+// SPDX-License-Identifier: Apache-2.0
 //! e2e: the production signer, an OpenBao transit key (ADR-0004), against the deployed controller.
 //!
 //! Run with `make kind-e2e-openbao` (kind, with cert-manager and dev/openbao) or `make openbao-e2e`

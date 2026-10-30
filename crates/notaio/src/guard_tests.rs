@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Erick Bourgeois, notaio
+// SPDX-License-Identifier: Apache-2.0
 use chrono::{Duration, TimeZone};
 use sandboxpolicy_core::lint::{Finding, Severity};
 

@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Erick Bourgeois, notaio
+// SPDX-License-Identifier: Apache-2.0
 //! Lint rules. Every rule has a stable code so findings can be documented, tested and alerted on.
 //!
 //! | Code | Rule |

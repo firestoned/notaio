@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Erick Bourgeois, notaio
+# SPDX-License-Identifier: Apache-2.0
 """Check a rendered release manifest (ADR-0009): the image is pinned by digest exactly once, no tag
 reference survives, and every kind the install needs is there and parses.
 

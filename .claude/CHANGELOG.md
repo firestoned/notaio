@@ -2,6 +2,23 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-30 18:00] - SPDX licence headers and their check
+
+**Author:** Erick Bourgeois
+
+### Changed
+- An SPDX header (`Copyright (c) 2026 Erick Bourgeois, notaio`,
+  `SPDX-License-Identifier: Apache-2.0`, banlieue's format) on every tracked Rust, shell, Python,
+  Makefile, Dockerfile and `.github` workflow file: 80 files, after any shebang.
+- `scripts/check_license_headers.sh` (new) and `make license-check`: tracked files only, so local
+  `node_modules` and virtualenvs never trip it, and the exact identifier, not any SPDX line. It
+  rejects a file without a header and one under another licence. Generated output and Markdown
+  are not checked, as in banlieue.
+- `build.yaml`: a `license-check` job on every pull request, never gated on changed paths; the
+  header's last "not here yet" note is gone. Make rather than banlieue's shared action, which
+  cannot run locally and checks fewer kinds of file.
+- `CONTRIBUTING.md` and `.claude/rules/documentation.md`: the header and the check.
+
 ## [2026-10-30 14:00] - Pin the transit key version (ADR-0004, amended)
 
 **Author:** Erick Bourgeois

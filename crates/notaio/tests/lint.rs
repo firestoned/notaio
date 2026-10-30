@@ -1,4 +1,6 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
+// Copyright (c) 2026 Erick Bourgeois, notaio
+// SPDX-License-Identifier: Apache-2.0
 
 //! `notaio lint`, the engine (ADR-0006). Every input code I001 to I008 has a test here that fails
 //! when its check is removed.

@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Copyright (c) 2026 Erick Bourgeois, notaio
+# SPDX-License-Identifier: Apache-2.0
 # Bring dev/openbao/openbao.yaml to the state notaio's transit signer needs (ADR-0004), and
 # again after any restart (it re-seals). Idempotent: every step checks before it acts.
 #

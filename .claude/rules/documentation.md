@@ -20,6 +20,7 @@ configuration, deployment and architecture changes all have a docs half.
 | Examples | `examples/*.yaml` |
 | Change log | `.claude/CHANGELOG.md` (detailed, for maintainers) |
 | Release notes | `CHANGELOG.md` (Keep a Changelog: an Unreleased entry for anything a user would notice) |
+| Licence headers | every tracked `.rs`, `.sh`, `.py`, Makefile, Dockerfile and `.github` workflow carries `SPDX-License-Identifier: Apache-2.0` in its first 10 lines (`make license-check`, in CI) |
 | Governance | `GOVERNANCE.md`, `MAINTAINERS.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` (the Contributor Covenant 2.1, verbatim but for the contact) |
 | Generated manifests | `deploy/crds/`, `deploy/profiles/` (`make manifests`, never hand edited) |
 | Generated reference | `docs/src/reference/` (`make docs-reference`, run by `make manifests`; never hand edited; `docs-reference-check` in CI) |

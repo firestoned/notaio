@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Erick Bourgeois, notaio
+# SPDX-License-Identifier: Apache-2.0
 # End-to-end verification against a real API server in a kind cluster.
 #
 # What this proves that unit tests structurally cannot: that the API server

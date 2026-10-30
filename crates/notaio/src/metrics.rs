@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Erick Bourgeois, notaio
+// SPDX-License-Identifier: Apache-2.0
 //! Prometheus metrics (ADR-0010, decision 4).
 //!
 //! Gauges are computed at scrape time from the controller's caches, so a deleted object leaves no

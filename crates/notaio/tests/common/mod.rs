@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Erick Bourgeois, notaio
+// SPDX-License-Identifier: Apache-2.0
 //! Shared helpers for the kind e2e suites (`make kind-e2e`, `.github/workflows/e2e.yaml`).
 //!
 //! Every suite is `#[ignore]`d, so running one is already an explicit request to talk to a

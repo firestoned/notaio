@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Erick Bourgeois, notaio
+// SPDX-License-Identifier: Apache-2.0
 //! Writes the generated reference pages (`notaio::reference`) into a directory.
 //!
 //! `docgen <dir>`: `make docs-reference` writes `docs/src/reference/`, and

@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Erick Bourgeois, notaio
+// SPDX-License-Identifier: Apache-2.0
 //! The consumer's persisted version floor (ADR-0008): the highest bundle version accepted per
 //! policy, remembered across restarts, so a consumer cannot be handed an older, looser bundle that
 //! is still signed and still valid (threat model T5.4).

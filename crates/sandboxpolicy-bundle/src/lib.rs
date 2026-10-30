@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Erick Bourgeois, notaio
+// SPDX-License-Identifier: Apache-2.0
 //! The signed policy bundle: the contract between notaio (producer) and mediatore,
 //! mediatore-guest and the gateway (consumers).
 //!

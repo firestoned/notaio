@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Erick Bourgeois, notaio
+// SPDX-License-Identifier: Apache-2.0
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use ed25519_dalek::Signer as _;
 use serde::{Deserialize, Serialize};

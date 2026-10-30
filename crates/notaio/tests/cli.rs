@@ -1,4 +1,6 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
+// Copyright (c) 2026 Erick Bourgeois, notaio
+// SPDX-License-Identifier: Apache-2.0
 
 //! The `notaio` binary (ADR-0006): subcommands, exit codes, SARIF, and the arguments the
 //! deployment passes.

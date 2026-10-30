@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Erick Bourgeois, notaio
+// SPDX-License-Identifier: Apache-2.0
 use chrono::{DateTime, Utc};
 use kube::CustomResource;
 use sandboxpolicy_types::{KnobId, Role, Step};

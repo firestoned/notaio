@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Erick Bourgeois, notaio
+// SPDX-License-Identifier: Apache-2.0
 //! RFC 8785 JSON Canonicalization Scheme, for the integer-only JSON the bundle content is (ADR-0005).
 //!
 //! Implemented here rather than taken from a crate: the subset is small (no floats), the bound in

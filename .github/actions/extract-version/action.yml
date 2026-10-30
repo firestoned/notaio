@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Erick Bourgeois, notaio
+# SPDX-License-Identifier: Apache-2.0
 # The version and short SHA one Build run uses everywhere (ADR-0009). Ported from banlieue.
 #   release  version from the release tag (v1.2.3 -> 1.2.3)
 #   pr       pr-<number>

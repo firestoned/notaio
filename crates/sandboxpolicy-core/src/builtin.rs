@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Erick Bourgeois, notaio
+// SPDX-License-Identifier: Apache-2.0
 //! The four built-in profiles, transcribed from the profile matrix in section 10 of the threat
 //! model. Columns are Fortress, Hardened, Standard, Lab.
 

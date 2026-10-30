@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Erick Bourgeois, notaio
+// SPDX-License-Identifier: Apache-2.0
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use http_body_util::BodyExt;

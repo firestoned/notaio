@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Copyright (c) 2026 Erick Bourgeois, notaio
+# SPDX-License-Identifier: Apache-2.0
 # Check that the test OpenBao (dev/openbao/openbao.yaml, set up by setup.sh) is what ADR-0004
 # asks for, from the outside, the way the signer will use it. Exits non-zero on any surprise.
 #
