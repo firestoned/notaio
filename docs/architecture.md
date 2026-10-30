@@ -257,6 +257,10 @@ status.
   within 10 seconds, or finds another holder, exits; a clean shutdown releases the Lease at once. A
   brief overlap from clock skew can at worst republish an older bundle, which consumers' version
   floor refuses ([ADR-0011](adr/0011-leader-election.md)).
+- **Scanned and accounted for.** Every published image is scanned with Grype against an SBOM that
+  lists every Rust crate. A finding is suppressed only by an OpenVEX statement in `.vex/` backed
+  by a fact about the binary, re-checked on every pull request; a fixable High or Critical fails
+  the build ([ADR-0012](adr/0012-image-scanning-and-vex.md)).
 - **Least privilege.** Read on the four kinds, `patch` on their status, `create/patch` on
   `events.k8s.io` Events, `get/update` on its own Lease, `get/create/patch` on ConfigMaps in named
   namespaces only. It cannot create, edit or delete a policy object, and it holds no hypervisor

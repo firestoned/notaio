@@ -149,6 +149,22 @@ The image's SBOM (`notaio-image.cdx.json` on each release) lists the base image'
 every Rust crate in the binary, at the version built: the binary is built with `cargo auditable`,
 which embeds its dependency tree, and `make sbom-check` fails the build if the SBOM loses it.
 
+Each image also carries its VEX document, attested with Cosign, and each release attaches it as
+`notaio.vex.json` ([ADR-0012](../adr/0012-image-scanning-and-vex.md)):
+
+```sh
+cosign verify-attestation "$IMAGE" --type openvex --certificate-identity-regexp "$ID" \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  | jq -r '.payload | @base64d | fromjson | .predicate.statements[].vulnerability.name'
+```
+
+Every statement in `.vex/` is backed by `.vex/.evidence.json`: a library the binary does not link,
+symbols it does not import, no RPATH, or the architectures it is built for. `make vex-evidence
+BINARY=target/release/notaio` checks them; CI runs it for both architectures on every pull request,
+so adding a dependency that, say, links zlib reopens the zlib findings at once. To add a statement,
+add the CVE's `.vex/<CVE>.json` and its evidence entry together; the check refuses one without the
+other.
+
 The release logic is tested on every pull request: `make release-manifest-test` (the image is
 pinned by digest exactly once, every kind is there, the admission policy is not) and
 `make set-version-test`.

@@ -2,6 +2,36 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-29 16:00] - ADR-0012: image scanning and VEX
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `docs/adr/0012-image-scanning-and-vex.md` (new): Grype on every published image, SARIF to Code
+  Scanning, a gate on fixable High and Critical; curated OpenVEX in `.vex/`, attested and attached
+  to releases; a statement only on mechanical evidence, re-checked every pull request.
+- Grype on the current image: 31 matches, all in Debian packages of the distroless base, none
+  fixable, nothing in the 200 Rust crates. `.vex/` (new): 19 statements suppress 25 of them, each
+  checked by hand against the advisory text and against the binary: zlib and libstdc++ are not
+  linked; 13 libc advisories name entry points the binary does not import (banlieue's symbol map
+  where it applied, each re-checked); the two ld.so setuid advisories need an RPATH it does not
+  have. Six stay reported with no evidence to suppress them: CVE-2026-8674 (notaio does use the
+  resolver), CVE-2026-89092 (nscd), CVE-2019-1010022 to 1010025. banlieue's prose statements for
+  the old glibc CVEs were not copied; they called its binary statically linked, which it is not.
+- `scripts/check_vex_evidence.py` (new) with eight tests (`make vex-evidence-test`): statements
+  and evidence pair up; a newly linked library, imported symbol, RPATH, other architecture or a
+  weaker Deployment fails. Holds for the real binary.
+- `Makefile`: `grype-install` and `vexctl-install` (pinned version and SHA-256, into `.tools/bin`,
+  idempotent), `vex-evidence`, `vex-evidence-test`, `vex-assemble`, `image-scan`, `image-gate`;
+  `.vex/` is a build-relevant path. All run end to end on slate against the main image: 19
+  statements, 6 SARIF results, gate passes.
+- `build.yaml`: the evidence check after each architecture's build, the checker tests, a `scan`
+  job (assemble, Cosign-attest `--type openvex`, scan, SARIF upload, VEX artifact, gate), and the
+  VEX document among the release assets. The header's stale notes are gone. actionlint clean.
+- Docs: architecture, security page, developer page (verifying the VEX attestation, adding a
+  statement), threat-model mapping (the image row moves to implemented), ROADMAP, ADR index and
+  nav, CHANGELOG.md.
+
 ## [2026-10-27 01:30] - v0.1.0 verification follow-ups: the SBOM and the verify docs
 
 **Author:** Erick Bourgeois

@@ -31,9 +31,8 @@ env:
 # job runs identically on a laptop: `make lint`, `make test`, and so on.
 #
 # Not here yet, on purpose:
-#   - license-check (SPDX headers): the licence is still marked "assumed" in
-#     Cargo.toml and no file carries a header. Add the job with the headers.
-#   - image scanning (Grype) and VEX: the follow-ups to ADR-0009.
+#   - license-check (SPDX headers): no file carries a header yet. Add the job
+#     with the headers.
 
 jobs:
   changes:
@@ -157,6 +156,10 @@ jobs:
       - name: Release version stamp works
         run: make set-version-test
 
+      # Each kind of VEX evidence fails when the fact behind it changes (ADR-0012).
+      - name: VEX evidence checker
+        run: make vex-evidence-test
+
   security:
     name: 🛡️ Security Vulnerability Scan
     if: needs.changes.outputs.code == 'true'
@@ -250,6 +253,11 @@ jobs:
 
       - name: Build notaio
         run: make release-binary
+
+      # Every .vex statement rests on a fact about this binary: re-check them all, per
+      # architecture, so a statement fails here the moment it stops being true (ADR-0012).
+      - name: VEX evidence holds for this binary
+        run: make vex-evidence BINARY=target/release/notaio
 
       - name: Upload binary
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -369,6 +377,60 @@ jobs:
           subject-digest: ${{ needs.docker.outputs.digest }}
           push-to-registry: true
 
+  # Grype on every published image, with the curated VEX applied and attested (ADR-0012).
+  scan:
+    name: 🔍 Scan Image
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    needs: [docker]
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      security-events: write
+    env:
+      IMAGE: ghcr.io/${{ github.repository }}@${{ needs.docker.outputs.digest }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Merge .vex into one OpenVEX document
+        run: make vex-assemble
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      - name: Log in to GHCR
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Attest the VEX document to the image (keyless)
+        run: cosign attest --yes --type openvex --predicate notaio.vex.json "$IMAGE"
+
+      - name: Scan, VEX applied
+        run: make image-scan IMAGE="$IMAGE"
+
+      - name: Upload findings to Code Scanning
+        if: always()
+        uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        with:
+          sarif_file: grype.sarif
+          category: grype-image
+
+      - name: Upload the VEX document
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: notaio-vex
+          path: notaio.vex.json
+          if-no-files-found: error
+
+      # Fails on a High or Critical finding that has a fix: bump the base image.
+      - name: Gate on fixable High and Critical
+        run: make image-gate IMAGE="$IMAGE"
+
   release-manifest:
     name: 📦 Release Manifest
     if: github.event_name == 'release'
@@ -401,11 +463,11 @@ jobs:
     name: 🚀 Release Assets
     if: github.event_name == 'release'
     runs-on: ubuntu-latest
-    needs: [release-manifest, attest, docker]
+    needs: [release-manifest, attest, docker, scan]
     permissions:
       contents: write
     steps:
-      - name: Download the manifest and the image SBOM
+      - name: Download the manifest, the image SBOM and the VEX document
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           path: ./artifacts
@@ -413,7 +475,7 @@ jobs:
       - name: Collect and checksum
         run: |
           mkdir -p release
-          cp artifacts/notaio-release-manifest/* artifacts/notaio-image-sbom/* release/
+          cp artifacts/notaio-release-manifest/* artifacts/notaio-image-sbom/* artifacts/notaio-vex/* release/
           ( cd release && sha256sum ./* > checksums.sha256 )
           ls -lh release
 

@@ -15,7 +15,7 @@ RUST_LOG         ?= info
         kind-e2e-install kind-e2e-bundle kind-e2e-rbac kind-e2e-admission kind-e2e-leader kind-e2e-openbao \
         kind-cert-manager kind-openbao cluster-deploy cluster-undeploy openbao-e2e \
         docs docs-serve docs-clean docs-linkcheck docs-reference docs-reference-check policy-lint openbao-dev openbao-dev-check \
-        cargo-auditable release-binary sbom-check release-manifest release-manifest-test set-version set-version-test
+        cargo-auditable release-binary sbom-check grype-install vexctl-install vex-evidence vex-evidence-test vex-assemble image-scan image-gate release-manifest release-manifest-test set-version set-version-test
 
 help: ## Show this help
 	@echo 'Usage: make [target] [VAR=value ...]'
@@ -156,6 +156,55 @@ cargo-auditable: ## Install cargo-auditable CARGO_AUDITABLE_VERSION, if it is no
 release-binary: ## Release build of notaio for this host's architecture, with its dependency tree embedded (needs cargo-auditable)
 	cargo auditable build --locked --release -p notaio --bin notaio
 
+# ----- Image scanning and VEX (ADR-0012) ----------------------------------------
+#
+# Grype and vexctl, pinned by version AND by the SHA-256 of the linux/amd64 download, installed
+# into $(TOOLS_BIN): no sudo, nothing unverified. Bump a version and its digest together.
+TOOLS_BIN ?= $(CURDIR)/.tools/bin
+GRYPE_VERSION  ?= 0.118.0
+GRYPE_SHA256   ?= 1d444c5e7360471815f7158f71935fcecc68a3c417d85c7344f770854300bba2
+VEXCTL_VERSION ?= 0.4.1
+VEXCTL_SHA256  ?= 51753968975448c521b693e91a52f7e30b7d427da668375218fa64392ffb93c5
+# The merged VEX document, the scan's SARIF, and the image they are about.
+VEX_OUT ?= notaio.vex.json
+SARIF   ?= grype.sarif
+IMAGE   ?=
+
+grype-install: ## Install Grype GRYPE_VERSION into TOOLS_BIN, checked against GRYPE_SHA256 (linux/amd64)
+	@[ "$$($(TOOLS_BIN)/grype version 2>/dev/null | awk '/^Version:/{print $$2}')" = "$(GRYPE_VERSION)" ] || { \
+	  tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT; \
+	  curl -fsSLo "$$tmp/grype.tgz" "https://github.com/anchore/grype/releases/download/v$(GRYPE_VERSION)/grype_$(GRYPE_VERSION)_linux_amd64.tar.gz" && \
+	  echo "$(GRYPE_SHA256)  $$tmp/grype.tgz" | sha256sum -c --quiet - && \
+	  tar -xzf "$$tmp/grype.tgz" -C "$$tmp" grype && mkdir -p $(TOOLS_BIN) && install -m 0755 "$$tmp/grype" $(TOOLS_BIN)/grype; }
+	@$(TOOLS_BIN)/grype version | awk '/^Version:/{print "grype " $$2}'
+
+vexctl-install: ## Install vexctl VEXCTL_VERSION into TOOLS_BIN, checked against VEXCTL_SHA256 (linux/amd64)
+	@[ -x $(TOOLS_BIN)/vexctl ] && echo "$(VEXCTL_SHA256)  $(TOOLS_BIN)/vexctl" | sha256sum -c --quiet - 2>/dev/null || { \
+	  tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT; \
+	  curl -fsSLo "$$tmp/vexctl" "https://github.com/openvex/vexctl/releases/download/v$(VEXCTL_VERSION)/vexctl-linux-amd64" && \
+	  echo "$(VEXCTL_SHA256)  $$tmp/vexctl" | sha256sum -c --quiet - && \
+	  mkdir -p $(TOOLS_BIN) && install -m 0755 "$$tmp/vexctl" $(TOOLS_BIN)/vexctl; }
+	@echo "vexctl $(VEXCTL_VERSION)"
+
+vex-evidence: ## Fail unless every .vex statement's evidence holds for BINARY (the release binary)
+	@test -n "$(BINARY)" || { echo "set BINARY=<path to the release binary>"; exit 1; }
+	@python3 scripts/check_vex_evidence.py "$(BINARY)"
+
+vex-evidence-test: ## Tests for the evidence checker: each kind of evidence fails when its fact changes
+	@cd scripts && python3 -m unittest -q test_check_vex_evidence
+
+vex-assemble: vexctl-install ## Merge .vex/*.json into VEX_OUT, one OpenVEX document
+	@$(TOOLS_BIN)/vexctl merge --id https://github.com/firestoned/notaio/vex --author notaio .vex/*.json > $(VEX_OUT)
+	@echo "$(VEX_OUT): $$(jq '.statements | length' $(VEX_OUT)) statements"
+
+image-scan: grype-install ## Scan IMAGE with VEX_OUT applied; every finding to SARIF
+	@test -n "$(IMAGE)" || { echo "set IMAGE=<image@digest>"; exit 1; }
+	$(TOOLS_BIN)/grype "$(IMAGE)" --vex $(VEX_OUT) -o sarif --file $(SARIF)
+
+image-gate: grype-install ## Fail on a High or Critical finding in IMAGE that has a fix, VEX_OUT applied
+	@test -n "$(IMAGE)" || { echo "set IMAGE=<image@digest>"; exit 1; }
+	$(TOOLS_BIN)/grype "$(IMAGE)" --vex $(VEX_OUT) --only-fixed --fail-on high -o table
+
 # An image SBOM that does not list notaio's own crates hides most of what it ships. Each
 # required name is a workspace crate or a direct dependency, so every release must contain it.
 SBOM_REQUIRED_CRATES = notaio sandboxpolicy-bundle sandboxpolicy-core kube rustls tokio
@@ -219,7 +268,7 @@ set-version-test: ## Prove set-version changes the workspace version, and only i
 # triggers reports no status at all, so a required check would stay pending
 # forever. The path filter lives here instead and the `changes` job applies it
 # per job, so a docs-only PR skips the expensive jobs and still reports.
-CI_CODE_PATHS_RE ?= ^(crates/|deploy/|docs/air/|scripts/|Cargo\.toml$$|Cargo\.lock$$|deny\.toml$$|clippy\.toml$$|Makefile$$|Dockerfile|\.github/workflows/build\.yaml$$|\.github/actions/)
+CI_CODE_PATHS_RE ?= ^(crates/|deploy/|docs/air/|scripts/|Cargo\.toml$$|Cargo\.lock$$|deny\.toml$$|clippy\.toml$$|Makefile$$|Dockerfile|\.github/workflows/build\.yaml$$|\.github/actions/|\.vex/)
 
 ci-code-changed: ## Print true/false: does the diff against BASE_REF touch build-relevant paths?
 	@base="$${BASE_REF:-origin/main}"; \
