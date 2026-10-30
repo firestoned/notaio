@@ -49,6 +49,13 @@ Options considered:
    operator and distributed out of band, which lets the old and new keys overlap during a rotation.
 4. **Rotation and audit belong to OpenBao.** Rotation is an operator action outside the cluster.
    OpenBao's audit device records every signature request.
+
+   *Amended 2026-10-30:* notaio signed with the key's latest version, so a rotation started using
+   a version before any consumer could trust it. `NOTAIO_OPENBAO_KEY_VERSION` now pins the version
+   notaio signs with: it is sent with every sign request, and a signature from any other version
+   is refused, so nothing is published under a key consumers were not given. A rotation is then
+   staged: rotate, give consumers the new public key, move the pin. Unset, notaio signs with the
+   latest, as before.
 5. **The development signer stays for development and the e2e only.** A production deployment does
    not set `NOTAIO_SIGNING_KEY_FILE`. Removing it from the default manifests is ROADMAP M2.
 

@@ -16,6 +16,7 @@ What `notaio controller` reads from its environment, with the default when it is
 | `NOTAIO_OPENBAO_AUTH_PATH` | `kubernetes` | The Kubernetes auth mount. |
 | `NOTAIO_OPENBAO_ROLE` | `notaio` | The Kubernetes auth role. |
 | `NOTAIO_OPENBAO_KEY` | `notaio` | The transit key. |
+| `NOTAIO_OPENBAO_KEY_VERSION` | unset (latest) | Pins the transit key version notaio signs with, so a rotation can be staged at every consumer first. A signature from any other version is refused. |
 | `NOTAIO_OPENBAO_TOKEN_FILE` | `/var/run/secrets/openbao/token` | The projected ServiceAccount token, audience `openbao`. |
 | `NOTAIO_SIGNING_KEY_FILE` | unset | A development seed. Selects the development signer; never in production. Refused together with the OpenBao address. |
 | `NOTAIO_KEY_ID` | `dev` | The key id the development signer puts in bundles. |

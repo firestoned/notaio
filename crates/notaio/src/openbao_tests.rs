@@ -49,6 +49,49 @@ fn openbao_signer_with_defaults() {
         t.token_file,
         PathBuf::from("/var/run/secrets/openbao/token")
     );
+    assert_eq!(t.key_version, None, "unpinned signs with the latest");
+}
+
+fn openbao_with_version(v: &str) -> Result<SignerChoice, SignError> {
+    choose_signer(env(&[
+        ("NOTAIO_OPENBAO_ADDR", "https://openbao.openbao.svc:8200"),
+        ("NOTAIO_OPENBAO_CA_FILE", "/ca/ca.crt"),
+        ("NOTAIO_OPENBAO_KEY_VERSION", v),
+    ]))
+}
+
+#[test]
+fn a_key_version_can_be_pinned() {
+    let Ok(SignerChoice::OpenBao(t)) = openbao_with_version("3") else {
+        panic!("not the OpenBao signer");
+    };
+    assert_eq!(t.key_version, Some(3));
+}
+
+#[test]
+fn a_bad_key_version_is_refused_at_startup() {
+    for bad in ["0", "-1", "v3", "latest", "", "1.5"] {
+        assert!(openbao_with_version(bad).is_err(), "{bad:?} was accepted");
+    }
+}
+
+#[test]
+fn the_sign_request_names_the_pinned_version_only() {
+    let unpinned = sign_request(b"m", None);
+    assert_eq!(unpinned["input"], STANDARD.encode(b"m"));
+    assert!(unpinned.get("key_version").is_none());
+    assert_eq!(sign_request(b"m", Some(4))["key_version"], 4);
+}
+
+#[test]
+fn a_signature_from_another_version_is_refused_when_pinned() {
+    // ADR-0004, amended: a bundle signed by a version consumers may not trust is never published.
+    assert!(ensure_version("notaio", "notaio:v3", Some(3)).is_ok());
+    assert!(ensure_version("notaio", "notaio:v4", None).is_ok());
+    let e = ensure_version("notaio", "notaio:v4", Some(3)).unwrap_err();
+    assert!(e.to_string().contains("pins v3"), "{e}");
+    // A prefix is not a match: v13 is not v1.
+    assert!(ensure_version("notaio", "notaio:v13", Some(1)).is_err());
 }
 
 #[test]

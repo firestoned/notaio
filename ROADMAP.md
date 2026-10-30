@@ -67,9 +67,9 @@ Not done: nothing has run on a cluster.
   signed. Grype scanning and VEX: **done 2026-10-29** (ADR-0012), with an SBOM that covers every
   Rust crate and VEX statements re-checked against the binary on every pull request.
 - Pin the transit key version the controller signs with, so a rotation can be staged at every
-  consumer before notaio starts using the new version. Today it signs with the latest, which opens
-  a window where a consumer without the new public key refuses fresh bundles
-  (`docs/src/guides/rotate-the-signing-key.md`).
+  consumer before notaio starts using the new version. **Done 2026-10-30** (ADR-0004, amended):
+  `NOTAIO_OPENBAO_KEY_VERSION`, sent with every sign request, a signature from any other version
+  refused; `e2e_openbao` pins a version OpenBao lacks (refused) and the one it has (used).
 
 ## M3: integrate the consumers
 

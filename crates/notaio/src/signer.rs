@@ -41,7 +41,10 @@ impl BundleSigner {
     pub fn describe(&self) -> String {
         match self {
             BundleSigner::Development(s) => format!("development key {:?}", s.key_id()),
-            BundleSigner::OpenBao(t) => format!("OpenBao transit key {:?}", t.key()),
+            BundleSigner::OpenBao(t) => match t.key_version() {
+                Some(v) => format!("OpenBao transit key {:?}, pinned to version {v}", t.key()),
+                None => format!("OpenBao transit key {:?}, latest version", t.key()),
+            },
         }
     }
 }

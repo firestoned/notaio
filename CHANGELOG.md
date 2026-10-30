@@ -12,6 +12,9 @@ a release, the maintainer renames Unreleased to the version and date.
 
 ### Added
 
+- `NOTAIO_OPENBAO_KEY_VERSION` pins the transit key version notaio signs with, so a key rotation
+  can be staged at every consumer before notaio uses the new version. A signature from any other
+  version is refused. The rotation guide now stages rotations with it.
 - Every published image is scanned with Grype; findings go to Code Scanning, and a fixable High or
   Critical fails the build (ADR-0012).
 - OpenVEX statements for the base image findings that cannot affect notaio, each backed by a fact

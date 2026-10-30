@@ -83,6 +83,8 @@ spec:
               value: https://openbao.openbao.svc:8200
             - name: NOTAIO_OPENBAO_CA_FILE
               value: /var/run/notaio/openbao-ca/ca.crt
+            # To stage key rotations, pin the version notaio signs with: add
+            # NOTAIO_OPENBAO_KEY_VERSION. Unset, it signs with the latest. See the rotation guide.
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
