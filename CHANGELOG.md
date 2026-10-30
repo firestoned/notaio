@@ -10,6 +10,13 @@ a release, the maintainer renames Unreleased to the version and date.
 
 ## Unreleased
 
+Nothing yet.
+
+## [0.2.0] - 2026-10-30
+
+Supply chain and key rotation: every image is scanned and accounted for, its SBOM is complete,
+and a signing key rotation can be staged without a gap at any consumer.
+
 ### Added
 
 - `NOTAIO_OPENBAO_KEY_VERSION` pins the transit key version notaio signs with, so a key rotation
@@ -20,6 +27,11 @@ a release, the maintainer renames Unreleased to the version and date.
 - OpenVEX statements for the base image findings that cannot affect notaio, each backed by a fact
   about the binary that CI re-checks on every pull request. The VEX document is attested to each
   image and attached to each release as `notaio.vex.json`.
+
+### Changed
+
+- The distroless `cc-debian13` base image is updated to a newer digest.
+- Every source file carries an SPDX licence header (`Apache-2.0`), checked in CI.
 
 ### Fixed
 
@@ -68,4 +80,5 @@ operator needs to run it with two replicas and an OpenBao signer.
 - Its NetworkPolicy allows egress only to DNS, the API server and OpenBao, and ingress only to the
   health and metrics port from the monitoring namespace.
 
+[0.2.0]: https://github.com/firestoned/notaio/releases/tag/v0.2.0
 [0.1.0]: https://github.com/firestoned/notaio/releases/tag/v0.1.0

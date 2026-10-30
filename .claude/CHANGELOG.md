@@ -2,6 +2,14 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-30 21:00] - Release prep: v0.2.0
+
+**Author:** Erick Bourgeois
+
+### Changed
+- Workspace version 0.2.0 (`make set-version`); `CHANGELOG.md` gains its `[0.2.0]` section,
+  adding the base image bump and the SPDX headers to what Unreleased already held.
+
 ## [2026-10-30 18:00] - SPDX licence headers and their check
 
 **Author:** Erick Bourgeois
