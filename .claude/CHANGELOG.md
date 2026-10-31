@@ -2,6 +2,19 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-31 21:00] - Roadmap 01 phase B done: policies arrive only through Flux
+
+**Author:** Erick Bourgeois
+
+### Changed
+- On the test cluster: the Flux Operator v0.62.1 (installer checksum and image signature
+  verified) and Flux v2.10.0 through a `FluxInstance`, syncing the private policy repository with
+  the maintainer's own read-only deploy key. The `platform` Kustomization applied GitOps-only
+  admission; `ns-sandboxes` the namespace, notaio's bundle Role, and the research agent.
+- The research agent published bundle version 1, signed by the transit key, verified against
+  OpenBao's public key; a direct edit as cluster-admin is denied by the admission policy.
+- Roadmap 01: phase B ticked.
+
 ## [2026-10-31 20:00] - Roadmap 01 phase B: groups from the identity provider; review on the free plan
 
 **Author:** Erick Bourgeois
