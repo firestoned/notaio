@@ -2,6 +2,29 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-31 21:00] - The conformance kit
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `crates/sandboxpolicy-bundle/src/conformance.rs` (new): the `Suite`, `Vector` and `Expect`
+  types, `suite()` over the checked-in `vectors.json`, the trusted keys, `error_name` (the stable
+  name of a refusal), and `run`, which checks a vector with this crate's `accept`.
+- `examples/conformance.rs` (new, needs the new `schema` feature): writes 14 vectors (4 accepted:
+  first sight, same version, newer, new incarnation; 10 refused: downgrade, stale incarnation,
+  forged signature, untrusted key under the trusted key's id, expired, not yet valid, digest
+  mismatch, old schema, old payload type, malformed) with fixed seeds and clocks, and the payload's
+  JSON Schema from the types. Deterministic: ed25519 signs deterministically.
+- `tests/conformance.rs` (new): every vector gets its verdict from the real `accept`; the suite
+  covers every refusal and has unique names; the suite and schema are for bundle v3. Checked by
+  mutating one verdict: the test names the vector and both outcomes.
+- The bundle crate's `schema` feature: JSON Schema derives on the payload types, off by default;
+  `bundle-deps-check` still counts 36 crates.
+- `Makefile`: `conformance`, `conformance-check` (in CI), and clippy on the bundle crate with the
+  feature, so the example is linted.
+- Docs: a generated reference page listing the vectors, a consumer guide section on running them,
+  roadmap 00 (both phase 0 items done), CHANGELOG.md.
+
 ## [2026-10-31 16:00] - ADR-0014: how consumers get the bundle crates
 
 **Author:** Erick Bourgeois

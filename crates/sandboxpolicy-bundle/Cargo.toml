@@ -11,11 +11,22 @@ publish.workspace = true
 base64 = "0.23.1"
 chrono = { version = "0.4.45", features = ["serde"] }
 ed25519-dalek = "3.0.0"
+schemars = { version = "1.2.2", features = ["chrono04"], optional = true }
 sandboxpolicy-types = { path = "../sandboxpolicy-types" }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 sha2 = "0.11.0"
 thiserror = "2.0.21"
+
+[features]
+# JSON Schema derives on the payload types, for generating the conformance kit's schema. Off by
+# default, so consumers never compile schemars (ADR-0014; `make bundle-deps-check`).
+schema = ["dep:schemars", "sandboxpolicy-types/schema"]
+
+# Regenerates conformance/ (`make conformance`): the vectors and the payload's JSON Schema.
+[[example]]
+name = "conformance"
+required-features = ["schema"]
 
 [lints]
 workspace = true

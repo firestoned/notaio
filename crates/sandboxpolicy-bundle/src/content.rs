@@ -11,6 +11,7 @@ use crate::{jcs, BundleError};
 
 pub const SCHEMA: &str = "sandbox.firestoned.io/bundle/v3";
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PolicyRef {
@@ -19,6 +20,7 @@ pub struct PolicyRef {
     pub uid: String,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProfileRef {
@@ -29,6 +31,7 @@ pub struct ProfileRef {
 /// Everything that decides what a sandbox may do. The canonical form is RFC 8785 (ADR-0005), which
 /// sorts members, so field order here does not affect the digest; adding, removing, renaming or
 /// retyping a field still does, and is a schema change.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BundleContent {
@@ -70,6 +73,7 @@ fn hex_lower(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BundleMeta {
@@ -81,6 +85,7 @@ pub struct BundleMeta {
     pub not_after: DateTime<Utc>,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BundlePayload {

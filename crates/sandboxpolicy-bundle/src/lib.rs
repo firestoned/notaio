@@ -15,6 +15,7 @@
 //!   fails closed.
 //! - This crate has no Kubernetes dependency, so `mediatore-guest` can verify a bundle without one.
 
+pub mod conformance;
 mod content;
 mod dsse;
 mod error;

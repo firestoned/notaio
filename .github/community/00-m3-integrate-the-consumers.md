@@ -114,10 +114,11 @@ Each phase is shippable and leaves the system no looser than before.
 - [x] D2 decided ([ADR-0013](../../docs/adr/0013-bundle-v3-routes-and-v1alpha2.md)): bundle
       schema v3 with endpoints and rules per audience and direct egress as `{ endpoint, rules }`,
       lint `L017` and `L018`, the ExposureCeiling extended, the API at v1alpha2.
-- [ ] Conformance vectors: signed sample bundles in the repository with the outcome each must give
-      (accepted, forged, expired, downgraded, a stale incarnation, a digest mismatch), generated
-      and checked in CI, so mediatore and the guest test against the same files notaio does.
-- [ ] A JSON Schema for the v3 payload, generated from the types.
+- [x] Conformance vectors: 14 signed bundles in `crates/sandboxpolicy-bundle/conformance/`, each
+      with its verdict, generated deterministically (`make conformance`), checked in CI
+      (`make conformance-check`) and run through notaio's own `accept`; exposed as
+      `sandboxpolicy_bundle::conformance` and listed in the reference.
+- [x] A JSON Schema for the v3 payload, generated from the types (`bundle-v3.schema.json`).
 - [ ] A release, v0.3.0, which is what consumers pin.
 
 ### Phase 1: mediatore reads and verifies, in shadow

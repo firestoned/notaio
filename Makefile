@@ -17,7 +17,7 @@ RUST_LOG         ?= info
         kind-e2e-install kind-e2e-bundle kind-e2e-rbac kind-e2e-admission kind-e2e-leader kind-e2e-openbao \
         kind-cert-manager kind-openbao cluster-deploy cluster-undeploy openbao-e2e \
         docs docs-serve docs-clean docs-linkcheck docs-reference docs-reference-check policy-lint openbao-dev openbao-dev-check \
-        license-check bundle-deps-check cargo-auditable release-binary sbom-check grype-install vexctl-install vex-evidence vex-evidence-test vex-assemble image-scan image-gate release-manifest release-manifest-test set-version set-version-test
+        license-check bundle-deps-check conformance conformance-check cargo-auditable release-binary sbom-check grype-install vexctl-install vex-evidence vex-evidence-test vex-assemble image-scan image-gate release-manifest release-manifest-test set-version set-version-test
 
 help: ## Show this help
 	@echo 'Usage: make [target] [VAR=value ...]'
@@ -46,6 +46,7 @@ fmt-check: ## Fail if any crate is not formatted
 
 clippy: ## Clippy over every target, warnings are errors
 	cargo clippy --workspace --all-targets -- -D warnings
+	cargo clippy -p sandboxpolicy-bundle --all-targets --features schema -- -D warnings
 
 lint: fmt-check clippy ## fmt-check + clippy
 
@@ -158,6 +159,17 @@ bundle-deps-check: ## Fail if sandboxpolicy-bundle's own dependency tree pulls i
 	  bad=""; for d in $(BUNDLE_FORBIDDEN_DEPS); do printf '%s\n' "$$deps" | grep -qx "$$d" && bad="$$bad $$d"; done; \
 	  [ -z "$$bad" ] || { echo "sandboxpolicy-bundle pulls in:$$bad (ADR-0014)"; exit 1; }; \
 	  echo "bundle-deps-check: $$(printf '%s\n' "$$deps" | wc -l | tr -d ' ') crates, none of $(words $(BUNDLE_FORBIDDEN_DEPS)) forbidden"
+
+conformance: ## Regenerate the conformance kit: crates/sandboxpolicy-bundle/conformance/ (vectors, payload JSON Schema)
+	cargo run -q -p sandboxpolicy-bundle --example conformance --features schema -- crates/sandboxpolicy-bundle/conformance
+
+conformance-check: ## Fail if the checked-in conformance kit differs from what the generator writes
+	@tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT; \
+	  cargo run -q -p sandboxpolicy-bundle --example conformance --features schema -- "$$tmp" && \
+	  for f in "$$tmp"/*; do \
+	    diff -u "crates/sandboxpolicy-bundle/conformance/$$(basename "$$f")" "$$f" || { echo "the conformance kit is stale: run make conformance"; exit 1; }; \
+	  done; \
+	  echo "conformance-check: $$(jq '.vectors | length' crates/sandboxpolicy-bundle/conformance/vectors.json) vectors and the payload schema are current"
 
 license-check: ## Every tracked Rust, shell, Python, Makefile, Dockerfile and workflow file carries the SPDX header
 	@scripts/check_license_headers.sh

@@ -1852,6 +1852,7 @@ dependencies = [
  "chrono",
  "ed25519-dalek",
  "sandboxpolicy-types",
+ "schemars",
  "serde",
  "serde_json",
  "sha2",

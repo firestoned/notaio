@@ -24,6 +24,9 @@ a release, the maintainer renames Unreleased to the version and date.
 
 ### Added
 
+- A conformance kit: 14 signed bundles, each with the verdict every consumer must reach, and the v3
+  payload's JSON Schema, in `crates/sandboxpolicy-bundle/conformance/` and
+  `sandboxpolicy_bundle::conformance`. Generated deterministically and checked in CI.
 - Consumers depend on a release tag: `sandboxpolicy-bundle = { git = "https://github.com/firestoned/notaio", tag = "v0.3.0" }`
   (ADR-0014). The bundle crate no longer pulls in `schemars`, and CI keeps its dependency tree free
   of Kubernetes, async, networking and TLS.
