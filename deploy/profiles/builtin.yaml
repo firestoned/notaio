@@ -1,5 +1,5 @@
 ---
-apiVersion: sandbox.firestoned.io/v1alpha1
+apiVersion: sandbox.firestoned.io/v1alpha2
 kind: SandboxProfile
 metadata:
   labels:
@@ -44,7 +44,7 @@ spec:
     K8.3: R0
     K8.4: R0
 ---
-apiVersion: sandbox.firestoned.io/v1alpha1
+apiVersion: sandbox.firestoned.io/v1alpha2
 kind: SandboxProfile
 metadata:
   labels:
@@ -89,7 +89,7 @@ spec:
     K8.3: R0
     K8.4: R0
 ---
-apiVersion: sandbox.firestoned.io/v1alpha1
+apiVersion: sandbox.firestoned.io/v1alpha2
 kind: SandboxProfile
 metadata:
   labels:
@@ -134,7 +134,7 @@ spec:
     K8.3: R0
     K8.4: R0
 ---
-apiVersion: sandbox.firestoned.io/v1alpha1
+apiVersion: sandbox.firestoned.io/v1alpha2
 kind: SandboxProfile
 metadata:
   labels:

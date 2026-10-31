@@ -55,6 +55,10 @@ loosen a running sandbox.
 5. **Cedar.** If conditional rules appear, the bundle carries a compiled Cedar policy set next to the
    declarative content. The consumer stays mediatore. The envelope does not change.
 
+*Amended 2026-10-31 by [ADR-0013](0013-bundle-v3-routes-and-v1alpha2.md):* schema v3. Each
+audience carries its `endpoints` and `rules`, and direct egress is `{ endpoint, rules }`; the
+payload type is `application/vnd.firestoned.sandboxpolicy.bundle.v3+json`.
+
 ## Consequences
 
 Consumers need one small crate and a set of trusted public keys. Notaio is the only writer.

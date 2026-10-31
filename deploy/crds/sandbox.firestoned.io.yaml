@@ -20,7 +20,7 @@ spec:
     - jsonPath: .status.conditions[?(@.type=="Valid")].status
       name: Valid
       type: string
-    name: v1alpha1
+    name: v1alpha2
     schema:
       openAPIV3Schema:
         description: Auto-generated derived type for SandboxProfileSpec via `CustomResource`
@@ -144,7 +144,7 @@ spec:
     - jsonPath: .status.conditions[?(@.type=="Ready")].status
       name: Ready
       type: string
-    name: v1alpha1
+    name: v1alpha2
     schema:
       openAPIV3Schema:
         description: Auto-generated derived type for SandboxPolicySpec via `CustomResource`
@@ -167,9 +167,37 @@ spec:
                       - Read
                       - Write
                       type: string
+                    endpoints:
+                      default: []
+                      description: |-
+                        Where the audience is reached, `host:port`, through the broker's proxy, which injects the
+                        token: brokered calls, allowed at any K4.1 step. Exact names only (lint L017).
+                      items:
+                        type: string
+                      type: array
                     name:
                       description: "The audience: the downstream service."
                       type: string
+                    rules:
+                      default: []
+                      description: What may be called at those endpoints. None means every method and path.
+                      items:
+                        description: |-
+                          One HTTP rule for an endpoint (ADR-0013): a method, or `*` for any, and a path glob in which `*`
+                          matches one segment and `**` zero or more, matched against the path without the query. The
+                          shape mediatore's egress proxy uses (its ADR-0025).
+                        properties:
+                          method:
+                            description: An HTTP method, or `*`.
+                            type: string
+                          path:
+                            description: A path glob starting with `/`.
+                            type: string
+                        required:
+                        - method
+                        - path
+                        type: object
+                      type: array
                     scopes:
                       default: []
                       description: Scopes requested for the token.
@@ -214,32 +242,37 @@ spec:
                 default: []
                 description: The egress allowlist.
                 items:
-                  description: >-
-                    One egress allowlist entry, enforced at the gateway and in the host or network
-                    layer.
+                  description: |-
+                    One direct egress entry: reached without the broker's proxy and without a token, enforced at
+                    the gateway and in the host or network layer (ADR-0013).
                   properties:
-                    host:
-                      description: A DNS name. IP literals are refused (lint L007).
+                    endpoint:
+                      description: "`host:port`, a DNS name. IP literals are refused; a wildcard host needs K4.1 R3 (lint L007)."
                       type: string
-                    methods:
-                      description: Method restriction. Only accepted at K4.1 R2 and above.
+                    rules:
+                      default: []
+                      description: >-
+                        What may be called there. Only accepted at K4.1 R2 and above. None means
+                        anything.
                       items:
-                        type: string
+                        description: |-
+                          One HTTP rule for an endpoint (ADR-0013): a method, or `*` for any, and a path glob in which `*`
+                          matches one segment and `**` zero or more, matched against the path without the query. The
+                          shape mediatore's egress proxy uses (its ADR-0025).
+                        properties:
+                          method:
+                            description: An HTTP method, or `*`.
+                            type: string
+                          path:
+                            description: A path glob starting with `/`.
+                            type: string
+                        required:
+                        - method
+                        - path
+                        type: object
                       type: array
-                    paths:
-                      description: Path restriction. Only accepted at K4.1 R2 and above.
-                      items:
-                        type: string
-                      type: array
-                    port:
-                      description: The TCP port.
-                      format: int32
-                      maximum: 65535.0
-                      minimum: 0.0
-                      type: integer
                   required:
-                  - host
-                  - port
+                  - endpoint
                   type: object
                 type: array
               lease:
@@ -374,6 +407,12 @@ spec:
                           - Read
                           - Write
                           type: string
+                        endpoints:
+                          default: []
+                          description: Where the token can be used, `host:port`.
+                          items:
+                            type: string
+                          type: array
                         name:
                           description: The audience.
                           type: string
@@ -467,7 +506,7 @@ spec:
     - jsonPath: .spec.expiresAt
       name: Expires
       type: string
-    name: v1alpha1
+    name: v1alpha2
     schema:
       openAPIV3Schema:
         description: Auto-generated derived type for KnobGrantSpec via `CustomResource`
@@ -622,7 +661,7 @@ spec:
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
-    name: v1alpha1
+    name: v1alpha2
     schema:
       openAPIV3Schema:
         description: Auto-generated derived type for ExposureCeilingSpec via `CustomResource`
@@ -673,6 +712,12 @@ spec:
                       - Read
                       - Write
                       type: string
+                    endpoints:
+                      default: []
+                      description: The endpoints, `host:port`, at which the audience may be reached (ADR-0013).
+                      items:
+                        type: string
+                      type: array
                     maxTtlSeconds:
                       description: The longest token lifetime, in seconds.
                       format: int64

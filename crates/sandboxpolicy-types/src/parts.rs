@@ -19,6 +19,18 @@ pub enum Access {
     Write,
 }
 
+/// One HTTP rule for an endpoint (ADR-0013): a method, or `*` for any, and a path glob in which `*`
+/// matches one segment and `**` zero or more, matched against the path without the query. The
+/// shape mediatore's egress proxy uses (its ADR-0025).
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct EndpointRule {
+    /// An HTTP method, or `*`.
+    pub method: String,
+    /// A path glob starting with `/`.
+    pub path: String,
+}
+
 /// One downstream audience the sandbox may obtain tokens for.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -34,22 +46,25 @@ pub struct AudienceGrant {
     /// Requested token lifetime. Defaults to the K5.1 ceiling when omitted.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ttl_seconds: Option<u32>,
+    /// Where the audience is reached, `host:port`, through the broker's proxy, which injects the
+    /// token: brokered calls, allowed at any K4.1 step. Exact names only (lint L017).
+    #[serde(default)]
+    pub endpoints: Vec<String>,
+    /// What may be called at those endpoints. None means every method and path.
+    #[serde(default)]
+    pub rules: Vec<EndpointRule>,
 }
 
-/// One egress allowlist entry, enforced at the gateway and in the host or network layer.
+/// One direct egress entry: reached without the broker's proxy and without a token, enforced at
+/// the gateway and in the host or network layer (ADR-0013).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct EgressRule {
-    /// A DNS name. IP literals are refused (lint L007).
-    pub host: String,
-    /// The TCP port.
-    pub port: u16,
-    /// Method restriction. Only accepted at K4.1 R2 and above.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub methods: Vec<String>,
-    /// Path restriction. Only accepted at K4.1 R2 and above.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub paths: Vec<String>,
+    /// `host:port`, a DNS name. IP literals are refused; a wildcard host needs K4.1 R3 (lint L007).
+    pub endpoint: String,
+    /// What may be called there. Only accepted at K4.1 R2 and above. None means anything.
+    #[serde(default)]
+    pub rules: Vec<EndpointRule>,
 }
 
 /// A tool or MCP server the agent may use, pinned by manifest digest.

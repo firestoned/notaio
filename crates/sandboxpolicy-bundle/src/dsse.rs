@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{BundleError, BundlePayload};
 
-pub const PAYLOAD_TYPE: &str = "application/vnd.firestoned.sandboxpolicy.bundle.v2+json";
+pub const PAYLOAD_TYPE: &str = "application/vnd.firestoned.sandboxpolicy.bundle.v3+json";
 
 /// DSSE envelope, https://github.com/secure-systems-lab/dsse
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

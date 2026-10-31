@@ -29,6 +29,8 @@ fn content() -> BundleContent {
             access: Access::Read,
             scopes: vec!["repo:read".into()],
             ttl_seconds: Some(300),
+            endpoints: vec!["git.internal.example:443".into()],
+            rules: vec![],
         }],
         egress: vec![],
         tools: vec![],
@@ -203,9 +205,9 @@ fn bad_seed_is_rejected() {
 /// implementation rather than this crate: Python's `json.dumps(sort_keys=True,
 /// separators=(",", ":"), ensure_ascii=False)`, which equals RFC 8785 for integer-only content
 /// with BMP keys (ADR-0005).
-const FIXTURE_CANONICAL: &str = r#"{"audiences":[{"access":"Read","name":"internal-git","scopes":["repo:read"],"ttlSeconds":300}],"budgets":{"maxEgressBytes":10485760,"maxToolCalls":500,"maxWallClockSeconds":14400},"egress":[],"knobs":{"K4.1":"R0","K5.1":"R1"},"lease":{"maxConcurrent":1,"maxDurationSeconds":14400},"policy":{"name":"agent-default","namespace":"sandboxes","uid":"uid-1"},"profile":{"digest":"sha256:abc","name":"hardened"},"tools":[]}"#;
+const FIXTURE_CANONICAL: &str = r#"{"audiences":[{"access":"Read","endpoints":["git.internal.example:443"],"name":"internal-git","rules":[],"scopes":["repo:read"],"ttlSeconds":300}],"budgets":{"maxEgressBytes":10485760,"maxToolCalls":500,"maxWallClockSeconds":14400},"egress":[],"knobs":{"K4.1":"R0","K5.1":"R1"},"lease":{"maxConcurrent":1,"maxDurationSeconds":14400},"policy":{"name":"agent-default","namespace":"sandboxes","uid":"uid-1"},"profile":{"digest":"sha256:abc","name":"hardened"},"tools":[]}"#;
 const FIXTURE_DIGEST: &str =
-    "sha256:b25c43a63a17fc5ddb34748d7f80523fbca0da2ec534ac1ae80ad9aad0f8eef7";
+    "sha256:da6f13e7b39db1b73092a5fce9ef06cc2cfe37c9665936ea01195b5e6841509b";
 
 #[test]
 fn canonical_bytes_are_rfc_8785() {
@@ -215,12 +217,12 @@ fn canonical_bytes_are_rfc_8785() {
 }
 
 #[test]
-fn schema_is_v2() {
-    // ADR-0005 changed the canonical form, which is a schema change (CLAUDE.md).
-    assert_eq!(SCHEMA, "sandbox.firestoned.io/bundle/v2");
+fn schema_is_v3() {
+    // ADR-0013 added endpoints and rules to the content, which is a schema change (CLAUDE.md).
+    assert_eq!(SCHEMA, "sandbox.firestoned.io/bundle/v3");
     assert_eq!(
         PAYLOAD_TYPE,
-        "application/vnd.firestoned.sandboxpolicy.bundle.v2+json"
+        "application/vnd.firestoned.sandboxpolicy.bundle.v3+json"
     );
 }
 

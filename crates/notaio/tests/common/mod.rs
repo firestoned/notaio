@@ -120,7 +120,7 @@ where
 /// Same shape as `examples/exposureceiling-agent-default.yaml`.
 pub fn hardened_ceiling(policy: &str, namespace: &str) -> Value {
     json!({
-        "apiVersion": "sandbox.firestoned.io/v1alpha1",
+        "apiVersion": "sandbox.firestoned.io/v1alpha2",
         "kind": "ExposureCeiling",
         "metadata": { "name": policy, "namespace": namespace },
         "spec": {
@@ -141,7 +141,7 @@ pub fn hardened_ceiling(policy: &str, namespace: &str) -> Value {
 /// `examples/sandboxpolicy-hardened.yaml`.
 pub fn hardened_policy(name: &str, namespace: &str) -> Value {
     json!({
-        "apiVersion": "sandbox.firestoned.io/v1alpha1",
+        "apiVersion": "sandbox.firestoned.io/v1alpha2",
         "kind": "SandboxPolicy",
         "metadata": { "name": name, "namespace": namespace },
         "spec": {
@@ -162,7 +162,7 @@ pub fn hardened_policy(name: &str, namespace: &str) -> Value {
 pub fn package_install_grant(name: &str, namespace: &str, policy: &str) -> Value {
     let expires = (Utc::now() + chrono::Duration::days(7)).to_rfc3339();
     json!({
-        "apiVersion": "sandbox.firestoned.io/v1alpha1",
+        "apiVersion": "sandbox.firestoned.io/v1alpha2",
         "kind": "KnobGrant",
         "metadata": { "name": name, "namespace": namespace },
         "spec": {

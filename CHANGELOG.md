@@ -10,7 +10,22 @@ a release, the maintainer renames Unreleased to the version and date.
 
 ## Unreleased
 
-Nothing yet.
+### Changed
+
+- **Breaking: the API is `sandbox.firestoned.io/v1alpha2`, and v1alpha1 is retired** (ADR-0013).
+  Rewrite policy objects as v1alpha2 before upgrading; `notaio lint` refuses a v1alpha1 file with
+  `I009`. See the install guide's upgrade note.
+- **Breaking: bundle schema v3.** Each audience carries its `endpoints` (`host:port`) and `rules`
+  (`{ method, path }`), in the shape mediatore's egress proxy uses; direct egress is
+  `{ endpoint, rules }`. The payload type is `...bundle.v3+json`, so a v2 consumer refuses a v3
+  bundle rather than misreading it.
+- The ExposureCeiling approves endpoints per audience: an audience endpoint it does not list is
+  an `L014` finding.
+
+### Added
+
+- Lint rules `L017` (an audience endpoint or rule is malformed) and `L018` (an endpoint is
+  reachable two ways).
 
 ## [0.2.0] - 2026-10-30
 

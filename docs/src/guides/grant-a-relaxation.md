@@ -23,7 +23,7 @@ The register names the roles that must approve each knob (in the
 ## 3. Write it
 
 ```yaml
-apiVersion: sandbox.firestoned.io/v1alpha1
+apiVersion: sandbox.firestoned.io/v1alpha2
 kind: KnobGrant
 metadata:
   name: docs-agent-pkg-mirror

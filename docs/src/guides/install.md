@@ -132,7 +132,15 @@ Then follow [Write a policy](write-a-policy.md) to publish the first bundle, and
 
 ## Upgrading
 
-Apply the next release's manifest the same way. The CRDs are `v1alpha1`; a change to their schema
-or to the bundle schema is called out in the release notes and in an ADR. Bundle versions never go
+Apply the next release's manifest the same way. The CRDs are alpha; a change to their schema or to
+the bundle schema is called out in the release notes and in an ADR.
+
+!!! warning "Upgrading to v1alpha2 (ADR-0013)"
+    v1alpha2 replaces v1alpha1, which is retired rather than converted: serving both would need a
+    conversion webhook. Before applying the release, rewrite the policy repository's objects as
+    v1alpha2 (`apiVersion`, audience `endpoints` and `rules`, direct `egress` as
+    `{ endpoint, rules }`, ceiling audience `endpoints`) and check them with `notaio lint`, which
+    refuses a v1alpha1 file with `I009`. Then apply the release's CRDs and let GitOps re-apply the
+    objects. Bundle versions never go
 backwards across an upgrade: the controller takes the higher of the status and the published
 ConfigMap's annotation.

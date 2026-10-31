@@ -78,7 +78,7 @@ change, which is why they sit in small crates with their own ADR.
 
 | Contract | Written by | Read by | Defined in | State |
 | --- | --- | --- | --- | --- |
-| `SandboxProfile`, `SandboxPolicy`, `KnobGrant` (`sandbox.firestoned.io/v1alpha1`) | GitOps reconciler (spec), notaio (status only) | notaio; banlieue admission (M3) | `crates/sandboxpolicy-api`, `deploy/crds/` | v1alpha1 |
+| `SandboxProfile`, `SandboxPolicy`, `KnobGrant`, `ExposureCeiling` (`sandbox.firestoned.io/v1alpha2`) | GitOps reconciler (spec), notaio (status only) | notaio; banlieue admission (M3) | `crates/sandboxpolicy-api`, `deploy/crds/` | v1alpha1 |
 | Signed bundle: a DSSE envelope over the compiled content, canonicalised with RFC 8785 | notaio, and only notaio | mediatore, mediatore-guest, gateway | `crates/sandboxpolicy-bundle`, [ADR-0002](adr/0002-bundle-contract.md), [ADR-0005](adr/0005-canonical-form-rfc-8785.md) | implemented; schema v2, frozen |
 | Bundle location | notaio | mediatore through the API; guests through mediatore's relay | ConfigMap `<policy>-bundle` beside the policy, with version and digest annotations ([ADR-0003](adr/0003-bundle-distribution.md)) | published today; the relay is M3 |
 | Consumer version floor: the highest version accepted per policy, keyed by namespace and name, with the incarnation's `uid` | each consumer, on its own disk | that consumer | `crates/sandboxpolicy-bundle/src/floor.rs`, [ADR-0008](adr/0008-consumer-version-floor.md) | implemented; consumers adopt it in M3 |
@@ -204,7 +204,10 @@ and the ceiling change. The controller only reads ceilings.
 2. Grants are applied in name order. Each is checked alone (L011 to L013), then the knob set with the
    grant applied is linted again, so a grant that would complete the exfiltration triangle is
    rejected without disturbing the others. Expired grants are reported and ignored.
-3. The policy is linted against the effective knobs (L005 to L010).
+3. The policy is linted against the effective knobs (L005 to L010), and its endpoints and rules
+   checked (L017, L018): each audience's endpoints are reached brokered, so any K4.1 step allows
+   them, and an endpoint is reachable one way only
+   ([ADR-0013](adr/0013-bundle-v3-routes-and-v1alpha2.md)).
 4. The content is compiled with every list sorted, digested, and versioned: the version moves only
    when the digest moves.
 5. Bundle validity is `now + lifetime`, clamped to the earliest active grant expiry, so a relaxation

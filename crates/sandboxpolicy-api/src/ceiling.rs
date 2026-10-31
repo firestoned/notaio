@@ -17,6 +17,9 @@ pub struct CeilingAudience {
     pub access: Access,
     /// The longest token lifetime, in seconds.
     pub max_ttl_seconds: u32,
+    /// The endpoints, `host:port`, at which the audience may be reached (ADR-0013).
+    #[serde(default)]
+    pub endpoints: Vec<String>,
 }
 
 /// The approved maximum exposure of the SandboxPolicy with the same name and namespace
@@ -26,7 +29,7 @@ pub struct CeilingAudience {
 #[derive(CustomResource, Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[kube(
     group = "sandbox.firestoned.io",
-    version = "v1alpha1",
+    version = "v1alpha2",
     kind = "ExposureCeiling",
     namespaced,
     shortname = "exposureceiling",

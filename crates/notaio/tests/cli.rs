@@ -13,7 +13,7 @@ use notaio::cli::Cli;
 
 const NOW: &str = "2026-10-20T00:00:00Z";
 
-const CLEAN_POLICY: &str = r#"apiVersion: sandbox.firestoned.io/v1alpha1
+const CLEAN_POLICY: &str = r#"apiVersion: sandbox.firestoned.io/v1alpha2
 kind: SandboxPolicy
 metadata:
   name: agent-default
@@ -30,7 +30,7 @@ spec:
   tools: []
 "#;
 
-const CEILING: &str = r#"apiVersion: sandbox.firestoned.io/v1alpha1
+const CEILING: &str = r#"apiVersion: sandbox.firestoned.io/v1alpha2
 kind: ExposureCeiling
 metadata:
   name: agent-default
@@ -48,7 +48,7 @@ spec:
       reference: https://example.com/review/2
 "#;
 
-const JUMPING_GRANT: &str = r#"apiVersion: sandbox.firestoned.io/v1alpha1
+const JUMPING_GRANT: &str = r#"apiVersion: sandbox.firestoned.io/v1alpha2
 kind: KnobGrant
 metadata:
   name: jump

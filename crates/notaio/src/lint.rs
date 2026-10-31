@@ -8,7 +8,7 @@
 //!
 //! | Code | Meaning |
 //! | ---- | ------- |
-//! | I001 | An object in the `sandbox.firestoned.io` group is not a valid SandboxProfile, SandboxPolicy or KnobGrant |
+//! | I001 | An object in the `sandbox.firestoned.io` group is not a valid SandboxProfile, SandboxPolicy, KnobGrant or ExposureCeiling |
 //! | I002 | The same object (kind, namespace, name) appears more than once in the inputs |
 //! | I003 | A policy references a profile that is neither in the inputs nor built in |
 //! | I004 | A grant references a policy that is not in the inputs |
@@ -16,6 +16,7 @@
 //! | I006 | A grant has expired |
 //! | I007 | A policy's profile does not lint clean; the profile's own findings are reported against it |
 //! | I008 | An ExposureCeiling names a policy that is not in the inputs (ADR-0007) |
+//! | I009 | An object uses an API version notaio no longer serves: write it as `v1alpha2` (ADR-0013) |
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
@@ -39,7 +40,7 @@ const BUNDLE_LIFETIME_SECONDS: i64 = 3600;
 pub const INPUT_RULES: &[(&str, &str)] = &[
     (
         "I001",
-        "An object in the sandbox.firestoned.io group is not a valid SandboxProfile, SandboxPolicy or KnobGrant",
+        "An object in the sandbox.firestoned.io group is not a valid SandboxProfile, SandboxPolicy, KnobGrant or ExposureCeiling",
     ),
     (
         "I002",
@@ -62,6 +63,10 @@ pub const INPUT_RULES: &[(&str, &str)] = &[
     (
         "I008",
         "An ExposureCeiling names a policy that is not in the inputs (ADR-0007)",
+    ),
+    (
+        "I009",
+        "An object uses an API version notaio no longer serves: write it as v1alpha2 (ADR-0013)",
     ),
 ];
 
@@ -237,6 +242,7 @@ pub fn lint_sources_with(
             }
             report.checked += 1;
             let kind = doc["kind"].as_str().unwrap_or_default().to_string();
+            let api_version = doc["apiVersion"].as_str().unwrap_or_default().to_string();
             let name = doc["metadata"]["name"]
                 .as_str()
                 .unwrap_or_default()
@@ -245,6 +251,21 @@ pub fn lint_sources_with(
             let object = describe(&kind, ns.as_deref(), &name);
             if !seen.insert((kind.clone(), ns.clone(), name.clone())) {
                 report.push("I002", &source.path, &object, "", "duplicate object".into());
+                continue;
+            }
+            // v1alpha1 is retired, not converted (ADR-0013): an old file is refused by name rather
+            // than half-parsed into the new shape.
+            if api_version != format!("{GROUP_PREFIX}{}", sandboxpolicy_api::VERSION) {
+                report.push(
+                    "I009",
+                    &source.path,
+                    &object,
+                    "apiVersion",
+                    format!(
+                        "{api_version} is not served; write it as {GROUP_PREFIX}{}",
+                        sandboxpolicy_api::VERSION
+                    ),
+                );
                 continue;
             }
             let invalid = |e: serde_json::Error| format!("not a valid {kind}: {e}");

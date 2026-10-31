@@ -6,7 +6,7 @@ relaxation has an owner, a reason, the approvals the register requires, and an e
 relaxations exist, why, and until when" is a query over this one kind.
 
 ```yaml
-apiVersion: sandbox.firestoned.io/v1alpha1
+apiVersion: sandbox.firestoned.io/v1alpha2
 kind: KnobGrant
 metadata:
   name: agent-default-pkg-mirror

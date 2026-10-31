@@ -14,7 +14,7 @@ use crate::Condition;
 #[derive(CustomResource, Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[kube(
     group = "sandbox.firestoned.io",
-    version = "v1alpha1",
+    version = "v1alpha2",
     kind = "SandboxProfile",
     status = "SandboxProfileStatus",
     shortname = "sbprofile",

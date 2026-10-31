@@ -7,7 +7,7 @@ policy against its knobs, but no rule can say "this team should reach exactly th
 person in the `Security` role says that, once, here ([ADR-0007](../adr/0007-exposure-ceiling.md)).
 
 ```yaml
-apiVersion: sandbox.firestoned.io/v1alpha1
+apiVersion: sandbox.firestoned.io/v1alpha2
 kind: ExposureCeiling
 metadata:
   name: agent-default        # the policy's name
@@ -17,6 +17,7 @@ spec:
     - name: internal-git
       access: Read           # Write would allow Read too
       maxTtlSeconds: 300
+      endpoints: ["git.foo.io:443"]   # where its token may be used
   egressHosts: []            # host:port
   tools: []
   maxLeaseSeconds: 14400
@@ -36,7 +37,7 @@ included, and compares it with the ceiling:
 | --- | --- | --- |
 | No ceiling with the policy's name | `L015` | `NoApprovedCeiling` |
 | The ceiling has no `Security` approval | `L016` | `CeilingNotApproved` |
-| An audience, host or tool the ceiling does not list, more access or a longer token than it allows, or a longer lease | `L014` | `ExposureAboveCeiling` |
+| An audience, an audience endpoint, a host or a tool the ceiling does not list, more access or a longer token than it allows, or a longer lease | `L014` | `ExposureAboveCeiling` |
 
 In each case nothing new is published, and `maxExposure` is still reported so the approvers can see
 exactly what they are being asked to approve. The same check runs in `notaio lint` on the policy

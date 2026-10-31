@@ -6,7 +6,7 @@ The four kinds in `sandbox.firestoned.io`, field by field, from the schemas `crd
 
 ## SandboxProfile
 
-`sandbox.firestoned.io/v1alpha1`, cluster scoped, short name `sbprofile`.
+`sandbox.firestoned.io/v1alpha2`, cluster scoped, short name `sbprofile`.
 
 A named bundle of knob steps (Fortress, Hardened, Standard, Lab). Cluster-scoped and platform-owned: teams pick a profile, they do not edit one.
 
@@ -34,7 +34,7 @@ A named bundle of knob steps (Fortress, Hardened, Standard, Lab). Cluster-scoped
 
 ## SandboxPolicy
 
-`sandbox.firestoned.io/v1alpha1`, namespaced, short name `sbpolicy`.
+`sandbox.firestoned.io/v1alpha2`, namespaced, short name `sbpolicy`.
 
 Binds subjects to a profile and adds the concrete audiences, egress entries and tools. The controller checks all of it against the profile's knob ceilings and compiles a signed bundle.
 
@@ -44,7 +44,11 @@ Binds subjects to a profile and adds the concrete audiences, egress entries and 
 | --- | --- | --- | --- |
 | `audiences` | array of object |  | Downstream services the sandbox may obtain tokens for. |
 | `audiences[].access` | string: `Read`, `Write` |  | `Read` or `Write`. `Write` needs K5.2 above R0 (lint L006). |
+| `audiences[].endpoints` | array of string |  | Where the audience is reached, `host:port`, through the broker's proxy, which injects the token: brokered calls, allowed at any K4.1 step. Exact names only (lint L017). |
 | `audiences[].name` | string | yes | The audience: the downstream service. |
+| `audiences[].rules` | array of object |  | What may be called at those endpoints. None means every method and path. |
+| `audiences[].rules[].method` | string | yes | An HTTP method, or `*`. |
+| `audiences[].rules[].path` | string | yes | A path glob starting with `/`. |
 | `audiences[].scopes` | array of string |  | Scopes requested for the token. |
 | `audiences[].ttlSeconds` | integer |  | Requested token lifetime. Defaults to the K5.1 ceiling when omitted. |
 | `budgets` | object |  | Budgets. Defaults to the ceilings for the profile when omitted. |
@@ -52,10 +56,10 @@ Binds subjects to a profile and adds the concrete audiences, egress entries and 
 | `budgets.maxToolCalls` | integer | yes | The most tool calls per lease. |
 | `budgets.maxWallClockSeconds` | integer | yes | The most wall-clock time per lease, in seconds. |
 | `egress` | array of object |  | The egress allowlist. |
-| `egress[].host` | string | yes | A DNS name. IP literals are refused (lint L007). |
-| `egress[].methods` | array of string |  | Method restriction. Only accepted at K4.1 R2 and above. |
-| `egress[].paths` | array of string |  | Path restriction. Only accepted at K4.1 R2 and above. |
-| `egress[].port` | integer | yes | The TCP port. |
+| `egress[].endpoint` | string | yes | `host:port`, a DNS name. IP literals are refused; a wildcard host needs K4.1 R3 (lint L007). |
+| `egress[].rules` | array of object |  | What may be called there. Only accepted at K4.1 R2 and above. None means anything. |
+| `egress[].rules[].method` | string | yes | An HTTP method, or `*`. |
+| `egress[].rules[].path` | string | yes | A path glob starting with `/`. |
 | `lease` | object |  | Lease limits. Defaults to the K7.3 ceiling for the profile when omitted. |
 | `lease.maxConcurrent` | integer | yes | How many sandboxes one person may run at once. |
 | `lease.maxDurationSeconds` | integer | yes | The longest a sandbox may run, in seconds. |
@@ -84,6 +88,7 @@ Binds subjects to a profile and adds the concrete audiences, egress entries and 
 | `maxExposure` | object |  | What a fully compromised sandbox under this policy could reach (objective O3): computed, not asserted. |
 | `maxExposure.audiences` | array of object | yes | Every audience the sandbox can get a token for. |
 | `maxExposure.audiences[].access` | string: `Read`, `Write` | yes | `Read` or `Write`. |
+| `maxExposure.audiences[].endpoints` | array of string |  | Where the token can be used, `host:port`. |
 | `maxExposure.audiences[].name` | string | yes | The audience. |
 | `maxExposure.audiences[].ttlSeconds` | integer | yes | The token lifetime, in seconds. |
 | `maxExposure.egressHosts` | array of string | yes | Every `host:port` it can reach. |
@@ -96,7 +101,7 @@ Binds subjects to a profile and adds the concrete audiences, egress entries and 
 
 ## KnobGrant
 
-`sandbox.firestoned.io/v1alpha1`, namespaced, short name `knobgrant`.
+`sandbox.firestoned.io/v1alpha2`, namespaced, short name `knobgrant`.
 
 A time-boxed relaxation of one knob for one policy. Every relaxation has an owner, a reason, an approver and an expiry, so the knob dashboard is a query over this kind.
 
@@ -130,7 +135,7 @@ A time-boxed relaxation of one knob for one policy. Every relaxation has an owne
 
 ## ExposureCeiling
 
-`sandbox.firestoned.io/v1alpha1`, namespaced, short name `exposureceiling`.
+`sandbox.firestoned.io/v1alpha2`, namespaced, short name `exposureceiling`.
 
 The approved maximum exposure of the SandboxPolicy with the same name and namespace (ADR-0007). A policy whose computed `status.maxExposure` this does not cover publishes no bundle, and neither does a policy without one. Changes only through review and GitOps, like the other kinds; the controller reads it and never writes it.
 
@@ -143,6 +148,7 @@ The approved maximum exposure of the SandboxPolicy with the same name and namesp
 | `approvals[].role` | string: `Security`, `PlatformOwner`, `DataOwner`, `Compliance`, `ToolOwner`, `RiskOwner` | yes | Approver roles named in the knob register. |
 | `audiences` | array of object |  | The audiences the policy may expose. |
 | `audiences[].access` | string: `Read`, `Write` | yes | `Write` allows `Read`. |
+| `audiences[].endpoints` | array of string |  | The endpoints, `host:port`, at which the audience may be reached (ADR-0013). |
 | `audiences[].maxTtlSeconds` | integer | yes | The longest token lifetime, in seconds. |
 | `audiences[].name` | string | yes | The audience. |
 | `egressHosts` | array of string |  | `host:port`, as in `status.maxExposure.egressHosts`. |

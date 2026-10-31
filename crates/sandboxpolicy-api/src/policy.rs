@@ -21,7 +21,7 @@ pub struct Subjects {
 #[derive(CustomResource, Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[kube(
     group = "sandbox.firestoned.io",
-    version = "v1alpha1",
+    version = "v1alpha2",
     kind = "SandboxPolicy",
     namespaced,
     status = "SandboxPolicyStatus",
@@ -64,6 +64,9 @@ pub struct ExposedAudience {
     pub access: Access,
     /// The token lifetime, in seconds.
     pub ttl_seconds: u32,
+    /// Where the token can be used, `host:port`.
+    #[serde(default)]
+    pub endpoints: Vec<String>,
 }
 
 /// What a fully compromised sandbox under this policy could reach (objective O3): computed, not

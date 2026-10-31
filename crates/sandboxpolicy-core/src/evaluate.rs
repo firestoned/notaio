@@ -114,13 +114,10 @@ fn exposure(c: &BundleContent) -> MaxExposure {
                 name: a.name.clone(),
                 access: a.access,
                 ttl_seconds: a.ttl_seconds.unwrap_or(0),
+                endpoints: a.endpoints.clone(),
             })
             .collect(),
-        egress_hosts: c
-            .egress
-            .iter()
-            .map(|e| format!("{}:{}", e.host, e.port))
-            .collect(),
+        egress_hosts: c.egress.iter().map(|e| e.endpoint.clone()).collect(),
         write_capable: c.audiences.iter().any(|a| a.access == Access::Write),
         tools: c.tools.iter().map(|t| t.name.clone()).collect(),
         lease_max_seconds: c.lease.max_duration_seconds,
@@ -143,16 +140,17 @@ fn compile_content(
         .map(|mut a| {
             a.ttl_seconds = Some(a.ttl_seconds.unwrap_or(ttl_default));
             a.scopes.sort();
+            a.endpoints.sort();
+            a.rules.sort();
             a
         })
         .collect();
     audiences.sort_by(|a, b| a.name.cmp(&b.name));
     let mut egress = spec.egress.clone();
     for e in &mut egress {
-        e.methods.sort();
-        e.paths.sort();
+        e.rules.sort();
     }
-    egress.sort_by(|a, b| (&a.host, a.port).cmp(&(&b.host, b.port)));
+    egress.sort_by(|a, b| a.endpoint.cmp(&b.endpoint));
     let mut tools = spec.tools.clone();
     tools.sort_by(|a, b| a.name.cmp(&b.name));
 

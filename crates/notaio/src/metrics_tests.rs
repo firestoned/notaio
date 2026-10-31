@@ -23,7 +23,7 @@ fn ready(reason: &str, ok: bool) -> serde_json::Value {
 fn policy(name: &str, status: serde_json::Value) -> Arc<SandboxPolicy> {
     Arc::new(
         serde_json::from_value(json!({
-            "apiVersion": "sandbox.firestoned.io/v1alpha1", "kind": "SandboxPolicy",
+            "apiVersion": "sandbox.firestoned.io/v1alpha2", "kind": "SandboxPolicy",
             "metadata": { "name": name, "namespace": "sandboxes" },
             "spec": { "profileRef": "hardened" },
             "status": status,
@@ -35,7 +35,7 @@ fn policy(name: &str, status: serde_json::Value) -> Arc<SandboxPolicy> {
 fn grant(name: &str, phase: &str, expires_at: &str) -> Arc<KnobGrant> {
     Arc::new(
         serde_json::from_value(json!({
-            "apiVersion": "sandbox.firestoned.io/v1alpha1", "kind": "KnobGrant",
+            "apiVersion": "sandbox.firestoned.io/v1alpha2", "kind": "KnobGrant",
             "metadata": {
                 "name": name, "namespace": "sandboxes",
                 "creationTimestamp": "2026-10-23T10:00:00Z"

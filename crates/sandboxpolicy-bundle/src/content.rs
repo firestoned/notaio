@@ -9,7 +9,7 @@ use sha2::{Digest, Sha256};
 
 use crate::{jcs, BundleError};
 
-pub const SCHEMA: &str = "sandbox.firestoned.io/bundle/v2";
+pub const SCHEMA: &str = "sandbox.firestoned.io/bundle/v3";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

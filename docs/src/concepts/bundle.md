@@ -7,18 +7,20 @@ is the overview.
 
 ## What is in it
 
-A DSSE envelope (payload type `application/vnd.firestoned.sandboxpolicy.bundle.v2+json`) around a
+A DSSE envelope (payload type `application/vnd.firestoned.sandboxpolicy.bundle.v3+json`) around a
 JSON payload:
 
 ```json
 {
-  "schema": "sandbox.firestoned.io/bundle/v2",
+  "schema": "sandbox.firestoned.io/bundle/v3",
   "meta": { "version": 4, "issuedAt": "…", "notAfter": "…" },
   "content": {
     "policy":   { "namespace": "sandboxes", "name": "agent-default", "uid": "…" },
     "profile":  { "name": "hardened", "digest": "sha256:…" },
     "knobs":    { "K1.1": "R0", "K1.2": "R1", "…": "every knob, grants applied" },
-    "audiences": [ … ], "egress": [ … ], "tools": [ … ],
+    "audiences": [ { "name": "internal-git", "access": "Read", "scopes": [ … ], "ttlSeconds": 300,
+                     "endpoints": ["git.foo.io:443"], "rules": [ { "method": "GET", "path": "/repos/**" } ] } ],
+    "egress": [ { "endpoint": "host:port", "rules": [ … ] } ], "tools": [ … ],
     "lease":    { "maxDurationSeconds": 14400, "maxConcurrent": 1 },
     "budgets":  { "maxToolCalls": 500, "maxWallClockSeconds": 14400, "maxEgressBytes": 10485760 }
   },
@@ -41,7 +43,7 @@ JSON payload:
 
 1. The payload type is exactly the one above.
 2. At least one signature verifies (ed25519) against a key the consumer trusts, by key id.
-3. The schema is exactly `sandbox.firestoned.io/bundle/v2`.
+3. The schema is exactly `sandbox.firestoned.io/bundle/v3`.
 4. The recomputed content digest matches `contentDigest`.
 5. `issuedAt` is not in the future, allowing 60 seconds of clock skew.
 6. `notAfter` has not passed.

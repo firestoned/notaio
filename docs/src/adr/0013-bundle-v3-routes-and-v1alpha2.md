@@ -1,0 +1,1 @@
+--8<-- "adr/0013-bundle-v3-routes-and-v1alpha2.md"

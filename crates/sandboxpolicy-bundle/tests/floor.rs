@@ -50,6 +50,8 @@ fn bundle(uid: &str, version: u64, issued: DateTime<Utc>) -> Envelope {
             access: Access::Read,
             scopes: vec!["repo:read".into()],
             ttl_seconds: Some(300),
+            endpoints: vec!["git.internal.example:443".into()],
+            rules: vec![],
         }],
         egress: vec![],
         tools: vec![],
