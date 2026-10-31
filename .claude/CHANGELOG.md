@@ -2,6 +2,27 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-31 23:00] - Roadmap 01 phase D: the loop proven
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `.github/community/01-run-notaio-for-real.md`: phase D ticked with results (a tightening to a
+  verified bundle and a moved floor; a widening failing `L014`, with the free plan unable to block
+  the merge; a sealed signer reporting `SigningFailed` and recovering on unseal). The policy
+  repository and the smoke-after-merge items ticked. One follow-up left: the expired-watch `WARN`.
+- `ROADMAPS.md`: roadmap 01 stage 1 done.
+
+### Why
+The test runs and their commands are in the private policy repository's `TESTING.md`; this records
+the results without naming the cluster.
+
+### Impact
+- [ ] Breaking change
+- [ ] Requires cluster rollout
+- [ ] Config change only
+- [x] Documentation only
+
 ## [2026-10-31 22:00] - Roadmap 01 phase C: the read-only smoke suite
 
 **Author:** Erick Bourgeois
