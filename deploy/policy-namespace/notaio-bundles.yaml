@@ -1,0 +1,33 @@
+# Copyright (c) 2026 Erick Bourgeois, notaio
+# SPDX-License-Identifier: Apache-2.0
+#
+# What the controller needs in each namespace that holds SandboxPolicy objects: write access to
+# ConfigMaps there, so it can publish each policy's bundle. Per namespace, never cluster wide.
+#
+# This is a template with no namespace, so it is not part of the install manifest. Apply it once
+# per policy namespace:
+#
+#   kubectl -n <policy namespace> apply -f deploy/policy-namespace/notaio-bundles.yaml
+#
+# or, with GitOps, include it in each policy namespace's kustomization.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: notaio-bundles
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "create", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: notaio-bundles
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: notaio-bundles
+subjects:
+  - kind: ServiceAccount
+    name: notaio
+    namespace: notaio-system

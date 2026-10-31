@@ -18,19 +18,24 @@ NetworkPolicy, and the built-in profiles. It takes about fifteen minutes once Op
 
 ## 1. Download and verify the release
 
-Each release attaches `notaio-<version>.yaml`, with the image pinned by digest
-([ADR-0009](../adr/0009-release-and-supply-chain.md)). Verify it before you apply it:
+Each release attaches two manifests ([ADR-0009](../adr/0009-release-and-supply-chain.md)):
+`notaio-<version>-crds.yaml`, the four CustomResourceDefinitions, and `notaio-<version>.yaml`, the
+controller and the built-in profiles with the image pinned by digest. They are separate because
+the profiles need the CRDs to exist before `kubectl` can even read them. Verify both before you
+apply them:
 
 ```sh
-V=0.1.0
+V=0.3.1
 gh release download "v$V" --repo firestoned/notaio \
-  -p "notaio-$V.yaml" -p "notaio-$V.yaml.sigstore.json" -p checksums.sha256
+  -p "notaio-$V*.yaml" -p "notaio-$V*.yaml.sigstore.json" -p checksums.sha256
 sha256sum -c checksums.sha256 --ignore-missing
 
 ID='^https://github.com/firestoned/notaio/.github/workflows/build.yaml@refs/tags/v.+$'
-cosign verify-blob "notaio-$V.yaml" --bundle "notaio-$V.yaml.sigstore.json" \
-  --certificate-identity-regexp "$ID" \
-  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+for f in "notaio-$V-crds.yaml" "notaio-$V.yaml"; do
+  cosign verify-blob "$f" --bundle "$f.sigstore.json" \
+    --certificate-identity-regexp "$ID" \
+    --certificate-oidc-issuer https://token.actions.githubusercontent.com
+done
 
 IMAGE=$(grep -o 'ghcr.io/firestoned/notaio@sha256:[0-9a-f]*' "notaio-$V.yaml")
 cosign verify "$IMAGE" --certificate-identity-regexp "$ID" \
@@ -48,8 +53,10 @@ gh attestation verify "oci://$IMAGE" --repo firestoned/notaio
     even though the image is public. Run it with an empty Docker config, which reads anonymously:
     `DOCKER_CONFIG=$(mktemp -d) gh attestation verify ...`
 
-The manifest holds `deploy/crds/`, `deploy/controller/` and `deploy/profiles/` from the tagged
-commit. It does not hold the admission policy, which names your GitOps identity (step 5).
+The manifests hold `deploy/crds/`, then `deploy/controller/` and `deploy/profiles/`, from the
+tagged commit. They do not hold two things you adapt yourself, both taken from the same tag in
+step 5: the bundle Role for each of your policy namespaces, and the admission policy, which names
+your GitOps identity.
 
 ## 2. Edit for your cluster
 
@@ -86,11 +93,17 @@ trusts for OpenBao, never the system store.
 
 ## 4. Apply the release
 
+The CRDs first, and wait for them; then the rest:
+
 ```sh
+kubectl apply -f "notaio-$V-crds.yaml"
+kubectl wait --for=condition=Established --timeout=60s -f "notaio-$V-crds.yaml"
 kubectl apply -f "notaio-$V.yaml"
 kubectl -n notaio-system rollout status deployment/notaio
 kubectl get sandboxprofiles
 ```
+
+With Flux, make the CRDs one Kustomization and the rest another that `dependsOn` it.
 
 Two replicas start. One takes the Lease and leads; the other waits, ready to take over
 ([ADR-0011](../adr/0011-leader-election.md)):
@@ -104,14 +117,24 @@ The four built-in profiles should all show `Valid` `True` within a few seconds.
 ## 5. Allow bundle writes, and lock down direct edits
 
 **Bundle writes are per namespace.** The controller may write ConfigMaps only where a Role lets it.
-For every namespace that will hold SandboxPolicy objects, copy the `notaio-bundles` Role and
-RoleBinding from `deploy/controller/10-rbac.yaml` and change its namespace from the example,
-`sandboxes`.
-
-**Direct edits are refused.** Take `deploy/admission/gitops-only.yaml` from the same release,
-replace the allowed username with your GitOps reconciler's, and apply it:
+`deploy/policy-namespace/notaio-bundles.yaml` is that Role and its RoleBinding, with no namespace
+of its own. Apply it in every namespace that will hold SandboxPolicy objects:
 
 ```sh
+RAW=https://raw.githubusercontent.com/firestoned/notaio/v$V
+curl -fsSLO "$RAW/deploy/policy-namespace/notaio-bundles.yaml"
+kubectl create namespace sandboxes                        # each policy namespace, if new
+kubectl -n sandboxes apply -f notaio-bundles.yaml
+```
+
+With GitOps, put it in each policy namespace's kustomization instead.
+
+**Direct edits are refused.** Take `deploy/admission/gitops-only.yaml` from the same tag, replace
+the allowed username with your GitOps reconciler's, and apply it:
+
+```sh
+curl -fsSLO "$RAW/deploy/admission/gitops-only.yaml"
+# edit the allowed username, then:
 kubectl apply -f gitops-only.yaml
 ```
 

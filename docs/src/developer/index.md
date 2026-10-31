@@ -128,10 +128,12 @@ cosign verify "$IMAGE" --certificate-identity-regexp "$ID" \
 # It was built by this repository's CI, from a commit you can see.
 gh attestation verify "oci://$IMAGE" --repo firestoned/notaio
 
-# The install manifest itself is the one the release built.
-cosign verify-blob notaio-<version>.yaml --bundle notaio-<version>.yaml.sigstore.json \
-  --certificate-identity-regexp "$ID" \
-  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+# The install manifests are the ones the release built: the CRDs, and the rest.
+for f in notaio-<version>-crds.yaml notaio-<version>.yaml; do
+  cosign verify-blob "$f" --bundle "$f.sigstore.json" \
+    --certificate-identity-regexp "$ID" \
+    --certificate-oidc-issuer https://token.actions.githubusercontent.com
+done
 sha256sum -c checksums.sha256
 ```
 

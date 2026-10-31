@@ -17,7 +17,7 @@ RUST_LOG         ?= info
         kind-e2e-install kind-e2e-bundle kind-e2e-rbac kind-e2e-admission kind-e2e-leader kind-e2e-openbao \
         kind-cert-manager kind-openbao cluster-deploy cluster-undeploy openbao-e2e \
         docs docs-serve docs-clean docs-linkcheck docs-reference docs-reference-check policy-lint openbao-dev openbao-dev-check \
-        license-check bundle-deps-check conformance conformance-check cargo-auditable release-binary sbom-check grype-install vexctl-install vex-evidence vex-evidence-test vex-assemble image-scan image-gate release-manifest release-manifest-test set-version set-version-test
+        license-check bundle-deps-check conformance conformance-check cargo-auditable release-binary sbom-check grype-install vexctl-install vex-evidence vex-evidence-test vex-assemble image-scan image-gate release-manifest release-manifest-sign release-manifest-test set-version set-version-test
 
 help: ## Show this help
 	@echo 'Usage: make [target] [VAR=value ...]'
@@ -248,15 +248,24 @@ sbom-check: ## Fail unless SBOM (a CycloneDX file) lists notaio's Rust crates
 	  done; \
 	  echo "sbom-check: $$n Rust crates, including $(SBOM_REQUIRED_CRATES)"
 
-release-manifest: ## Render RELEASE_DIR/notaio-VERSION.yaml: CRDs, controller, profiles, image pinned to IMAGE_DIGEST
+release-manifest: ## Render RELEASE_DIR/notaio-VERSION-crds.yaml and notaio-VERSION.yaml (controller, profiles, image pinned to IMAGE_DIGEST)
 	@test -n "$(VERSION)" || { echo "set VERSION, e.g. 1.2.3"; exit 1; }
 	@echo "$(IMAGE_DIGEST)" | grep -Eq '^sha256:[0-9a-f]{64}$$' || { echo "set IMAGE_DIGEST to sha256:<64 hex>, got '$(IMAGE_DIGEST)'"; exit 1; }
 	@mkdir -p "$(RELEASE_DIR)"
+	@# Two files, because kubectl maps every kind in a file before creating any: profiles in the
+	@# same file as the CRDs that define them fail on a first install. Apply the CRDs, wait for
+	@# them, then the rest (ADR-0009, amended).
+	@crds="$(RELEASE_DIR)/notaio-$(VERSION)-crds.yaml"; \
+	  { printf '# notaio %s: the CustomResourceDefinitions. Apply first, and wait for them to be Established.\n' "$(VERSION)"; \
+	    for f in deploy/crds/*.yaml; do printf -- '---\n# Source: %s\n' "$$f"; cat "$$f"; done; \
+	  } > "$$crds"; \
+	  echo "✓ $$crds"
 	@out="$(RELEASE_DIR)/notaio-$(VERSION).yaml"; \
-	  { printf '# notaio %s: CRDs, controller and built-in profiles, image pinned by digest (ADR-0009).\n' "$(VERSION)"; \
-	    printf '# Not included: deploy/admission/gitops-only.yaml, which names your GitOps identity.\n'; \
+	  { printf '# notaio %s: the controller and the built-in profiles, image pinned by digest (ADR-0009).\n' "$(VERSION)"; \
+	    printf '# Apply after notaio-%s-crds.yaml. Not included: deploy/admission/gitops-only.yaml, which names\n' "$(VERSION)"; \
+	    printf '# your GitOps identity, and deploy/policy-namespace/, applied per policy namespace.\n'; \
 	    printf '# Needs OpenBao and ConfigMap openbao-ca in notaio-system before the controller starts (ADR-0004).\n'; \
-	    for f in deploy/crds/*.yaml deploy/controller/*.yaml deploy/profiles/*.yaml; do \
+	    for f in deploy/controller/*.yaml deploy/profiles/*.yaml; do \
 	      printf -- '---\n# Source: %s\n' "$$f"; cat "$$f"; \
 	    done; \
 	  } | sed -E 's#(image: )$(RELEASE_IMAGE):[^[:space:]]+#\1$(RELEASE_IMAGE)@$(IMAGE_DIGEST)#' > "$$out"; \
@@ -275,7 +284,8 @@ release-manifest-test: ## Prove release-manifest pins the image by digest, once,
 	  $(MAKE) --no-print-directory -s release-manifest VERSION=0.0.0-test \
 	    IMAGE_DIGEST=$$digest RELEASE_DIR="$$tmp" >/dev/null && \
 	  out="$$tmp/notaio-0.0.0-test.yaml" && \
-	  python3 scripts/check_release_manifest.py "$$out" "ghcr.io/$(ORG)/$(BINARY)@$$digest" && \
+	  python3 scripts/check_release_manifest.py "$$out" "$$tmp/notaio-0.0.0-test-crds.yaml" \
+	    "ghcr.io/$(ORG)/$(BINARY)@$$digest" && \
 	  echo "release-manifest-test: ok"
 
 set-version-test: ## Prove set-version changes the workspace version, and only it, and the workspace still resolves
@@ -417,8 +427,8 @@ kind-load: kind-create ## Build the notaio image for the host arch and side-load
 	echo "Loading $(KIND_IMAGE) into kind cluster '$(KIND_CLUSTER_NAME)'..."; \
 	kind load docker-image $(KIND_IMAGE) --name $(KIND_CLUSTER_NAME)
 
-# Namespace that holds SandboxPolicy objects in the e2e. deploy/controller/10-rbac.yaml
-# carries the per-namespace bundle Role for `sandboxes`, so it must exist first.
+# Namespace that holds SandboxPolicy objects in the e2e; deploy/policy-namespace/ gives the
+# controller its bundle writes there.
 E2E_POLICY_NAMESPACE ?= sandboxes
 
 kind-deploy: kind-load kind-openbao ## Install CRDs, profiles and the controller from deploy/ into kind, signing with OpenBao
@@ -432,6 +442,7 @@ kind-deploy: kind-load kind-openbao ## Install CRDs, profiles and the controller
 	@dev/openbao/use-signer.sh $(KIND_KUBECONFIG) ca
 	@echo "Applying controller manifests..."
 	@$(KIND_KUBECTL) apply -f deploy/controller/
+	@$(KIND_KUBECTL) -n $(E2E_POLICY_NAMESPACE) apply -f deploy/policy-namespace/
 	@$(KIND_KUBECTL) -n $(NAMESPACE) set image deployment/notaio notaio=$(KIND_IMAGE)
 	@$(KIND_KUBECTL) -n $(NAMESPACE) set env deployment/notaio RUST_LOG="$(RUST_LOG)"
 	@$(KIND_KUBECTL) -n $(NAMESPACE) rollout status deployment/notaio --timeout=180s
@@ -561,10 +572,17 @@ cluster-deploy: ## Deploy notaio from deploy/ to CLUSTER_KUBECONFIG with NOTAIO_
 	@# Signs with the cluster's dev/openbao (ADR-0004): its CA first, or the pod cannot start.
 	@dev/openbao/use-signer.sh $(CLUSTER_KUBECONFIG) ca
 	@$(CLUSTER_KUBECTL) apply -f deploy/controller/ >/dev/null
+	@$(CLUSTER_KUBECTL) -n $(E2E_POLICY_NAMESPACE) apply -f deploy/policy-namespace/ >/dev/null
 	@$(CLUSTER_KUBECTL) -n $(NAMESPACE) set image deployment/notaio notaio=$(NOTAIO_IMAGE) >/dev/null
 	@$(CLUSTER_KUBECTL) -n $(NAMESPACE) rollout status deployment/notaio --timeout=180s >/dev/null
 	@$(CLUSTER_KUBECTL) apply -f deploy/profiles/ >/dev/null
 	@echo "✓ notaio deployed ($(NOTAIO_IMAGE))"
+
+release-manifest-sign: ## Cosign-sign (keyless) both release manifests in RELEASE_DIR, a .sigstore.json bundle each (CI)
+	@test -n "$(VERSION)" || { echo "set VERSION"; exit 1; }
+	@for f in "$(RELEASE_DIR)/notaio-$(VERSION)-crds.yaml" "$(RELEASE_DIR)/notaio-$(VERSION).yaml"; do \
+	  cosign sign-blob --yes --bundle "$$f.sigstore.json" "$$f" || exit 1; \
+	done
 
 cluster-undeploy: ## Remove everything cluster-deploy created from CLUSTER_KUBECONFIG
 	@test -n "$(CLUSTER_KUBECONFIG)" || { echo "set CLUSTER_KUBECONFIG"; exit 1; }

@@ -2,6 +2,27 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-31 22:00] - Install fixes found on a real cluster: CRDs apart, no example namespace
+
+**Author:** Erick Bourgeois
+
+### Changed
+- Roadmap 01 phase A began with a server-side dry-run of the v0.3.0 manifest against the test
+  cluster. It found that the built-in profiles fail a first apply alongside their CRDs (kubectl
+  maps every kind first; `make cluster-deploy` hid it by applying the CRDs separately), and that
+  the manifest carried the `notaio-bundles` Role and RoleBinding for an example namespace.
+- `make release-manifest` writes `notaio-<v>-crds.yaml` and `notaio-<v>.yaml`; `make
+  release-manifest-sign` (new) Cosign-signs both, and the workflow calls it.
+  `scripts/check_release_manifest.py` checks both: the CRDs alone in theirs, and no CRD,
+  admission policy, or Role or RoleBinding outside `notaio-system` in the other. Checked by putting
+  the old Role back: refused.
+- `deploy/policy-namespace/notaio-bundles.yaml` (new): the bundle Role and RoleBinding with no
+  namespace, out of `deploy/controller/10-rbac.yaml`; `kind-deploy` and `cluster-deploy` apply it
+  into the e2e policy namespace.
+- Docs: the install guide's download, apply and RBAC steps; the developer page's release
+  verification; ADR-0009 amended; roadmap 01 (phase A's finding, and the Flux Operator, recorded
+  with why it is used despite being AGPL-3.0 and single-vendor); CHANGELOG.md.
+
 ## [2026-10-31 18:00] - Roadmap 01: run notaio for real
 
 **Author:** Erick Bourgeois

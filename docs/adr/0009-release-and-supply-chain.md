@@ -48,6 +48,12 @@ does not need yet.
    digest. It is signed with keyless Cosign (`notaio-<version>.yaml.sigstore.json`), and its
    SHA-256 is in `checksums.sha256`. The repository's `deploy/` stays the readable source, naming
    `ghcr.io/firestoned/notaio:latest`; CI never rewrites tracked files.
+   *Amended 2026-10-31:* the CRDs ship as their own asset, `notaio-<version>-crds.yaml`, signed and
+   checksummed the same way, applied and waited for before `notaio-<version>.yaml`. In one file the
+   built-in profiles failed a first install, because `kubectl` reads every kind before creating
+   any. The per-namespace bundle Role left the install manifest for
+   `deploy/policy-namespace/`: it named an example namespace every install would have had to
+   create or edit. Both found by installing a release on a real cluster (roadmap 01).
 5. **The admission policy is not in the install manifest.** `deploy/admission/gitops-only.yaml`
    names the site's GitOps identity, so each installation adapts and applies it itself.
 6. **The logic lives in the Makefile** (`release-binary`, `release-manifest`, `set-version`) and
