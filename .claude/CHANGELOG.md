@@ -2,6 +2,21 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-31 18:30] - Roadmap 01 phase A: v0.3.1 installed on the test cluster
+
+**Author:** Erick Bourgeois
+
+### Changed
+- notaio v0.3.1 installed on the long-lived test cluster from its verified release files, following
+  the install guide step by step: the namespace and OpenBao CA, the CRDs then the rest, the bundle
+  Role in the first policy namespace. The NetworkPolicy's API server rule was narrowed to the API
+  server's endpoints in a local copy only (real addresses stay out of the repository).
+- Checked: two replicas on different nodes, one leader, the built-in profiles Valid, `/readyz`,
+  the must-be-zero series at 0, RBAC (ConfigMaps in the policy namespace only, no policy edits). A
+  real bundle published and verified through OpenBao, and refused against another key; the test
+  objects removed.
+- Roadmap 01: phase A ticked; a follow-up to log an expired watch quietly instead of as a warning.
+
 ## [2026-10-31 23:50] - VEX for CVE-2026-84243
 
 **Author:** Erick Bourgeois

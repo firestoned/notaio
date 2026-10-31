@@ -1,6 +1,7 @@
 # Roadmap 01: run notaio for real
 
-- **Status:** Planned. The test OpenBao is ready (unsealed by hand); nothing else is installed.
+- **Status:** In progress. Phase A is done (v0.3.1 installed and signing through OpenBao); phase B
+  needs the private policy repository.
 - **Milestone:** M3 in [`ROADMAPS.md`](../../ROADMAPS.md), stage 1 of running it end to end
 - **Related:** roadmap 00 (M3), whose phase 1 reads what this publishes; ADR-0004 (the signer),
   ADR-0009 (releases), ADR-0010 (health and metrics), ADR-0011 (leader election)
@@ -52,12 +53,21 @@ to read and enforce the bundle: roadmap 00, phases 1 to 3.
       found two install defects: the built-in profiles fail a first apply in the same file as their
       CRDs, and the manifest carried a bundle Role for an example namespace. Fixed in v0.3.1: the
       CRDs ship separately, and the Role is a per-namespace template (ADR-0009, amended).
-- [ ] Verify both manifests as the install guide says: checksums, Cosign signatures, provenance.
-- [ ] `notaio-system` with the OpenBao CA in ConfigMap `openbao-ca`; the NetworkPolicy's API
-      server rule narrowed to the control plane's range.
-- [ ] Apply the CRDs, wait, apply the rest; `deploy/policy-namespace/` in each policy namespace.
-      Two replicas ready, one Lease holder, the built-in profiles `Valid`, `/metrics` with both
-      must-be-zero series at 0.
+- [x] Verify both manifests as the install guide says: checksums, Cosign signatures, provenance
+      (v0.3.1, 2026-10-31).
+- [x] `notaio-system` with the OpenBao CA in ConfigMap `openbao-ca`; the NetworkPolicy's API
+      server rule narrowed to the API server's endpoints, in a local copy of the manifest only.
+- [x] Apply the CRDs, wait, apply the rest; `deploy/policy-namespace/` in the first policy
+      namespace. Two replicas on different nodes, one Lease holder, the built-in profiles `Valid`
+      (which also shows the narrowed NetworkPolicy still reaches the API server), `/readyz` ready,
+      both must-be-zero series at 0. The controller may write ConfigMaps in the policy namespace
+      and nowhere else, and may not edit a policy.
+- [x] One real signature, before admission is on: the example policy and ceiling, applied briefly,
+      published a v3 bundle signed by the transit key, with a `Published` Event; the consumer
+      example accepted it against OpenBao's public key and refused it against another key; both
+      objects deleted, their bundle with them.
+- [ ] Follow-up: a watch that expires ("too old resource version") is logged as a `WARN` "policy
+      controller error", though the watcher re-lists by itself. Log it quietly.
 
 ### Phase B: GitOps and the policy repository
 
