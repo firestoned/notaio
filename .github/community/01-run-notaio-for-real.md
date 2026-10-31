@@ -27,8 +27,12 @@ to read and enforce the bundle: roadmap 00, phases 1 to 3.
 
 ## 3. Decisions
 
-- **GitOps: Flux**, installed as raw manifests pinned to a version (no Helm). Its
-  `kustomize-controller` becomes the only identity the GitOps-only admission policy admits.
+- **GitOps: Flux, managed by the Flux Operator** (a `FluxInstance` installs and upgrades Flux). The
+  Flux Operator is AGPL-3.0 and single-vendor (ControlPlane), which this project's dependency rule
+  screens out; it is used here anyway, on purpose, because it is a tool on a test cluster, run
+  unmodified, and not a notaio dependency. notaio requires neither it nor any GitOps tool, and its
+  documented path stays plain Flux (Apache-2.0, CNCF). Flux's `kustomize-controller` becomes the
+  only identity the GitOps-only admission policy admits.
 - **Policies live in a new private repository.** Real policies name real hosts, which never go in a
   public repository. Its CI runs `notaio lint` from a pinned release; CODEOWNERS gives `ceilings/`
   to the security approvers.
@@ -44,18 +48,22 @@ to read and enforce the bundle: roadmap 00, phases 1 to 3.
 
 ### Phase A: install notaio from the release
 
-- [ ] Verify `notaio-<version>.yaml` as the install guide says: checksum, Cosign signature,
-      provenance.
+- [x] A server-side dry-run of the v0.3.0 manifest against the cluster, before installing it,
+      found two install defects: the built-in profiles fail a first apply in the same file as their
+      CRDs, and the manifest carried a bundle Role for an example namespace. Fixed in v0.3.1: the
+      CRDs ship separately, and the Role is a per-namespace template (ADR-0009, amended).
+- [ ] Verify both manifests as the install guide says: checksums, Cosign signatures, provenance.
 - [ ] `notaio-system` with the OpenBao CA in ConfigMap `openbao-ca`; the NetworkPolicy's API
-      server rule narrowed to the control plane's range; the `notaio-bundles` Role in each policy
-      namespace.
-- [ ] Apply the release manifest. Two replicas ready, one Lease holder, the built-in profiles
-      `Valid`, `/metrics` with both must-be-zero series at 0.
+      server rule narrowed to the control plane's range.
+- [ ] Apply the CRDs, wait, apply the rest; `deploy/policy-namespace/` in each policy namespace.
+      Two replicas ready, one Lease holder, the built-in profiles `Valid`, `/metrics` with both
+      must-be-zero series at 0.
 
 ### Phase B: GitOps and the policy repository
 
-- [ ] Flux, pinned, as raw manifests; a `GitRepository` for the policy repository with a read-only
-      deploy key, and a `Kustomization` per policy namespace.
+- [ ] The Flux Operator, pinned, and a `FluxInstance` for Flux; a `GitRepository` for the policy
+      repository with a read-only deploy key, and a `Kustomization` per policy namespace, each
+      including `deploy/policy-namespace/`.
 - [ ] The policy repository: `policies/<namespace>/`, `ceilings/<namespace>/` under CODEOWNERS;
       the `notaio lint` workflow from the lint guide, pinned to the release image by digest, a
       required check.

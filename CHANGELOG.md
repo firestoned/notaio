@@ -10,7 +10,15 @@ a release, the maintainer renames Unreleased to the version and date.
 
 ## Unreleased
 
-Nothing yet.
+### Fixed
+
+- A first install from the release manifest failed on the built-in profiles: they were in the same
+  file as the CRDs that define them, and `kubectl` reads every kind before creating any. The CRDs
+  now ship as their own asset, `notaio-<version>-crds.yaml`, signed and checksummed like the rest;
+  apply it, wait, then `notaio-<version>.yaml`.
+- The install manifest no longer carries a bundle Role and RoleBinding for an example namespace,
+  `sandboxes`, which every install had to create or edit. The Role is now a template with no
+  namespace, `deploy/policy-namespace/notaio-bundles.yaml`, applied in each policy namespace.
 
 ## [0.3.0] - 2026-10-31
 
