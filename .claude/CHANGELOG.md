@@ -2,6 +2,14 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-31 23:30] - Release prep: v0.3.1
+
+**Author:** Erick Bourgeois
+
+### Changed
+- Workspace version 0.3.1; `CHANGELOG.md` gains its `[0.3.1]` section: the install fixes, with an
+  upgrade note for a 0.3.0 install that created the example Role.
+
 ## [2026-10-31 22:00] - Install fixes found on a real cluster: CRDs apart, no example namespace
 
 **Author:** Erick Bourgeois

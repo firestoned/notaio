@@ -10,6 +10,19 @@ a release, the maintainer renames Unreleased to the version and date.
 
 ## Unreleased
 
+Nothing yet.
+
+## [0.3.1] - 2026-10-31
+
+Install fixes, found by installing 0.3.0 on a real cluster. Nothing about policies, bundles or the
+controller's behaviour changes.
+
+### Upgrading from 0.3.0
+
+Apply `notaio-0.3.1-crds.yaml`, wait for the CRDs, then `notaio-0.3.1.yaml`. If 0.3.0 installed the
+`notaio-bundles` Role and RoleBinding in a `sandboxes` namespace you do not use, delete them; in each
+namespace you do use, apply `deploy/policy-namespace/notaio-bundles.yaml` from this tag.
+
 ### Fixed
 
 - A first install from the release manifest failed on the built-in profiles: they were in the same
@@ -128,6 +141,7 @@ operator needs to run it with two replicas and an OpenBao signer.
 - Its NetworkPolicy allows egress only to DNS, the API server and OpenBao, and ingress only to the
   health and metrics port from the monitoring namespace.
 
+[0.3.1]: https://github.com/firestoned/notaio/releases/tag/v0.3.1
 [0.3.0]: https://github.com/firestoned/notaio/releases/tag/v0.3.0
 [0.2.0]: https://github.com/firestoned/notaio/releases/tag/v0.2.0
 [0.1.0]: https://github.com/firestoned/notaio/releases/tag/v0.1.0
