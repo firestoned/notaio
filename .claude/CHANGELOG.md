@@ -2,6 +2,21 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-31 18:00] - Roadmap 01: run notaio for real
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `.github/community/01-run-notaio-for-real.md` (new): stage 1 of running end to end. notaio
+  installed from the signed release, Flux (raw manifests, pinned), a private policy repository with
+  `notaio lint` in CI and CODEOWNERS on ceilings, GitOps-only admission naming Flux's
+  kustomize-controller, a read-only `e2e_smoke` suite (the kind suites, which create policies as
+  cluster-admin, stay on kind rather than exempting a namespace from admission), and three checks
+  that prove the loop. No cluster, host or repository names, per the no-real-infrastructure rule.
+- `ROADMAPS.md` M3 links it.
+- On the test cluster: OpenBao unsealed (it had sealed on a pod restart); its transit key
+  `notaio:v1` is intact, ed25519, not exportable, and matches the saved public key.
+
 ## [2026-10-31 15:00] - Docs audit: a glossary, the conformance vectors explained, stale code ranges
 
 **Author:** Erick Bourgeois

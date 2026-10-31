@@ -84,6 +84,12 @@ endpoints and rules per audience, API v1alpha2) are decided and built, and the c
 says what every consumer must accept and refuse. Next is phase 1, in mediatore: read and verify
 the bundles in shadow. D3 to D6 are open.
 
+Running notaio for real, before any consumer reads it, is planned in
+[roadmap 01](https://github.com/firestoned/notaio/blob/main/.github/community/01-run-notaio-for-real.md):
+installed from the signed release on a long-lived test cluster, with Flux, a private policy
+repository, GitOps-only admission, a read-only `e2e_smoke` suite, and a policy change proven from
+pull request to verified bundle.
+
 - AgentSandbox (mediatore, since mediatore ADR-0008 took the claim from banlieue): names a policy,
   admission checks eligibility with it as the parameter, the claim records the policy version. No
   policy logic in banlieue or mediatore beyond verifying and enforcing the bundle.
