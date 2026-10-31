@@ -1,6 +1,7 @@
 # Roadmap 00: M3, integrate the consumers
 
-- **Status:** Planned. Nothing here is built; the decisions in section 3 come first.
+- **Status:** In progress. Phase 0 is complete, released as v0.3.0 (2026-10-31): D1 and D2 are
+  decided and built. Phase 1 is next, in mediatore. D3 to D6 are open.
 - **Milestone:** M3 in [`ROADMAPS.md`](../../ROADMAPS.md)
 - **Related:** ADR-0002 (the bundle contract), ADR-0003 (distribution), ADR-0004 (signing keys),
   ADR-0008 (the consumer's version floor); mediatore ADR-0008 (AgentSandbox), ADR-0024 (Landlock),
@@ -119,7 +120,9 @@ Each phase is shippable and leaves the system no looser than before.
       (`make conformance-check`) and run through notaio's own `accept`; exposed as
       `sandboxpolicy_bundle::conformance` and listed in the reference.
 - [x] A JSON Schema for the v3 payload, generated from the types (`bundle-v3.schema.json`).
-- [ ] A release, v0.3.0, which is what consumers pin.
+- [x] A release, v0.3.0, which is what consumers pin (2026-10-31): signed, attested and scanned
+      like every release, its CRDs at v1alpha2 only, and its conformance vectors identical to what
+      the generator produces.
 
 ### Phase 1: mediatore reads and verifies, in shadow
 
