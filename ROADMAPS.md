@@ -73,8 +73,14 @@ Not done: nothing has run on a cluster.
 
 ## M3: integrate the consumers
 
-- Banlieue: claims name a policy and profile, admission checks eligibility with these objects as
-  parameters, the claim records the policy version. No policy logic in banlieue.
+Planned in [roadmap 00](https://github.com/firestoned/notaio/blob/main/.github/community/00-m3-integrate-the-consumers.md): six decisions first
+(how consumers get the crates, bundle schema v3 for mediatore's egress model, where the policy is
+named, how the guest gets the bundle and the keys, whether the gateway verifies, what a token
+carries), then four phases.
+
+- AgentSandbox (mediatore, since mediatore ADR-0008 took the claim from banlieue): names a policy,
+  admission checks eligibility with it as the parameter, the claim records the policy version. No
+  policy logic in banlieue or mediatore beyond verifying and enforcing the bundle.
 - Mediatore: verify the bundle, evaluate at every mint, stamp the version into tokens, refuse stale
   versions.
 - Mediatore-guest: render the jail, nftables and managed settings from the verified bundle.
@@ -93,6 +99,7 @@ Not done: nothing has run on a cluster.
 A separate, status-labelled edition of the docs (implemented, planned, proposed), a SECURITY.md, and
 a licence review. Confirm employer sign-off first.
 
-Done: `SECURITY.md` (private vulnerability reporting), and a MkDocs site (`make docs`, published to
-GitHub Pages from `main`) that pulls in the canonical docs. Still open: status labels on every page,
-the licence review and a `LICENSE` file, employer sign-off.
+Done: `SECURITY.md` (private vulnerability reporting), a MkDocs site (`make docs`, published to
+GitHub Pages from `main`) that pulls in the canonical docs, and the Apache-2.0 `LICENSE` with SPDX
+headers on every source file, checked in CI. Still open: status labels on every page, employer
+sign-off.

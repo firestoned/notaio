@@ -2,6 +2,27 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-30 23:00] - Roadmap 00: the M3 plan; ROADMAPS.md
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `.github/community/00-m3-integrate-the-consumers.md` (new): the M3 plan, grounded in the mediatore
+  and banlieue trees. Where things stand (policy is the broker's config; no policy field on any
+  claim; the guest's only input is `/v1/me`; no signatures verified; per-audience `max_ttl`
+  collapsed). Six decisions first: D1 crate distribution (git tag recommended; `schemars` behind a
+  feature for the guest), D2 bundle schema v3 matching mediatore's per-audience endpoints and
+  `(method, path-glob)` rules, D3 `AgentSandbox.spec.policyRef` and a group-eligibility admission
+  policy, D4 the bundle over `/v1/me` with the keys in the VM image, D5 the gateway trusting the
+  broker, D6 the policy version in tokens. Then four phases: notaio's contract and conformance
+  vectors, mediatore in shadow, mediatore enforcing, the guest; then the gateway.
+- Two stale items corrected: M3 said banlieue claims name a policy (the claim is mediatore's
+  AgentSandbox now), and banlieue ADR-0109 defers a question to "mediatore ADR-0023", which is the
+  VM image ADR; the gateway ADR it means is not in the mediatore tree.
+- `ROADMAP.md` is now `ROADMAPS.md`, the status index of the global roadmap convention, with
+  detail plans in `.github/community/`. Every reference updated; the documentation rule now
+  describes the layout as in force. M5 no longer lists the LICENSE as open.
+
 ## [2026-10-30 21:00] - Release prep: v0.2.0
 
 **Author:** Erick Bourgeois

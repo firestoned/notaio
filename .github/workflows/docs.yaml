@@ -9,7 +9,7 @@
 #   - no `workflow_run` release chain: notaio cuts no releases yet, so docs
 #     ship on merge to main. Add the chain with the release pipeline (M2).
 #
-# The site pulls in canonical files from outside docs/ (ROADMAP.md, the
+# The site pulls in canonical files from outside docs/ (ROADMAPS.md, the
 # generated profiles), hence the extra paths below.
 
 name: Documentation
@@ -20,13 +20,13 @@ on:
       - main
     paths:
       - 'docs/**'
-      - 'ROADMAP.md'
+      - 'ROADMAPS.md'
       - 'deploy/profiles/**'
       - '.github/workflows/docs.yaml'
   pull_request:
     paths:
       - 'docs/**'
-      - 'ROADMAP.md'
+      - 'ROADMAPS.md'
       - 'deploy/profiles/**'
       - '.github/workflows/docs.yaml'
   workflow_dispatch:

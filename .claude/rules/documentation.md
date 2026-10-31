@@ -16,7 +16,7 @@ configuration, deployment and architecture changes all have a docs half.
 | Decisions | `docs/adr/NNNN-title.md` |
 | Threat model coverage | `docs/threat-model-mapping.md` (`rules/threat-modeling.md`) |
 | AIR framework mapping | `docs/air/*.yaml`, generating `docs/framework-mapping.md` (`make air`) |
-| Roadmap | `ROADMAP.md` (milestones M0 to M5) |
+| Roadmap | `ROADMAPS.md` (milestones M0 to M5, the status index), detail plans in `.github/community/NN-title.md` |
 | Examples | `examples/*.yaml` |
 | Change log | `.claude/CHANGELOG.md` (detailed, for maintainers) |
 | Release notes | `CHANGELOG.md` (Keep a Changelog: an Unreleased entry for anything a user would notice) |
@@ -47,10 +47,10 @@ zero-padded, never renumbered.
 
 The global convention for roadmaps is detail docs in `.github/community/`
 (`NN-title.md`, lowercase, hyphens, two-digit prefix contiguous from `00`)
-indexed by `ROADMAPS.md` at the repo root. notaio still has a single
-`ROADMAP.md` with milestones. Until it moves to that layout, update the
-milestone in `ROADMAP.md`; when it moves, follow the global rule, including
-renumbering every `roadmap NN` reference in the same commit.
+indexed by `ROADMAPS.md` at the repo root. notaio follows it: `ROADMAPS.md` holds the milestones
+and their status, and a milestone big enough to plan gets a detail document in
+`.github/community/`, linked from its milestone. Renumber every `roadmap NN` reference in the same
+commit when one is inserted or retired.
 
 The trigger for a roadmap update is **completion, not change**: if an item is
 true now, mark it now, and audit the rest of the milestone against the tree
@@ -125,6 +125,6 @@ rg -n '—' <files you touched>
 - [ ] Affected docs and ADRs updated
 - [ ] Examples match the CRDs (`make kind-e2e-install` dry-runs them)
 - [ ] `make manifests-check` and `make air-check` pass
-- [ ] `make docs` passes (strict) if anything under `docs/`, `ROADMAP.md` or `deploy/profiles/` changed
-- [ ] `ROADMAP.md` updated for anything that completed
+- [ ] `make docs` passes (strict) if anything under `docs/`, `ROADMAPS.md` or `deploy/profiles/` changed
+- [ ] `ROADMAPS.md` (and the roadmap in `.github/community/`) updated for anything that completed
 - [ ] No em-dashes in what you wrote
