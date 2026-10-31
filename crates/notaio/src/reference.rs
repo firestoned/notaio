@@ -40,6 +40,7 @@ pub fn pages() -> Vec<(&'static str, String)> {
         ("metrics.md", metrics()),
         ("cli.md", cli_page()),
         ("environment.md", environment()),
+        ("conformance.md", conformance()),
     ]
 }
 
@@ -564,6 +565,63 @@ fn environment() -> String {
             format!("`{}`", cell(&default))
         };
         let _ = writeln!(out, "| `{name}` | {default} | {} |", cell(meaning));
+    }
+    out
+}
+
+// ---- Conformance vectors --------------------------------------------------------------------
+
+fn conformance() -> String {
+    let mut out = page(
+        "Conformance Vectors",
+        "Signed bundles, each with the verdict every consumer must reach: mediatore, mediatore-guest \
+and the gateway test against these files, which notaio's own verifier passes in CI. They live in \
+`crates/sandboxpolicy-bundle/conformance/` (`vectors.json`, and `bundle-v3.schema.json`, the \
+payload's JSON Schema) and in `sandboxpolicy_bundle::conformance`. How to use them is in \
+[Consume a Bundle](../guides/consume-a-bundle.md).",
+    );
+    let Ok(suite) = sandboxpolicy_bundle::conformance::suite() else {
+        return out;
+    };
+    let _ = writeln!(
+        out,
+        "\nBundle schema `{}`. Trusted key, for these vectors only: `{}`. Every vector concerns the \
+policy `{}/{}`; its floor is the consumer's floor for that policy before the envelope.\n",
+        suite.bundle_schema,
+        suite
+            .trusted_keys
+            .iter()
+            .map(|k| k.key_id.as_str())
+            .collect::<Vec<_>>()
+            .join("`, `"),
+        suite.policy.namespace,
+        suite.policy.name
+    );
+    out.push_str(
+        "| Vector | Floor before | Verdict | What it checks |\n| --- | --- | --- | --- |\n",
+    );
+    for v in &suite.vectors {
+        let floor = v.floor.as_ref().map_or("none".to_string(), |f| {
+            format!(
+                "v{} of `{}`",
+                f.version,
+                &f.uid[f.uid.len().saturating_sub(4)..]
+            )
+        });
+        let verdict = match &v.expect {
+            sandboxpolicy_bundle::conformance::Expect::Accepted { version, .. } => {
+                format!("accepted, v{version}")
+            }
+            sandboxpolicy_bundle::conformance::Expect::Refused { error } => {
+                format!("refused: `{error}`")
+            }
+        };
+        let _ = writeln!(
+            out,
+            "| `{}` | {floor} | {verdict} | {} |",
+            v.name,
+            cell(&v.description)
+        );
     }
     out
 }

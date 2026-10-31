@@ -1,0 +1,314 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BundlePayload",
+  "type": "object",
+  "properties": {
+    "content": {
+      "$ref": "#/$defs/BundleContent"
+    },
+    "contentDigest": {
+      "type": "string"
+    },
+    "meta": {
+      "$ref": "#/$defs/BundleMeta"
+    },
+    "schema": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema",
+    "meta",
+    "content",
+    "contentDigest"
+  ],
+  "$defs": {
+    "Access": {
+      "type": "string",
+      "enum": [
+        "Read",
+        "Write"
+      ]
+    },
+    "AudienceGrant": {
+      "description": "One downstream audience the sandbox may obtain tokens for.",
+      "type": "object",
+      "properties": {
+        "access": {
+          "description": "`Read` or `Write`. `Write` needs K5.2 above R0 (lint L006).",
+          "$ref": "#/$defs/Access",
+          "default": "Read"
+        },
+        "endpoints": {
+          "description": "Where the audience is reached, `host:port`, through the broker's proxy, which injects the\ntoken: brokered calls, allowed at any K4.1 step. Exact names only (lint L017).",
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "name": {
+          "description": "The audience: the downstream service.",
+          "type": "string"
+        },
+        "rules": {
+          "description": "What may be called at those endpoints. None means every method and path.",
+          "type": "array",
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/EndpointRule"
+          }
+        },
+        "scopes": {
+          "description": "Scopes requested for the token.",
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "ttlSeconds": {
+          "description": "Requested token lifetime. Defaults to the K5.1 ceiling when omitted.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "Budgets": {
+      "type": "object",
+      "properties": {
+        "maxEgressBytes": {
+          "description": "The most bytes of egress per lease.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "maxToolCalls": {
+          "description": "The most tool calls per lease.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "maxWallClockSeconds": {
+          "description": "The most wall-clock time per lease, in seconds.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "maxToolCalls",
+        "maxWallClockSeconds",
+        "maxEgressBytes"
+      ]
+    },
+    "BundleContent": {
+      "description": "Everything that decides what a sandbox may do. The canonical form is RFC 8785 (ADR-0005), which\nsorts members, so field order here does not affect the digest; adding, removing, renaming or\nretyping a field still does, and is a schema change.",
+      "type": "object",
+      "properties": {
+        "audiences": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AudienceGrant"
+          }
+        },
+        "budgets": {
+          "$ref": "#/$defs/Budgets"
+        },
+        "egress": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EgressRule"
+          }
+        },
+        "knobs": {
+          "description": "Effective knob steps after applying active grants. Every registry knob is present.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/Step"
+          }
+        },
+        "lease": {
+          "$ref": "#/$defs/Lease"
+        },
+        "policy": {
+          "$ref": "#/$defs/PolicyRef"
+        },
+        "profile": {
+          "$ref": "#/$defs/ProfileRef"
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ToolRef"
+          }
+        }
+      },
+      "required": [
+        "policy",
+        "profile",
+        "knobs",
+        "audiences",
+        "egress",
+        "tools",
+        "lease",
+        "budgets"
+      ]
+    },
+    "BundleMeta": {
+      "type": "object",
+      "properties": {
+        "issuedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "notAfter": {
+          "description": "The bundle is worthless after this instant. Bounded by the earliest active grant expiry, so a\nrelaxation lapses without any revocation mechanism.",
+          "type": "string",
+          "format": "date-time"
+        },
+        "version": {
+          "description": "Monotonic. Bumps only when `contentDigest` changes.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "version",
+        "issuedAt",
+        "notAfter"
+      ]
+    },
+    "EgressRule": {
+      "description": "One direct egress entry: reached without the broker's proxy and without a token, enforced at\nthe gateway and in the host or network layer (ADR-0013).",
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "description": "`host:port`, a DNS name. IP literals are refused; a wildcard host needs K4.1 R3 (lint L007).",
+          "type": "string"
+        },
+        "rules": {
+          "description": "What may be called there. Only accepted at K4.1 R2 and above. None means anything.",
+          "type": "array",
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/EndpointRule"
+          }
+        }
+      },
+      "required": [
+        "endpoint"
+      ]
+    },
+    "EndpointRule": {
+      "description": "One HTTP rule for an endpoint (ADR-0013): a method, or `*` for any, and a path glob in which `*`\nmatches one segment and `**` zero or more, matched against the path without the query. The\nshape mediatore's egress proxy uses (its ADR-0025).",
+      "type": "object",
+      "properties": {
+        "method": {
+          "description": "An HTTP method, or `*`.",
+          "type": "string"
+        },
+        "path": {
+          "description": "A path glob starting with `/`.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "method",
+        "path"
+      ]
+    },
+    "Lease": {
+      "type": "object",
+      "properties": {
+        "maxConcurrent": {
+          "description": "How many sandboxes one person may run at once.",
+          "type": "integer",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0
+        },
+        "maxDurationSeconds": {
+          "description": "The longest a sandbox may run, in seconds.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "maxDurationSeconds",
+        "maxConcurrent"
+      ]
+    },
+    "PolicyRef": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "namespace": {
+          "type": "string"
+        },
+        "uid": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "namespace",
+        "name",
+        "uid"
+      ]
+    },
+    "ProfileRef": {
+      "type": "object",
+      "properties": {
+        "digest": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "digest"
+      ]
+    },
+    "Step": {
+      "description": "A relaxation step for a knob. `R0` is the locked default; higher steps are progressively looser.",
+      "type": "string",
+      "enum": [
+        "R0",
+        "R1",
+        "R2",
+        "R3"
+      ]
+    },
+    "ToolRef": {
+      "description": "A tool or MCP server the agent may use, pinned by manifest digest.",
+      "type": "object",
+      "properties": {
+        "manifestDigest": {
+          "description": "`sha256:<hex>` of the tool manifest.",
+          "type": "string"
+        },
+        "name": {
+          "description": "The tool or MCP server's name.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "manifestDigest"
+      ]
+    }
+  }
+}

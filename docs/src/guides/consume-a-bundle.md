@@ -88,6 +88,35 @@ cargo run -p sandboxpolicy-bundle --example verify_and_record -- \
 Run it twice with an older bundle to see the floor refuse it. Exit codes: 0 accepted, 1 refused,
 2 bad input.
 
+## Test against the conformance vectors
+
+notaio publishes signed bundles with the verdict every consumer must reach: accepted (first sight,
+the same version, a newer one, a new incarnation) and refused (a downgrade, a stale incarnation, a
+forged signature, an untrusted key, expired, not yet valid, a digest mismatch, an old schema, an old
+payload type, a malformed payload). They are listed in [Conformance Vectors](../reference/conformance.md)
+and come with the crate:
+
+```rust
+use sandboxpolicy_bundle::conformance::{suite, Expect};
+
+let s = suite()?;
+let keys = s.keys()?;                       // the vectors' own, test-only key
+for v in &s.vectors {
+    // Your verifier and your floor, seeded with v.floor for s.policy, at clock v.now.
+    let got = your_verify_and_record(&v.envelope, &keys, v.now, v.floor.clone());
+    match (&v.expect, got) {
+        (Expect::Accepted { version, floor_after }, Ok(accepted)) => { /* compare both */ }
+        (Expect::Refused { error }, Err(e)) => { /* compare with error_name(&e) */ }
+        (want, got) => panic!("{}: expected {want:?}, got {got:?}", v.name),
+    }
+}
+```
+
+A consumer in another language reads `crates/sandboxpolicy-bundle/conformance/vectors.json` from
+the tag it pins, and the payload's JSON Schema beside it, `bundle-v3.schema.json`. Run them in
+your CI, so a change to your relay, your key configuration or your floor store that would accept
+what notaio refuses fails there first.
+
 ## What to enforce
 
 Everything in `payload.content`: every knob's step (all of them are present, grants applied), the

@@ -171,6 +171,10 @@ jobs:
       - name: Bundle crate dependencies
         run: make bundle-deps-check
 
+      # The conformance vectors are generated, deterministic and checked in (roadmap 00).
+      - name: Conformance kit is current
+        run: make conformance-check
+
       # Each kind of VEX evidence fails when the fact behind it changes (ADR-0012).
       - name: VEX evidence checker
         run: make vex-evidence-test
