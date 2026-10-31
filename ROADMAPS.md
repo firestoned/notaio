@@ -76,7 +76,13 @@ Not done: nothing has run on a cluster.
 Planned in [roadmap 00](https://github.com/firestoned/notaio/blob/main/.github/community/00-m3-integrate-the-consumers.md): six decisions first
 (how consumers get the crates, bundle schema v3 for mediatore's egress model, where the policy is
 named, how the guest gets the bundle and the keys, whether the gateway verifies, what a token
-carries), then four phases. D2 is decided: bundle v3 and API v1alpha2 (ADR-0013).
+carries), then four phases.
+
+**Phase 0, notaio's contract, is done: v0.3.0** (2026-10-31). D1 (ADR-0014: consumers pin a release
+tag; the bundle crate's dependencies are kept small in CI) and D2 (ADR-0013: bundle v3 with
+endpoints and rules per audience, API v1alpha2) are decided and built, and the conformance kit
+says what every consumer must accept and refuse. Next is phase 1, in mediatore: read and verify
+the bundles in shadow. D3 to D6 are open.
 
 - AgentSandbox (mediatore, since mediatore ADR-0008 took the claim from banlieue): names a policy,
   admission checks eligibility with it as the parameter, the claim records the policy version. No

@@ -2,6 +2,17 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-31 12:00] - Roadmap 00: phase 0 complete with v0.3.0
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `.github/community/00-m3-integrate-the-consumers.md`: status "In progress"; the v0.3.0 release
+  ticked, with what its verification found (CRDs at v1alpha2 only, conformance vectors identical
+  to the generator's output).
+- `ROADMAPS.md` M3: phase 0 done with v0.3.0, D1 and D2 decided and built, phase 1 next in
+  mediatore, D3 to D6 open.
+
 ## [2026-10-31 23:00] - Release prep: v0.3.0
 
 **Author:** Erick Bourgeois
