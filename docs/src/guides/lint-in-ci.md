@@ -22,9 +22,10 @@ present.
 | 1 | At least one error finding. |
 | 2 | An input could not be read or parsed. |
 
-Findings carry the policy codes `L001` to `L016` and the input codes `I001` to `I008`, about the
-set of files given (a duplicate object, a policy whose profile is missing, and so on). All of them
-are in [Lint Rules](../reference/lint-rules.md).
+Findings carry a policy code (`L…`), the same the controller uses, or an input code (`I…`) about
+the set of files given: a duplicate object, a policy whose profile is missing, a file at a retired
+API version, and so on. Every code is in [Lint Rules](../reference/lint-rules.md), generated from the
+code, so it is always the full list.
 
 Grant expiry and lifetime checks depend on the clock. CI uses the real time, so a grant that is
 fine today can fail a later, unrelated pull request once it has expired: that is the point. Use

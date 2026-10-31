@@ -225,9 +225,11 @@ The lint rules and their codes are documented at the top of
 `notaio lint <paths>` runs the controller's checks on files: `lint_knobs` on every profile and
 `evaluate` on every policy with its grants, under the default ceilings and the current time
 ([ADR-0006](adr/0006-notaio-lint-cli.md)). A policy the controller would reject fails its pull
-request instead, with the same lint codes (L001 to L016, including the ceiling checks) and input codes for what
-only a set of files can get wrong (I001 to I008: an invalid object, a duplicate, a missing
-profile, an orphaned or expired grant, a ceiling for no policy). Profiles come from the files first, then the built-ins. `--format sarif`
+request instead, with the same lint codes (every `L` code, the ceiling checks included) and input
+codes for what only a set of files can get wrong (the `I` codes: an invalid object, a duplicate, a
+missing profile, an orphaned or expired grant, a ceiling for no policy, a retired API version).
+Both are listed in [Lint Rules](https://firestoned.github.io/notaio/reference/lint-rules/). Profiles come from the files first,
+then the built-ins. `--format sarif`
 feeds GitHub code scanning, so a reviewer sees the finding on the file. It exits 0 when clean, 1 on
 an error finding and 2 on unreadable input.
 
