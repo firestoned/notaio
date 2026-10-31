@@ -76,7 +76,7 @@ Not done: nothing has run on a cluster.
 Planned in [roadmap 00](https://github.com/firestoned/notaio/blob/main/.github/community/00-m3-integrate-the-consumers.md): six decisions first
 (how consumers get the crates, bundle schema v3 for mediatore's egress model, where the policy is
 named, how the guest gets the bundle and the keys, whether the gateway verifies, what a token
-carries), then four phases.
+carries), then four phases. D2 is decided: bundle v3 and API v1alpha2 (ADR-0013).
 
 - AgentSandbox (mediatore, since mediatore ADR-0008 took the claim from banlieue): names a policy,
   admission checks eligibility with it as the parameter, the claim records the policy version. No

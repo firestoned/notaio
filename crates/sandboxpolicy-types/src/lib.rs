@@ -9,4 +9,6 @@ mod knob;
 mod parts;
 
 pub use knob::{KnobId, Role, Step};
-pub use parts::{Access, AudienceGrant, Budgets, DataScope, EgressRule, Lease, ToolRef};
+pub use parts::{
+    Access, AudienceGrant, Budgets, DataScope, EgressRule, EndpointRule, Lease, ToolRef,
+};

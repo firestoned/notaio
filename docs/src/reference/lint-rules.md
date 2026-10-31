@@ -26,6 +26,8 @@ Checked by the controller and by `notaio lint`, from `crates/sandboxpolicy-core/
 | `L014` | The policy's exposure is not covered by its approved ceiling |
 | `L015` | The policy has no approved ceiling |
 | `L016` | The ceiling lacks an approval from the `Security` role |
+| `L017` | An audience endpoint or rule is malformed |
+| `L018` | An endpoint is reachable two ways: in two audiences, or in an audience and direct egress |
 
 ## Input rules
 
@@ -33,7 +35,7 @@ About the set of files given to `notaio lint`, from `crates/notaio/src/lint.rs`.
 
 | Code | Rule |
 | --- | --- |
-| `I001` | An object in the sandbox.firestoned.io group is not a valid SandboxProfile, SandboxPolicy or KnobGrant |
+| `I001` | An object in the sandbox.firestoned.io group is not a valid SandboxProfile, SandboxPolicy, KnobGrant or ExposureCeiling |
 | `I002` | The same object (kind, namespace, name) appears more than once in the inputs |
 | `I003` | A policy references a profile that is neither in the inputs nor built in |
 | `I004` | A grant references a policy that is not in the inputs |
@@ -41,3 +43,4 @@ About the set of files given to `notaio lint`, from `crates/notaio/src/lint.rs`.
 | `I006` | A grant has expired |
 | `I007` | A policy's profile does not lint clean; the profile's own findings are reported against it |
 | `I008` | An ExposureCeiling names a policy that is not in the inputs (ADR-0007) |
+| `I009` | An object uses an API version notaio no longer serves: write it as v1alpha2 (ADR-0013) |

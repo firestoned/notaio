@@ -1,7 +1,7 @@
 # Relax K2.3 (package installation) from R0 to R1 for one policy, for 30 days. R1 grants last at most
 # 90 days. The register requires the platform owner's approval, recorded with a reference to the
 # reviewed change. A grant must be exactly one step above the profile, never a jump.
-apiVersion: sandbox.firestoned.io/v1alpha1
+apiVersion: sandbox.firestoned.io/v1alpha2
 kind: KnobGrant
 metadata:
   name: agent-default-pkg-mirror

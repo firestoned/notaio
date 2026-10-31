@@ -1,4 +1,4 @@
-apiVersion: sandbox.firestoned.io/v1alpha1
+apiVersion: sandbox.firestoned.io/v1alpha2
 kind: SandboxPolicy
 metadata:
   name: agent-default
@@ -12,6 +12,11 @@ spec:
     - name: internal-git
       access: Read
       scopes: ["repo:read"]
+      # Brokered (ADR-0013): reached through mediatore's proxy, which injects the token. Exact
+      # host:port only. The rules bound what may be called; none would mean everything.
+      endpoints: ["git.foo.io:443"]
+      rules:
+        - { method: GET, path: "/repos/**" }
   # Hardened is K4.1 R0: no egress entries. All calls are brokered.
   egress: []
   tools: []

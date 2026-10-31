@@ -338,7 +338,7 @@ fn sample_snapshot() -> Option<Sample> {
     let ready = json!([{ "type": "Ready", "status": "True", "reason": "Published",
         "message": "", "lastTransitionTime": "2026-01-01T00:00:00Z" }]);
     let policy: SandboxPolicy = serde_json::from_value(json!({
-        "apiVersion": "sandbox.firestoned.io/v1alpha1", "kind": "SandboxPolicy",
+        "apiVersion": "sandbox.firestoned.io/v1alpha2", "kind": "SandboxPolicy",
         "metadata": { "name": "p", "namespace": "n" },
         "spec": { "profileRef": "hardened" },
         "status": { "conditions": ready, "bundleVersion": 1,
@@ -346,7 +346,7 @@ fn sample_snapshot() -> Option<Sample> {
     }))
     .ok()?;
     let grant: KnobGrant = serde_json::from_value(json!({
-        "apiVersion": "sandbox.firestoned.io/v1alpha1", "kind": "KnobGrant",
+        "apiVersion": "sandbox.firestoned.io/v1alpha2", "kind": "KnobGrant",
         "metadata": { "name": "g", "namespace": "n", "creationTimestamp": "2026-01-01T00:00:00Z" },
         "spec": { "policyRef": "p", "knob": "K2.3", "step": "R1", "owner": "o", "reason": "r",
                   "expiresAt": "2026-01-02T00:00:00Z", "approvals": [] },

@@ -6,7 +6,7 @@ it can use, and how long and how many sandboxes it may run. It is namespaced, an
 narrow what its profile allows.
 
 ```yaml
-apiVersion: sandbox.firestoned.io/v1alpha1
+apiVersion: sandbox.firestoned.io/v1alpha2
 kind: SandboxPolicy
 metadata:
   name: agent-default
@@ -19,6 +19,9 @@ spec:
     - name: internal-git
       access: Read
       scopes: ["repo:read"]
+      endpoints: ["git.foo.io:443"]
+      rules:
+        - { method: GET, path: "/repos/**" }
   egress: []
   tools: []
 ```
@@ -32,7 +35,8 @@ This is `examples/sandboxpolicy-hardened.yaml`.
 | `profileRef` | A cluster-scoped SandboxProfile. | missing: `Ready=False, ProfileNotFound` |
 | `subjects.groups` | Identity provider group ids allowed to claim a sandbox. Empty means nobody can. | `L010` (a warning) |
 | `audiences[]` | Each downstream service the sandbox may get a token for: `name`, `access` (`Read` or `Write`), `scopes`, and an optional `ttlSeconds` that defaults to the K5.1 ceiling. | `L005` (fits K5.3, no wildcard), `L006` (write needs K5.2, TTL within K5.1) |
-| `egress[]` | `host` and `port`, and at K4.1 `R2` or above, optional `methods` and `paths`. No IP literals. | `L007` |
+| `audiences[].endpoints`, `.rules` | Where the audience is reached, exact `host:port` names, through mediatore's proxy, which injects the token. These are brokered calls, so any K4.1 step allows them. `rules` are `{ method, path }`: a method or `*`, a path glob starting with `/` in which `*` is one segment and `**` any; none means everything ([ADR-0013](../adr/0013-bundle-v3-routes-and-v1alpha2.md)). | `L017` (exact names, no wildcard or IP literal, well-formed rules), `L018` (an endpoint in one place only) |
+| `egress[]` | Direct egress, without the proxy or a token: `{ endpoint: "host:port", rules }`. None at K4.1 `R0`, rules from `R2`, wildcard hosts at `R3`, never an IP literal. | `L007`, `L018` |
 | `tools[]` | A tool or MCP server by `name`, pinned by `manifestDigest` (`sha256:<hex>`). | `L008` (fits K1.3, pinned) |
 | `lease` | `maxDurationSeconds` and `maxConcurrent`. Defaults to the K7.3 ceiling. | `L009` |
 | `budgets` | `maxToolCalls`, `maxWallClockSeconds`, `maxEgressBytes`. Defaults from K7.3 and K4.3. | `L009` |

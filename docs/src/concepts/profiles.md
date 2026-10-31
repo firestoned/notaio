@@ -4,7 +4,7 @@ A **SandboxProfile** is a named set of knob steps. It is cluster scoped and plat
 pick a profile for their policy, they do not edit one.
 
 ```yaml
-apiVersion: sandbox.firestoned.io/v1alpha1
+apiVersion: sandbox.firestoned.io/v1alpha2
 kind: SandboxProfile
 metadata:
   name: hardened

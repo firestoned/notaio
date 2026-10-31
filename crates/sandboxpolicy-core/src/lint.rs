@@ -20,12 +20,14 @@
 //! | L014 | The policy's exposure is not covered by its approved ceiling |
 //! | L015 | The policy has no approved ceiling |
 //! | L016 | The ceiling lacks an approval from the `Security` role |
+//! | L017 | An audience endpoint or rule is malformed |
+//! | L018 | An endpoint is reachable two ways: in two audiences, or in an audience and direct egress |
 
 use std::collections::{BTreeMap, BTreeSet};
 
 use chrono::{DateTime, Duration, Utc};
 use sandboxpolicy_api::{ExposureCeilingSpec, KnobGrantSpec, MaxExposure, SandboxPolicySpec};
-use sandboxpolicy_types::{Access, DataScope, KnobId, Role, Step};
+use sandboxpolicy_types::{Access, DataScope, EndpointRule, KnobId, Role, Step};
 
 use crate::ceilings::Ceilings;
 use crate::registry::{self, LAB_ONLY_KNOBS};
@@ -75,6 +77,11 @@ pub const RULES: &[(&str, &str)] = &[
     (
         "L016",
         "The ceiling lacks an approval from the `Security` role",
+    ),
+    ("L017", "An audience endpoint or rule is malformed"),
+    (
+        "L018",
+        "An endpoint is reachable two ways: in two audiences, or in an audience and direct egress",
     ),
 ];
 
@@ -200,6 +207,33 @@ fn is_ip_literal(host: &str) -> bool {
     host.parse::<std::net::IpAddr>().is_ok()
 }
 
+/// The host and port of an endpoint, `host:port` with a port from 1 to 65535 and a non-empty host
+/// without surrounding spaces; None for anything else (ADR-0013).
+fn split_endpoint(e: &str) -> Option<(&str, u16)> {
+    let (host, port) = e.rsplit_once(':')?;
+    let port: u16 = port.parse().ok().filter(|p| *p > 0)?;
+    (!host.is_empty() && host.trim() == host).then_some((host, port))
+}
+
+/// An IP literal, bracketed IPv6 included.
+fn endpoint_is_ip(host: &str) -> bool {
+    is_ip_literal(host.trim_start_matches('[').trim_end_matches(']'))
+}
+
+/// Why `r` is not a rule mediatore's broker accepts, if it is not: the method is `*` or ASCII
+/// letters, and the path starts with `/`.
+fn rule_problem(r: &EndpointRule) -> Option<&'static str> {
+    let method_ok = r.method == "*"
+        || (!r.method.is_empty() && r.method.bytes().all(|b| b.is_ascii_alphabetic()));
+    if !method_ok {
+        return Some("a rule's method is an HTTP method or *");
+    }
+    if !r.path.starts_with('/') {
+        return Some("a rule's path starts with /");
+    }
+    None
+}
+
 fn valid_digest(d: &str) -> bool {
     d.strip_prefix("sha256:")
         .is_some_and(|h| h.len() == 64 && h.bytes().all(|b| b.is_ascii_hexdigit()))
@@ -290,29 +324,99 @@ pub fn lint_policy(
     }
     for (i, e) in spec.egress.iter().enumerate() {
         let path = format!("egress[{i}]");
-        if e.host.trim().is_empty() || e.port == 0 {
-            out.push(Finding::err("L007", &path, "host and port are required"));
-        }
-        if is_ip_literal(&e.host) {
-            out.push(Finding::err(
+        match split_endpoint(&e.endpoint) {
+            None => out.push(Finding::err(
                 "L007",
                 &path,
-                "direct-IP egress is never allowed, use a name",
-            ));
+                "endpoint must be host:port, with a port from 1 to 65535",
+            )),
+            Some((host, _)) => {
+                if endpoint_is_ip(host) {
+                    out.push(Finding::err(
+                        "L007",
+                        &path,
+                        "direct-IP egress is never allowed, use a name",
+                    ));
+                }
+                if host.contains('*') && k41 < Step::R3 {
+                    out.push(Finding::err(
+                        "L007",
+                        &path,
+                        "wildcard hosts need K4.1 at R3",
+                    ));
+                }
+            }
         }
-        if e.host.contains('*') && k41 < Step::R3 {
-            out.push(Finding::err(
-                "L007",
-                &path,
-                "wildcard hosts need K4.1 at R3",
-            ));
-        }
-        if (!e.methods.is_empty() || !e.paths.is_empty()) && k41 < Step::R2 {
+        if !e.rules.is_empty() && k41 < Step::R2 {
             out.push(Finding::err(
                 "L007",
                 &path,
                 "method and path rules need K4.1 at R2 or above",
             ));
+        }
+        for (j, r) in e.rules.iter().enumerate() {
+            if let Some(why) = rule_problem(r) {
+                out.push(Finding::err("L007", format!("{path}.rules[{j}]"), why));
+            }
+        }
+    }
+
+    // Audience endpoints and rules (ADR-0013): brokered, so any K4.1 step allows them, but each
+    // must be a name the proxy can route exactly.
+    for a in &spec.audiences {
+        let path = format!("audiences[{}]", a.name);
+        for e in &a.endpoints {
+            match split_endpoint(e) {
+                None => out.push(Finding::err(
+                    "L017",
+                    format!("{path}.endpoints[{e}]"),
+                    "endpoint must be host:port, with a port from 1 to 65535",
+                )),
+                Some((host, _)) if host.contains('*') => out.push(Finding::err(
+                    "L017",
+                    format!("{path}.endpoints[{e}]"),
+                    "an audience endpoint is an exact name, never a wildcard",
+                )),
+                Some((host, _)) if endpoint_is_ip(host) => out.push(Finding::err(
+                    "L017",
+                    format!("{path}.endpoints[{e}]"),
+                    "an audience endpoint is a name, never an IP literal",
+                )),
+                Some(_) => {}
+            }
+        }
+        for (j, r) in a.rules.iter().enumerate() {
+            if let Some(why) = rule_problem(r) {
+                out.push(Finding::err("L017", format!("{path}.rules[{j}]"), why));
+            }
+        }
+    }
+
+    // One endpoint, one way (ADR-0013, decision 4).
+    let mut owner: BTreeMap<&str, String> = BTreeMap::new();
+    let owners = spec
+        .audiences
+        .iter()
+        .flat_map(|a| {
+            let unique: BTreeSet<&str> = a.endpoints.iter().map(String::as_str).collect();
+            unique
+                .into_iter()
+                .map(move |e| (e, format!("audience {}", a.name)))
+        })
+        .chain(
+            spec.egress
+                .iter()
+                .map(|e| (e.endpoint.as_str(), "direct egress".to_string())),
+        );
+    for (endpoint, by) in owners {
+        if let Some(first) = owner.get(endpoint) {
+            out.push(Finding::err(
+                "L018",
+                format!("endpoints[{endpoint}]"),
+                format!("reachable through {first} and through {by}"),
+            ));
+        } else {
+            owner.insert(endpoint, by);
         }
     }
 
@@ -510,12 +614,22 @@ pub fn lint_exposure(
         if a.ttl_seconds > approved.max_ttl_seconds {
             out.push(Finding::err(
                 "L014",
-                path,
+                path.clone(),
                 format!(
                     "token lifetime {}s above the approved {}s",
                     a.ttl_seconds, approved.max_ttl_seconds
                 ),
             ));
+        }
+        // ADR-0013: approving an audience approves only the endpoints listed for it.
+        for e in &a.endpoints {
+            if !approved.endpoints.contains(e) {
+                out.push(Finding::err(
+                    "L014",
+                    format!("{path}.endpoints[{e}]"),
+                    "audience endpoint not in the approved ceiling",
+                ));
+            }
         }
     }
     for host in &exposure.egress_hosts {

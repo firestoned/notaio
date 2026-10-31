@@ -24,6 +24,8 @@ fn audience(name: &str, access: Access) -> AudienceGrant {
         access,
         scopes: vec!["repo:read".into()],
         ttl_seconds: None,
+        endpoints: vec![format!("{name}.internal.example:443")],
+        rules: vec![],
     }
 }
 
@@ -83,13 +85,10 @@ fn covering_ceiling(policy: &SandboxPolicy) -> ExposureCeiling {
                     name: a.name.clone(),
                     access: Access::Write,
                     max_ttl_seconds: u32::MAX,
+                    endpoints: a.endpoints.clone(),
                 })
                 .collect(),
-            egress_hosts: spec
-                .egress
-                .iter()
-                .map(|e| format!("{}:{}", e.host, e.port))
-                .collect(),
+            egress_hosts: spec.egress.iter().map(|e| e.endpoint.clone()).collect(),
             tools: spec.tools.iter().map(|t| t.name.clone()).collect(),
             max_lease_seconds: u32::MAX,
             approvals: vec![Approval {
@@ -204,10 +203,8 @@ fn fortress_refuses_audiences_and_egress() {
     let pr = profile("fortress");
     let mut po = policy("fortress", vec![audience("internal-git", Access::Read)]);
     po.spec.egress.push(EgressRule {
-        host: "git.internal.example".into(),
-        port: 443,
-        methods: vec![],
-        paths: vec![],
+        endpoint: "git.internal.example:443".into(),
+        rules: vec![],
     });
     let o = run(&po, Some(&pr), &[], None);
     assert!(o.bundle.is_none());
@@ -471,7 +468,7 @@ fn rules_table_matches_the_documented_codes() {
             "{code} differs between RULES and the documented table"
         );
     }
-    assert_eq!(sandboxpolicy_core::lint::RULES.len(), 16);
+    assert_eq!(sandboxpolicy_core::lint::RULES.len(), 18);
 }
 
 fn ready_reason(o: &EvalOutput) -> Option<&str> {
@@ -563,4 +560,170 @@ fn l016_ceiling_without_a_security_approval_fails_closed() {
     let o = run_with_ceiling(&po, Some(&pr), &[], None, Some(&c));
     assert!(has_code(&o, "L016"), "{:?}", o.findings);
     assert!(o.bundle.is_none());
+}
+
+// ---- ADR-0013: routes per audience, direct egress as endpoint and rules ----------------------
+
+fn rule(method: &str, path: &str) -> EndpointRule {
+    EndpointRule {
+        method: method.into(),
+        path: path.into(),
+    }
+}
+
+fn codes_of(o: &EvalOutput) -> Vec<&'static str> {
+    o.findings.iter().map(|f| f.code).collect()
+}
+
+#[test]
+fn audience_endpoints_are_brokered_so_hardened_allows_them() {
+    // Hardened is K4.1 R0: no direct egress, but a brokered audience endpoint with rules is fine.
+    let pr = profile("hardened");
+    let mut a = audience("internal-git", Access::Read);
+    a.rules = vec![rule("GET", "/repos/**"), rule("*", "/health")];
+    let po = policy("hardened", vec![a]);
+    let o = run(&po, Some(&pr), &[], None);
+    assert!(ready(&o), "{:?}", o.findings);
+    let b = o.bundle.unwrap();
+    assert_eq!(
+        b.content.audiences[0].endpoints,
+        vec!["internal-git.internal.example:443"]
+    );
+    // Rules are sorted in the canonical form, so their order in the policy does not matter.
+    assert_eq!(
+        b.content.audiences[0].rules,
+        vec![rule("*", "/health"), rule("GET", "/repos/**")]
+    );
+    assert_eq!(b.schema, "sandbox.firestoned.io/bundle/v3");
+}
+
+#[test]
+fn l017_refuses_malformed_audience_endpoints_and_rules() {
+    let pr = profile("hardened");
+    for (endpoints, rules) in [
+        (vec!["no-port.example"], vec![]),
+        (vec!["git.example:0"], vec![]),
+        (vec!["git.example:70000"], vec![]),
+        (vec!["*.example:443"], vec![]),
+        (vec!["10.0.0.1:443"], vec![]),
+        (vec!["[::1]:443"], vec![]),
+        (vec!["git.example:443"], vec![rule("GET", "repos")]),
+        (vec!["git.example:443"], vec![rule("GET POST", "/")]),
+        (vec!["git.example:443"], vec![rule("", "/")]),
+    ] {
+        let mut a = audience("internal-git", Access::Read);
+        a.endpoints = endpoints.iter().map(|e| e.to_string()).collect();
+        a.rules = rules;
+        let po = policy("hardened", vec![a.clone()]);
+        let o = run(&po, Some(&pr), &[], None);
+        assert!(o.bundle.is_none(), "{a:?} published");
+        assert!(codes_of(&o).contains(&"L017"), "{a:?}: {:?}", o.findings);
+    }
+}
+
+#[test]
+fn l018_refuses_an_endpoint_reachable_two_ways() {
+    let pr = profile("standard");
+    let a = audience("internal-git", Access::Read);
+    let mut b = audience("wiki", Access::Read);
+    b.endpoints = a.endpoints.clone();
+    let o = run(
+        &policy("standard", vec![a.clone(), b]),
+        Some(&pr),
+        &[],
+        None,
+    );
+    assert!(codes_of(&o).contains(&"L018"), "{:?}", o.findings);
+
+    // Brokered and direct at once.
+    let mut po = policy("standard", vec![a.clone()]);
+    po.spec.egress.push(EgressRule {
+        endpoint: a.endpoints[0].clone(),
+        rules: vec![],
+    });
+    let o = run(&po, Some(&pr), &[], None);
+    assert!(codes_of(&o).contains(&"L018"), "{:?}", o.findings);
+
+    // Listing an endpoint twice in one audience is the same way, not two.
+    let mut c = audience("internal-git", Access::Read);
+    c.endpoints.push(c.endpoints[0].clone());
+    let o = run(&policy("standard", vec![c]), Some(&pr), &[], None);
+    assert!(!codes_of(&o).contains(&"L018"), "{:?}", o.findings);
+}
+
+#[test]
+fn l007_checks_direct_egress_in_its_new_shape() {
+    // Standard is K4.1 R1: direct egress by name, but no rules (R2) and no wildcard (R3).
+    let pr = profile("standard");
+    let cases = [
+        (
+            EgressRule {
+                endpoint: "pkg.example:443".into(),
+                rules: vec![],
+            },
+            false,
+        ),
+        (
+            EgressRule {
+                endpoint: "pkg.example".into(),
+                rules: vec![],
+            },
+            true,
+        ),
+        (
+            EgressRule {
+                endpoint: "192.0.2.1:443".into(),
+                rules: vec![],
+            },
+            true,
+        ),
+        (
+            EgressRule {
+                endpoint: "*.example:443".into(),
+                rules: vec![],
+            },
+            true,
+        ),
+        (
+            EgressRule {
+                endpoint: "pkg.example:443".into(),
+                rules: vec![rule("GET", "/simple/**")],
+            },
+            true,
+        ),
+    ];
+    for (e, refused) in cases {
+        let mut po = policy("standard", vec![]);
+        po.spec.egress.push(e.clone());
+        let o = run(&po, Some(&pr), &[], None);
+        assert_eq!(
+            codes_of(&o).contains(&"L007"),
+            refused,
+            "{e:?}: {:?}",
+            o.findings
+        );
+    }
+}
+
+#[test]
+fn l014_refuses_an_audience_endpoint_the_ceiling_does_not_list() {
+    let pr = profile("hardened");
+    let po = policy("hardened", vec![audience("internal-git", Access::Read)]);
+    let mut ceiling = covering_ceiling(&po);
+    ceiling.spec.audiences[0].endpoints = vec!["other.internal.example:443".into()];
+    let o = run_with_ceiling(&po, Some(&pr), &[], None, Some(&ceiling));
+    assert!(o.bundle.is_none());
+    assert!(
+        o.findings
+            .iter()
+            .any(|f| f.code == "L014" && f.path.contains("endpoints")),
+        "{:?}",
+        o.findings
+    );
+    // The exposure reports where each audience's token can be used.
+    let exposure = o.status.max_exposure.unwrap();
+    assert_eq!(
+        exposure.audiences[0].endpoints,
+        vec!["internal-git.internal.example:443"]
+    );
 }

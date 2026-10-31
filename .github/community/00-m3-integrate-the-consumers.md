@@ -58,7 +58,9 @@ Each is an ADR in the repository that owns it. Nothing in section 4 starts befor
 - Either way, `sandboxpolicy-types` puts `schemars` behind a feature, so the guest, which runs as
   root in every VM, does not compile the CRD schema machinery.
 
-**D2. The egress model in the bundle** (notaio, schema v3, amends ADR-0002). The bundle's
+**D2. The egress model in the bundle** (notaio, schema v3, amends ADR-0002). *Decided:*
+[ADR-0013](../../docs/adr/0013-bundle-v3-routes-and-v1alpha2.md), as recommended below, with the
+API moving to v1alpha2. The bundle's
 `audiences[]` carry no endpoints, and its `egress[]` is direct, with `methods[] x paths[]`.
 mediatore's proxy has no direct egress: every endpoint belongs to an audience, and rules are
 `(method, path-glob)` pairs. Options:
@@ -107,8 +109,9 @@ Each phase is shippable and leaves the system no looser than before.
 ### Phase 0: notaio, the contract consumers build on
 
 - [ ] D1 decided; `schemars` behind a feature in `sandboxpolicy-types`.
-- [ ] D2 decided; bundle schema v3, ADR-0002 amended, `SCHEMA` and the payload type bumped, lint
-      and the ExposureCeiling extended, the reference regenerated.
+- [x] D2 decided ([ADR-0013](../../docs/adr/0013-bundle-v3-routes-and-v1alpha2.md)): bundle
+      schema v3 with endpoints and rules per audience and direct egress as `{ endpoint, rules }`,
+      lint `L017` and `L018`, the ExposureCeiling extended, the API at v1alpha2.
 - [ ] Conformance vectors: signed sample bundles in the repository with the outcome each must give
       (accepted, forged, expired, downgraded, a stale incarnation, a digest mismatch), generated
       and checked in CI, so mediatore and the guest test against the same files notaio does.

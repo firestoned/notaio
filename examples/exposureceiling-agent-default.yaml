@@ -6,7 +6,7 @@
 # This covers examples/sandboxpolicy-hardened.yaml exactly: one read-only audience with the K5.1
 # R0 token lifetime, no egress, no tools, the K7.3 R0 lease. The package-install grant does not
 # change the exposure.
-apiVersion: sandbox.firestoned.io/v1alpha1
+apiVersion: sandbox.firestoned.io/v1alpha2
 kind: ExposureCeiling
 metadata:
   name: agent-default
@@ -16,6 +16,8 @@ spec:
     - name: internal-git
       access: Read
       maxTtlSeconds: 300
+      # Where this audience's token may be used. A policy that adds an endpoint needs this widened.
+      endpoints: ["git.foo.io:443"]
   egressHosts: []
   tools: []
   maxLeaseSeconds: 14400

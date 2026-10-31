@@ -20,7 +20,7 @@ mean is in [Knobs and steps](../concepts/knobs.md).
 ## 2. Write the policy
 
 ```yaml
-apiVersion: sandbox.firestoned.io/v1alpha1
+apiVersion: sandbox.firestoned.io/v1alpha2
 kind: SandboxPolicy
 metadata:
   name: docs-agent
@@ -33,6 +33,9 @@ spec:
     - name: internal-git
       access: Read
       scopes: ["repo:read"]
+      endpoints: ["git.foo.io:443"]     # reached through mediatore's proxy, with the token
+      rules:
+        - { method: GET, path: "/repos/**" }
   egress: []
   tools: []
 ```
@@ -43,8 +46,10 @@ Things that are refused, and why:
   `L006`). Hardened is K5.3 `R1`, K5.2 `R0`: one audience, read-only.
 - **A wildcard audience, or a token longer than the K5.1 ceiling** (`L005`, `L006`). Leave
   `ttlSeconds` out to get the ceiling: 5 minutes at `R0`.
-- **Egress the K4.1 step does not allow** (`L007`). Hardened is `R0`: no entries, every call is
-  brokered. Never an IP literal.
+- **Direct egress the K4.1 step does not allow** (`L007`). Hardened is `R0`: no `egress` entries;
+  every call is brokered through an audience's `endpoints`, which any step allows. Never an IP
+  literal, and an audience endpoint is never a wildcard (`L017`).
+- **An endpoint in two places**, two audiences or an audience and direct egress (`L018`).
 - **A tool not pinned by `sha256:` manifest digest** (`L008`).
 - **A lease or budget above the K7.3 and K4.3 ceilings** (`L009`). Leave them out for the ceiling.
 
@@ -56,7 +61,7 @@ A policy publishes nothing without an [ExposureCeiling](../concepts/ceilings.md)
 The ceiling lists what the policy may reach, and a person in the `Security` role approves it:
 
 ```yaml
-apiVersion: sandbox.firestoned.io/v1alpha1
+apiVersion: sandbox.firestoned.io/v1alpha2
 kind: ExposureCeiling
 metadata:
   name: docs-agent
@@ -66,6 +71,7 @@ spec:
     - name: internal-git
       access: Read
       maxTtlSeconds: 300
+      endpoints: ["git.foo.io:443"]
   egressHosts: []
   tools: []
   maxLeaseSeconds: 14400
@@ -76,7 +82,8 @@ spec:
 
 If you are not sure what to put in it, start with an empty ceiling (`audiences: []`,
 `egressHosts: []`, `tools: []`, `maxLeaseSeconds: 0`) and run `notaio lint`: each `L014` finding
-names one audience, host, tool or lease value the policy reaches that the ceiling does not cover.
+names one audience, audience endpoint, host, tool or lease value the policy reaches that the
+ceiling does not cover.
 Once merged, the policy's `status.maxExposure` shows the same, computed in the cluster. See
 [Approve an exposure ceiling](approve-a-ceiling.md).
 

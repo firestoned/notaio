@@ -24,7 +24,7 @@ fn src(name: &str, text: &str) -> Source {
 
 fn policy(name: &str, profile: &str, access: &str) -> String {
     format!(
-        r#"apiVersion: sandbox.firestoned.io/v1alpha1
+        r#"apiVersion: sandbox.firestoned.io/v1alpha2
 kind: SandboxPolicy
 metadata:
   name: {name}
@@ -45,7 +45,7 @@ spec:
 
 fn grant(name: &str, policy: &str, step: &str, expires: &str) -> String {
     format!(
-        r#"apiVersion: sandbox.firestoned.io/v1alpha1
+        r#"apiVersion: sandbox.firestoned.io/v1alpha2
 kind: KnobGrant
 metadata:
   name: {name}
@@ -69,7 +69,7 @@ const IN_A_WEEK: &str = "2026-10-27T00:00:00Z";
 /// An approved ceiling for `policy` that covers everything the fixtures use (ADR-0007).
 fn ceiling(policy: &str, max_ttl: u32) -> String {
     format!(
-        r#"apiVersion: sandbox.firestoned.io/v1alpha1
+        r#"apiVersion: sandbox.firestoned.io/v1alpha2
 kind: ExposureCeiling
 metadata:
   name: {policy}
@@ -154,7 +154,7 @@ fn policy_lint_findings_are_reported() {
 #[test]
 fn a_profile_in_the_files_overrides_the_built_in() {
     // A local "hardened" that allows write tokens (K5.2 R1) makes the Write audience valid.
-    let local = r#"apiVersion: sandbox.firestoned.io/v1alpha1
+    let local = r#"apiVersion: sandbox.firestoned.io/v1alpha2
 kind: SandboxProfile
 metadata:
   name: hardened
@@ -189,9 +189,9 @@ fn unparseable_yaml_is_an_input_error() {
 
 #[test]
 fn i001_invalid_object_in_the_group() {
-    let unknown_kind = "apiVersion: sandbox.firestoned.io/v1alpha1\nkind: SandboxThing\n\
+    let unknown_kind = "apiVersion: sandbox.firestoned.io/v1alpha2\nkind: SandboxThing\n\
                         metadata:\n  name: x\n";
-    let no_spec = "apiVersion: sandbox.firestoned.io/v1alpha1\nkind: SandboxPolicy\n\
+    let no_spec = "apiVersion: sandbox.firestoned.io/v1alpha2\nkind: SandboxPolicy\n\
                    metadata:\n  name: y\n  namespace: sandboxes\n";
     for text in [unknown_kind, no_spec] {
         let r = lint_sources(&[src("bad.yaml", text)], now()).unwrap();
@@ -265,7 +265,7 @@ fn i006_expired_grant_fails() {
 
 #[test]
 fn i007_policy_on_a_profile_that_does_not_lint() {
-    let bad_profile = r#"apiVersion: sandbox.firestoned.io/v1alpha1
+    let bad_profile = r#"apiVersion: sandbox.firestoned.io/v1alpha2
 kind: SandboxProfile
 metadata:
   name: broken
@@ -333,4 +333,16 @@ fn l014_exposure_above_the_ceiling_fails_on_the_policy() {
 fn i008_ceiling_for_a_policy_not_in_the_inputs() {
     let r = lint_sources(&[src("c.yaml", &ceiling("missing", 3600))], now()).unwrap();
     assert_eq!(errors(&r), vec!["I008"]);
+}
+
+#[test]
+fn a_retired_api_version_is_refused_by_name() {
+    // ADR-0013: v1alpha1 is retired, not converted, so an old file is an input finding, not a
+    // half-parsed object.
+    let old = "apiVersion: sandbox.firestoned.io/v1alpha1\nkind: SandboxPolicy\n\
+               metadata: { name: old, namespace: sandboxes }\n\
+               spec: { profileRef: hardened, subjects: { groups: [g] } }\n";
+    let r = lint_sources(&[src("old.yaml", old)], now()).unwrap();
+    assert_eq!(errors(&r), vec!["I009"], "{:#?}", r.diagnostics);
+    assert!(r.has_errors());
 }

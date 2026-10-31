@@ -15,7 +15,8 @@ kubectl -n team-docs get sandboxpolicy docs-agent -o jsonpath='{.status.maxExpos
 
 ```json
 {
-  "audiences": [{ "name": "internal-git", "access": "Read", "ttlSeconds": 300 }],
+  "audiences": [{ "name": "internal-git", "access": "Read", "ttlSeconds": 300,
+                  "endpoints": ["git.foo.io:443"] }],
   "egressHosts": [],
   "writeCapable": false,
   "tools": [],
@@ -29,7 +30,7 @@ finding per audience, host, tool or lease value, and `L015` when there is no cei
 ## Questions to ask
 
 - Does each audience match what this team's work needs? Is `Write` justified, and is
-  `writeCapable` what you expect?
+  `writeCapable` what you expect? Is each audience's token used only at the endpoints you expect?
 - Is every egress host one you would let a hostile agent reach with this team's tokens?
 - Are the tools pinned by digest, and do you trust their manifests?
 - Is the lease as short as the work allows?

@@ -2,6 +2,32 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-31 12:00] - ADR-0013: bundle v3, routes per audience, API v1alpha2
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `docs/adr/0013-bundle-v3-routes-and-v1alpha2.md` (new), roadmap 00's D2: each audience carries
+  `endpoints` and `rules` in mediatore's proxy shape (brokered, so any K4.1 step); direct egress
+  becomes `{ endpoint, rules }` with its K4.1 limits kept; one endpoint, one way; `L017`, `L018`;
+  ceilings approve endpoints per audience; bundle schema v3; the API moves to v1alpha2 with
+  v1alpha1 retired, since serving both needs a conversion webhook (an inbound listener).
+- Types: `EndpointRule`; `AudienceGrant.endpoints` and `.rules`; `EgressRule { endpoint, rules }`;
+  `ExposedAudience.endpoints`; `CeilingAudience.endpoints`; `SCHEMA` and `PAYLOAD_TYPE` v3; every
+  kind at v1alpha2. Endpoints and rules sorted in the canonical form.
+- Lint: `L007` on direct egress in its new shape; `L017` and `L018` (new); `L014` per audience
+  endpoint. `notaio lint`: `I009` refuses a retired API version by name instead of half-parsing
+  it; `I001`'s text names ExposureCeiling too.
+- Tests: five new evaluate tests (brokered endpoints at Hardened, every L017 case, L018 three
+  ways, L007's new shape, L014 per endpoint and the exposure), the `I009` test, the RFC 8785
+  fixture recomputed independently in Python (its bytes match), the schema test at v3, the rules
+  table guard at 18. Every test passes.
+- Examples, fixtures, generated CRDs, profiles and reference at v1alpha2; the hardened example
+  gains an endpoint and a read-only rule, its ceiling the endpoint; `make policy-lint` clean.
+- Docs: ADR-0002 amended; concepts (policies, ceilings, bundle), guides (write a policy, approve a
+  ceiling, the install guide's upgrade warning), architecture, threat-model mapping, roadmap 00
+  (D2 decided), ROADMAPS, CHANGELOG.md (breaking), the ADR index and nav.
+
 ## [2026-10-30 23:00] - Roadmap 00: the M3 plan; ROADMAPS.md
 
 **Author:** Erick Bourgeois
