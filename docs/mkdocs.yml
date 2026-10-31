@@ -180,6 +180,7 @@ nav:
       - "ADR-0011: Leader election": adr/0011-leader-election.md
       - "ADR-0012: Image scanning and VEX": adr/0012-image-scanning-and-vex.md
       - "ADR-0013: Bundle v3 and v1alpha2": adr/0013-bundle-v3-routes-and-v1alpha2.md
+      - "ADR-0014: Consumer distribution": adr/0014-consumer-distribution.md
   - Reference:
       - CRD API: reference/crds.md
       - Lint Rules: reference/lint-rules.md

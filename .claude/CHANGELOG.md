@@ -2,6 +2,22 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-31 16:00] - ADR-0014: how consumers get the bundle crates
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `docs/adr/0014-consumer-distribution.md` (new), roadmap 00's D1: consumers pin a release tag as a
+  git dependency and allow the source in `deny.toml`; nothing on crates.io before 1.0.
+- `sandboxpolicy-types`: `schemars` optional, behind a `schema` feature that only
+  `sandboxpolicy-api` enables; every `JsonSchema` derive is a `cfg_attr`. The generated CRDs are
+  byte for byte unchanged; the types build with and without the feature.
+- `make bundle-deps-check` (new, in the CI test job): the bundle crate's own tree may not contain
+  schemars, kube, k8s-openapi, tokio, hyper, reqwest, rustls, ring or openssl. 36 crates today, down
+  from those plus schemars. Checked both ways: turning the feature on for the bundle crate fails it.
+- Docs: the consumer guide's dependency and `deny.toml` lines; CLAUDE.md's code rule names the
+  check; roadmap 00 (D1 decided); CHANGELOG.md; the ADR index and nav.
+
 ## [2026-10-31 12:00] - ADR-0013: bundle v3, routes per audience, API v1alpha2
 
 **Author:** Erick Bourgeois

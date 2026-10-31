@@ -24,6 +24,9 @@ a release, the maintainer renames Unreleased to the version and date.
 
 ### Added
 
+- Consumers depend on a release tag: `sandboxpolicy-bundle = { git = "https://github.com/firestoned/notaio", tag = "v0.3.0" }`
+  (ADR-0014). The bundle crate no longer pulls in `schemars`, and CI keeps its dependency tree free
+  of Kubernetes, async, networking and TLS.
 - Lint rules `L017` (an audience endpoint or rule is malformed) and `L018` (an endpoint is
   reachable two ways).
 

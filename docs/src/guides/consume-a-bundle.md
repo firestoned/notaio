@@ -5,6 +5,26 @@ gateway. A consumer never evaluates policy; it verifies the bundle and enforces 
 ([ADR-0002](../adr/0002-bundle-contract.md)). `sandboxpolicy-bundle` is the only crate you need,
 and it has no Kubernetes dependency.
 
+## Depend on the crate
+
+Pin a release tag ([ADR-0014](../adr/0014-consumer-distribution.md)):
+
+```toml
+[dependencies]
+sandboxpolicy-bundle = { git = "https://github.com/firestoned/notaio", tag = "v0.3.0" }
+```
+
+and allow the source in your `deny.toml`:
+
+```toml
+[sources]
+allow-git = ["https://github.com/firestoned/notaio"]
+```
+
+The crate has no Kubernetes, async, networking or TLS dependency, and notaio's CI keeps it that
+way (`make bundle-deps-check`). Move the tag deliberately, with the release notes: a new bundle
+schema is called out there.
+
 ## Where the bundle is
 
 A ConfigMap `<policy>-bundle` in the policy's namespace, key `bundle.dsse.json`

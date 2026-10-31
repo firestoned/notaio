@@ -17,7 +17,7 @@ RUST_LOG         ?= info
         kind-e2e-install kind-e2e-bundle kind-e2e-rbac kind-e2e-admission kind-e2e-leader kind-e2e-openbao \
         kind-cert-manager kind-openbao cluster-deploy cluster-undeploy openbao-e2e \
         docs docs-serve docs-clean docs-linkcheck docs-reference docs-reference-check policy-lint openbao-dev openbao-dev-check \
-        license-check cargo-auditable release-binary sbom-check grype-install vexctl-install vex-evidence vex-evidence-test vex-assemble image-scan image-gate release-manifest release-manifest-test set-version set-version-test
+        license-check bundle-deps-check cargo-auditable release-binary sbom-check grype-install vexctl-install vex-evidence vex-evidence-test vex-assemble image-scan image-gate release-manifest release-manifest-test set-version set-version-test
 
 help: ## Show this help
 	@echo 'Usage: make [target] [VAR=value ...]'
@@ -146,6 +146,18 @@ VERSION_FILE  ?= Cargo.toml
 RELEASE_DIR   ?= $(CURDIR)/dist
 IMAGE_DIGEST  ?=
 RELEASE_IMAGE  = ghcr.io/$(ORG)/$(BINARY)
+
+# What a consumer of sandboxpolicy-bundle compiles (ADR-0014). mediatore-guest runs it as root in
+# every sandbox VM, and mediatore bans ring outright, so its own dependency tree stays free of
+# Kubernetes, schema generation, async runtimes, networking and TLS.
+BUNDLE_FORBIDDEN_DEPS = schemars schemars_derive kube kube-client kube-core kube-runtime k8s-openapi \
+	tokio hyper hyper-util reqwest rustls ring openssl openssl-sys
+
+bundle-deps-check: ## Fail if sandboxpolicy-bundle's own dependency tree pulls in BUNDLE_FORBIDDEN_DEPS
+	@deps=$$(cargo tree -q -p sandboxpolicy-bundle -e normal --prefix none | sed 's/ v[0-9].*//' | sort -u); \
+	  bad=""; for d in $(BUNDLE_FORBIDDEN_DEPS); do printf '%s\n' "$$deps" | grep -qx "$$d" && bad="$$bad $$d"; done; \
+	  [ -z "$$bad" ] || { echo "sandboxpolicy-bundle pulls in:$$bad (ADR-0014)"; exit 1; }; \
+	  echo "bundle-deps-check: $$(printf '%s\n' "$$deps" | wc -l | tr -d ' ') crates, none of $(words $(BUNDLE_FORBIDDEN_DEPS)) forbidden"
 
 license-check: ## Every tracked Rust, shell, Python, Makefile, Dockerfile and workflow file carries the SPDX header
 	@scripts/check_license_headers.sh
