@@ -31,7 +31,7 @@ and the egress gateway enforce it; none of them ever reads a policy object direc
 **v0 scaffold.** The pure logic (registry, lint, compiler, bundle signing and verification) is
 implemented and tested. The controller, its RBAC and the GitOps-only admission policy run end to end
 on kind in CI (`make kind-e2e`), but nothing has run on a production cluster yet. See
-[ROADMAP.md](ROADMAP.md).
+[ROADMAPS.md](ROADMAPS.md).
 
 Documentation: <https://firestoned.github.io/notaio/>. Security reports: [SECURITY.md](SECURITY.md).
 
@@ -106,8 +106,8 @@ The platform is a handful of small projects, each owning one of those boundaries
 | **notaio** | What all of the above enforce. Profiles (Fortress, Hardened, Standard, Lab) set every knob in the threat model's register; a policy binds groups to a profile; a time-boxed, approved `KnobGrant` can relax one knob by one step, and never more. |
 
 The contracts between them (the CRD types, the bundle format, its version and expiry rules) live
-here. Freezing bundle schema v1 is [ROADMAP M1](ROADMAP.md#m1-make-the-contracts-trustworthy), and
-wiring the consumers to it is [M3](ROADMAP.md#m3-integrate-the-consumers).
+here. Freezing bundle schema v1 is [ROADMAP M1](ROADMAPS.md#m1-make-the-contracts-trustworthy), and
+wiring the consumers to it is [M3](ROADMAPS.md#m3-integrate-the-consumers).
 
 notaio sits apart from the rest on purpose
 ([ADR-0001](docs/adr/0001-separate-project.md)). banlieue holds hypervisor credentials, and the

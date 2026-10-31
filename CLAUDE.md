@@ -80,6 +80,6 @@ write the ADR.
 
 ## Where to start
 
-`ROADMAP.md`, milestone M1. The first useful piece of work is running the controller on a k0s test
+`ROADMAPS.md`, milestone M1. The first useful piece of work is running the controller on a k0s test
 cluster and reporting what breaks, before changing anything. `make kind-e2e` runs the same loop on
 a local kind cluster (`.claude/rules/testing.md`).

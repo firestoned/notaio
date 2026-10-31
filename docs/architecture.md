@@ -121,7 +121,7 @@ decision 3).
 ### The life of a sandbox
 
 How the pieces meet at runtime once the consumers are wired up. Steps marked M3 are the planned
-consumer integration (`ROADMAP.md`); the rest exists in banlieue and mediatore today.
+consumer integration (`ROADMAPS.md`); the rest exists in banlieue and mediatore today.
 
 ```mermaid
 sequenceDiagram

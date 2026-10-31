@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 //! e2e: a policy goes in, a signed bundle comes out, and a consumer can verify it.
 //!
-//! Run with `make kind-e2e-bundle`. This is the M1 loop from ROADMAP.md ("a policy, a grant, a
+//! Run with `make kind-e2e-bundle`. This is the M1 loop from ROADMAPS.md ("a policy, a grant, a
 //! bundle published and verified by a small consumer"), driven through the deployed controller.
 //! The verification half is exactly what mediatore does: DSSE signature against a trusted key,
 //! expiry, and a version floor that refuses a downgrade (ADR-0002).
