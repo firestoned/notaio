@@ -47,7 +47,8 @@ Two things in the existing plans are out of date and are corrected here:
 
 Each is an ADR in the repository that owns it. Nothing in section 4 starts before D1 to D3.
 
-**D1. How consumers get the crates** (notaio). The workspace is `publish = false`.
+**D1. How consumers get the crates** (notaio). The workspace is `publish = false`. *Decided:*
+[ADR-0014](../../docs/adr/0014-consumer-distribution.md), as recommended below.
 
 - *Recommended:* a git dependency pinned to a release tag,
   `sandboxpolicy-bundle = { git = "https://github.com/firestoned/notaio", tag = "v0.3.0" }`, with
@@ -108,7 +109,8 @@ Each phase is shippable and leaves the system no looser than before.
 
 ### Phase 0: notaio, the contract consumers build on
 
-- [ ] D1 decided; `schemars` behind a feature in `sandboxpolicy-types`.
+- [x] D1 decided ([ADR-0014](../../docs/adr/0014-consumer-distribution.md)): a git dependency on
+      a release tag; `schemars` behind a `schema` feature; `make bundle-deps-check` in CI.
 - [x] D2 decided ([ADR-0013](../../docs/adr/0013-bundle-v3-routes-and-v1alpha2.md)): bundle
       schema v3 with endpoints and rules per audience and direct egress as `{ endpoint, rules }`,
       lint `L017` and `L018`, the ExposureCeiling extended, the API at v1alpha2.

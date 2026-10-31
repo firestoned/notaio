@@ -167,6 +167,10 @@ jobs:
       - name: Release version stamp works
         run: make set-version-test
 
+      # What a consumer of the bundle crate compiles stays small (ADR-0014).
+      - name: Bundle crate dependencies
+        run: make bundle-deps-check
+
       # Each kind of VEX evidence fails when the fact behind it changes (ADR-0012).
       - name: VEX evidence checker
         run: make vex-evidence-test

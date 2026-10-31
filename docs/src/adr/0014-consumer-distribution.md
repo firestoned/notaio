@@ -1,0 +1,1 @@
+--8<-- "adr/0014-consumer-distribution.md"

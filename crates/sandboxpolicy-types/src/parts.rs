@@ -1,18 +1,19 @@
 // Copyright (c) 2026 Erick Bourgeois, notaio
 // SPDX-License-Identifier: Apache-2.0
-use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 /// Classification of the data a profile may touch. It exists so the toxic-combination rule can be
 /// evaluated: a `LabOnly` profile may combine untrusted content with an outbound channel because it
 /// holds no sensitive data by construction.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DataScope {
     LabOnly,
     Internal,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum Access {
     #[default]
     Read,
@@ -22,7 +23,8 @@ pub enum Access {
 /// One HTTP rule for an endpoint (ADR-0013): a method, or `*` for any, and a path glob in which `*`
 /// matches one segment and `**` zero or more, matched against the path without the query. The
 /// shape mediatore's egress proxy uses (its ADR-0025).
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EndpointRule {
     /// An HTTP method, or `*`.
@@ -32,7 +34,8 @@ pub struct EndpointRule {
 }
 
 /// One downstream audience the sandbox may obtain tokens for.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AudienceGrant {
     /// The audience: the downstream service.
@@ -57,7 +60,8 @@ pub struct AudienceGrant {
 
 /// One direct egress entry: reached without the broker's proxy and without a token, enforced at
 /// the gateway and in the host or network layer (ADR-0013).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EgressRule {
     /// `host:port`, a DNS name. IP literals are refused; a wildcard host needs K4.1 R3 (lint L007).
@@ -68,7 +72,8 @@ pub struct EgressRule {
 }
 
 /// A tool or MCP server the agent may use, pinned by manifest digest.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ToolRef {
     /// The tool or MCP server's name.
@@ -77,7 +82,8 @@ pub struct ToolRef {
     pub manifest_digest: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Lease {
     /// The longest a sandbox may run, in seconds.
@@ -86,7 +92,8 @@ pub struct Lease {
     pub max_concurrent: u8,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Budgets {
     /// The most tool calls per lease.
