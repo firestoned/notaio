@@ -10,6 +10,12 @@ a release, the maintainer renames Unreleased to the version and date.
 
 ## Unreleased
 
+### Added
+
+- `make cluster-smoke`: a read-only smoke test of a running installation (`e2e_smoke`), for
+  clusters where the other suites cannot create fixtures: the controller healthy and leading once,
+  every policy published with a bundle that verifies, and direct edits denied.
+
 ### Security
 
 - A VEX statement for CVE-2026-84243 (glibc gettext and `LANGUAGE`, published after 0.3.1 was

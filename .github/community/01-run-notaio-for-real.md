@@ -92,12 +92,15 @@ to read and enforce the bundle: roadmap 00, phases 1 to 3.
 
 ### Phase C: the read-only smoke test
 
-- [ ] `e2e_smoke` (new suite in notaio), run with `make cluster-smoke` against any cluster:
+- [x] `e2e_smoke` (new suite in notaio), run with `make cluster-smoke` against any cluster:
       the controller is healthy and leads once; every SandboxPolicy is `Ready=True, Published`; every
       published bundle verifies against the OpenBao public key and records a floor; both
       must-be-zero series are 0; a direct edit of a policy object is denied. It creates nothing and
       deletes nothing.
-- [ ] Run after every notaio release is installed, and after every policy repository merge.
+- [x] Passes 3 of 3 on the test cluster. Shown to catch what it guards: on a cluster without the
+      admission policy, `a_direct_edit_is_denied` fails.
+- [ ] Run after every notaio release is installed, and after every policy repository merge. The
+      commands and every run are kept in the policy repository's `TESTING.md`.
 
 ### Phase D: prove the loop
 

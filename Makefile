@@ -15,7 +15,7 @@ RUST_LOG         ?= info
         ci-code-changed kind-install kind-create kind-delete kind-kubeconfig kind-load \
         kind-deploy kind-e2e kind-e2e-ci kind-e2e-logs \
         kind-e2e-install kind-e2e-bundle kind-e2e-rbac kind-e2e-admission kind-e2e-leader kind-e2e-openbao \
-        kind-cert-manager kind-openbao cluster-deploy cluster-undeploy openbao-e2e \
+        kind-cert-manager kind-openbao cluster-deploy cluster-undeploy cluster-smoke openbao-e2e \
         docs docs-serve docs-clean docs-linkcheck docs-reference docs-reference-check policy-lint openbao-dev openbao-dev-check \
         license-check bundle-deps-check conformance conformance-check cargo-auditable release-binary sbom-check grype-install vexctl-install vex-evidence vex-evidence-test vex-assemble image-scan image-gate release-manifest release-manifest-sign release-manifest-test set-version set-version-test
 
@@ -605,6 +605,14 @@ openbao-e2e: ## e2e_openbao on an existing test cluster with dev/openbao (CLUSTE
 	 dev/openbao/setup.sh $(CLUSTER_KUBECONFIG) $(OPENBAO_STATE) >/dev/null || true; \
 	 $(MAKE) -s cluster-undeploy; \
 	 exit $$rc
+
+cluster-smoke: ## Read-only smoke test of an installed notaio on CLUSTER_KUBECONFIG; OPENBAO_PUBLIC_KEY is "notaio:v<N> <base64>"
+	@test -n "$(CLUSTER_KUBECONFIG)" || { echo "set CLUSTER_KUBECONFIG"; exit 1; }
+	@test -n "$(OPENBAO_PUBLIC_KEY)" || { echo "set OPENBAO_PUBLIC_KEY to the signer's 'notaio:v<N> <base64 public key>'"; exit 1; }
+	@KUBECONFIG=$(CLUSTER_KUBECONFIG) \
+	 NOTAIO_E2E_NAMESPACE=$(NAMESPACE) \
+	 NOTAIO_E2E_OPENBAO_PUBLIC_KEY="$(OPENBAO_PUBLIC_KEY)" \
+	 cargo test -p notaio --test e2e_smoke -- --ignored --nocapture --test-threads=1
 
 kind-e2e: ## Run every e2e suite, in sequence, against one kind cluster
 	@# From the recipe, not as prerequisites: the suites share one cluster and
