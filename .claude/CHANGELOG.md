@@ -2,6 +2,22 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-31 15:00] - Docs audit: a glossary, the conformance vectors explained, stale code ranges
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `docs/src/glossary.md` (new, in the Reference nav and linked from the home page): the identifier
+  families (`K` knobs by boundary, `R` steps, `L` lint rules by family, `I` input codes, the threat
+  model's `T`, `S` and `O`, ADR, milestone, roadmap, key id, API and schema versions) and the terms
+  used across the docs. Full code lists stay in the generated reference, linked, not copied.
+- `docs/src/concepts/bundle.md`: what the conformance vectors are and why they exist, in prose; the
+  consumer guide and generated list only showed how to run them.
+- Stale ranges fixed: `docs/architecture.md` and the lint guide said `L001` to `L016` and `I001` to
+  `I008` (now 18 and 9); both now point at the generated list instead of naming a range that goes
+  stale. The security page gains rows for the endpoint rules (L007, L017, L018) and for the
+  conformance vectors.
+
 ## [2026-10-31 12:00] - Roadmap 00: phase 0 complete with v0.3.0
 
 **Author:** Erick Bourgeois

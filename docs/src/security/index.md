@@ -26,6 +26,8 @@ The full policy, including response times and scope, is in
 | No inbound connection that can influence signing; egress to DNS, the API server and OpenBao only | `deploy/controller/30-networkpolicy.yaml`: ingress only to the health and metrics port, from the monitoring namespace; the listener serves three fixed `GET` paths and reads no body (ADR-0010) | applied in every e2e run; `crates/notaio/src/http_tests.rs` |
 | A bundle the evaluator should never have produced is not signed | the fail-open guard (`crates/notaio/src/guard.rs`), counted in `notaio_fail_open_total`, which must be 0 | unit tests; `e2e_install` reads the deployed counters |
 | Toxic combinations, wildcard audiences, multi-step grants are refused | lint rules L001 to L013 | `sandboxpolicy-core` tests |
+| Every endpoint is an exact name, reachable one way only, and no direct-IP egress | lint rules L007, L017, L018 ([ADR-0013](../adr/0013-bundle-v3-routes-and-v1alpha2.md)) | `sandboxpolicy-core` tests |
+| Every consumer refuses what notaio's verifier refuses | the conformance vectors (`crates/sandboxpolicy-bundle/conformance/`) | `tests/conformance.rs` runs each through `accept`; `make conformance-check` in CI |
 | No policy publishes past its approved exposure, and none publishes without one | ExposureCeiling and lint rules L014 to L016 ([ADR-0007](../adr/0007-exposure-ceiling.md)), checked by `notaio lint` and by the controller | `sandboxpolicy-core` tests; `e2e_bundle` (no ceiling, no bundle) |
 
 ## Supply chain

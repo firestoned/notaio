@@ -90,6 +90,7 @@ It is deliberately **not** in [banlieue](https://github.com/firestoned/banlieue)
 | --- | --- |
 | How to install it, write a policy, grant a relaxation, and run it day to day | [Guides](guides/index.md) |
 | What the four kinds are, how knobs and steps work, and what a bundle promises | [Concepts](concepts/index.md) |
+| What a `K`, `R`, `L`, `I`, `T`, `S` or `O` identifier means, or any other term | [Glossary](glossary.md) |
 | How one change travels from pull request to enforcement, and every gate on the way | [The Life of a Change](concepts/life-of-a-change.md) |
 | How notaio, banlieue, mediatore, mediatore-guest and the gateway relate, the contracts between them, and who trusts what | [Where notaio sits in AgentSandbox](architecture.md#where-notaio-sits-in-agentsandbox) |
 | How the four kinds, evaluation and the controller work | [Architecture](architecture.md) |

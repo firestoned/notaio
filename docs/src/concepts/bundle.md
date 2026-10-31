@@ -55,6 +55,27 @@ bundle is acted on, so a restart cannot reopen a downgrade
 policy's `uid` ordered by `issuedAt`, so a recreated policy is accepted and a replay from its old
 incarnation is refused. `sandboxpolicy_bundle::floor` implements it.
 
+## How a consumer proves it gets this right: the conformance vectors
+
+Every consumer (mediatore, mediatore-guest, the gateway) implements the checks above in its own
+code path: its own key configuration, its own floor store, its own relay. A test that says "it
+verifies" proves little; what matters is that it **accepts exactly what notaio accepts and refuses
+exactly what notaio refuses**.
+
+The conformance vectors are that test, as data. Each vector is a real, signed envelope plus
+everything needed to judge it: the consumer's clock, the floor it holds before, and the verdict it
+must reach, with the floor it must be left holding. Fourteen of them cover first sight, a newer
+version, a recreated policy, and every way to be refused: a downgrade, a stale incarnation, a
+forged signature, an untrusted key, expiry, a bundle from the future, a digest mismatch, an old
+schema, an old payload type and a malformed payload. They are signed with a test-only key that is
+published with them, so anyone can run them, and generated from fixed seeds and clocks, so they
+never change unless the contract does.
+
+notaio runs every vector through its own verifier in CI. A consumer runs the same file through its
+own, in its CI. If both pass, they agree. The list is in
+[Conformance Vectors](../reference/conformance.md), and how to run them is in
+[Consume a Bundle](../guides/consume-a-bundle.md#test-against-the-conformance-vectors).
+
 ## Why the transport does not matter
 
 The bundle is published as a ConfigMap, `<policy>-bundle`, read by mediatore through the API and
