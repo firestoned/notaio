@@ -2,6 +2,35 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-31 21:00] - Roadmap 01 phase B done: policies arrive only through Flux
+
+**Author:** Erick Bourgeois
+
+### Changed
+- On the test cluster: the Flux Operator v0.62.1 (installer checksum and image signature
+  verified) and Flux v2.10.0 through a `FluxInstance`, syncing the private policy repository with
+  the maintainer's own read-only deploy key. The `platform` Kustomization applied GitOps-only
+  admission; `ns-sandboxes` the namespace, notaio's bundle Role, and the research agent.
+- The research agent published bundle version 1, signed by the transit key, verified against
+  OpenBao's public key; a direct edit as cluster-admin is denied by the admission policy.
+- Roadmap 01: phase B ticked.
+
+## [2026-10-31 20:00] - Roadmap 01 phase B: groups from the identity provider; review on the free plan
+
+**Author:** Erick Bourgeois
+
+### Changed
+- On the test cluster: Dex (Helm, chart 0.25.2, revision 4 to 5) gained `loadAllGroups: true` and
+  `teamNameField: slug` on its GitHub connector, so tokens carry `org:team` groups; it restricts no
+  organisation, so everyone who could log in still can. Rolled out with no errors; discovery offers
+  the `groups` scope. Rollback is `helm rollback dex 4`. The team `firestoned:sandbox-users` holds
+  the maintainer.
+- The policy repository is scaffolded (`notaio lint` clean, kustomize builds, the bundle Role still
+  binds `notaio-system/notaio`), with Flux's read-only deploy key generated and GitHub's host keys
+  checked against the ones GitHub publishes.
+- Roadmap 01: the identity step done; the repository layout as built; a risk recorded: on GitHub's
+  free plan a private repository has no branch protection, so review is a habit, not a gate.
+
 ## [2026-10-31 18:30] - Roadmap 01 phase A: v0.3.1 installed on the test cluster
 
 **Author:** Erick Bourgeois

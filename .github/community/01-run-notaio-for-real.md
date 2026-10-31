@@ -1,7 +1,7 @@
 # Roadmap 01: run notaio for real
 
-- **Status:** In progress. Phase A is done (v0.3.1 installed and signing through OpenBao); phase B
-  needs the private policy repository.
+- **Status:** In progress. Phases A and B are done: notaio v0.3.1 signs through OpenBao, and
+  policies reach the cluster only from the private policy repository through Flux. Phase C next.
 - **Milestone:** M3 in [`ROADMAPS.md`](../../ROADMAPS.md), stage 1 of running it end to end
 - **Related:** roadmap 00 (M3), whose phase 1 reads what this publishes; ADR-0004 (the signer),
   ADR-0009 (releases), ADR-0010 (health and metrics), ADR-0011 (leader election)
@@ -71,15 +71,24 @@ to read and enforce the bundle: roadmap 00, phases 1 to 3.
 
 ### Phase B: GitOps and the policy repository
 
-- [ ] The Flux Operator, pinned, and a `FluxInstance` for Flux; a `GitRepository` for the policy
-      repository with a read-only deploy key, and a `Kustomization` per policy namespace, each
-      including `deploy/policy-namespace/`.
-- [ ] The policy repository: `policies/<namespace>/`, `ceilings/<namespace>/` under CODEOWNERS;
-      the `notaio lint` workflow from the lint guide, pinned to the release image by digest, a
-      required check.
-- [ ] The first real policy: the research agent from mediatore's walkthrough, as v1alpha2, with its
-      real audience endpoints and rules, and its ExposureCeiling.
-- [ ] GitOps-only admission, naming Flux's `kustomize-controller`. From here, no direct edit.
+- [x] The Flux Operator v0.62.1 (`install.yaml` checked against the release's checksums, the
+      operator image's Cosign signature verified) and a `FluxInstance` for Flux v2.10.0, syncing
+      the policy repository's `clusters/core` with a read-only deploy key the maintainer generated,
+      and GitHub's host keys checked against the ones GitHub publishes. `platform` and
+      `ns-sandboxes` Kustomizations, the second including notaio's bundle Role.
+- [ ] The policy repository: `namespaces/<namespace>/` holding its namespace, notaio's bundle Role,
+      `policies/` and `ceilings/`, with CODEOWNERS on `ceilings/`; the `notaio lint` workflow from
+      the lint guide, pinned to the release image by digest, in text mode (SARIF upload to Code
+      Scanning needs GitHub Advanced Security on a private repository). Bootstrapped by its first
+      pull request.
+- [x] The identity provider emits groups: the GitHub team `firestoned:sandbox-users`, and Dex's
+      GitHub connector with `loadAllGroups` (no restriction on who may log in) and team slugs.
+- [x] The first real policy: the research agent from mediatore's walkthrough, as v1alpha2, its
+      `github` audience reached brokered at GitHub's API with read and write-contents rules, and
+      its ExposureCeiling. Applied by Flux, published as bundle version 1 signed by the transit
+      key, and verified against OpenBao's public key with the consumer example.
+- [x] GitOps-only admission, naming Flux's `kustomize-controller`, applied by Flux. A direct edit
+      of the policy as cluster-admin is denied.
 
 ### Phase C: the read-only smoke test
 
@@ -107,6 +116,13 @@ after a policy merge, and the install guide was followed as written, with any st
 work fixed in the guide.
 
 ## 6. Risks
+
+- **Review is not enforced on GitHub's free plan.** Branch protection and rulesets on a private
+  repository need a paid plan, so someone with push access can commit straight to `main`; CODEOWNERS
+  and the lint check show on pull requests but cannot block a merge. What still holds: nobody can
+  edit a policy on the cluster directly (GitOps-only admission), and notaio refuses any policy that
+  breaks a rule or exceeds its ceiling, however it reached `main`. Acceptable for a
+  single-maintainer test cluster; anything others depend on needs a paid plan or another host.
 
 - **The test OpenBao seals on every restart.** Fine for stage 1; a cluster others depend on needs
   auto-unseal first.
