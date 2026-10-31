@@ -2,6 +2,14 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-31 23:45] - Release prep: v0.3.2
+
+**Author:** Erick Bourgeois
+
+### Changed
+- Workspace version 0.3.2; `CHANGELOG.md` gains its `[0.3.2]` section (`make cluster-smoke`, the
+  quieter expired watch, the gettext VEX); the install guide's `V=` is 0.3.2.
+
 ## [2026-10-31 23:30] - Expired watches logged quietly
 
 **Author:** Erick Bourgeois

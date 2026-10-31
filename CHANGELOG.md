@@ -10,6 +10,14 @@ a release, the maintainer renames Unreleased to the version and date.
 
 ## Unreleased
 
+Nothing yet.
+
+## [0.3.2] - 2026-10-31
+
+What running 0.3.1 on a real cluster showed: a smoke test to run against an installation, and a
+routine watch expiry no longer logged as a warning. Nothing about policies, bundles or the API
+changes; upgrading is applying the two manifests of this release.
+
 ### Added
 
 - `make cluster-smoke`: a read-only smoke test of a running installation (`e2e_smoke`), for
@@ -157,6 +165,7 @@ operator needs to run it with two replicas and an OpenBao signer.
 - Its NetworkPolicy allows egress only to DNS, the API server and OpenBao, and ingress only to the
   health and metrics port from the monitoring namespace.
 
+[0.3.2]: https://github.com/firestoned/notaio/releases/tag/v0.3.2
 [0.3.1]: https://github.com/firestoned/notaio/releases/tag/v0.3.1
 [0.3.0]: https://github.com/firestoned/notaio/releases/tag/v0.3.0
 [0.2.0]: https://github.com/firestoned/notaio/releases/tag/v0.2.0
