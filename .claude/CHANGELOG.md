@@ -2,6 +2,14 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-31 23:00] - Release prep: v0.3.0
+
+**Author:** Erick Bourgeois
+
+### Changed
+- Workspace version 0.3.0; `CHANGELOG.md` gains its `[0.3.0]` section, opening with the upgrade
+  steps for the breaking API and bundle changes.
+
 ## [2026-10-31 21:00] - The conformance kit
 
 **Author:** Erick Bourgeois
