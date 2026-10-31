@@ -30,6 +30,7 @@ use notaio::cli::{
 use notaio::http::Observed;
 use notaio::leader::Elector;
 use notaio::metrics::{Counters, Snapshot};
+use notaio::watch::deserves_warning;
 use sandboxpolicy_api::{ExposureCeiling, KnobGrant, SandboxPolicy, SandboxProfile};
 use sandboxpolicy_core::ceilings::Ceilings;
 use tracing_subscriber::EnvFilter;
@@ -232,7 +233,10 @@ async fn run_controller() -> anyhow::Result<()> {
         .for_each(|res| async move {
             match res {
                 Ok((obj, _)) => tracing::debug!(policy = %obj.name, "reconciled"),
-                Err(e) => tracing::warn!(error = %e, "policy controller error"),
+                Err(e) if deserves_warning(&e) => {
+                    tracing::warn!(error = %e, "policy controller error")
+                }
+                Err(e) => tracing::debug!(error = %e, "policy controller error"),
             }
         });
 
@@ -265,8 +269,12 @@ async fn run_controller() -> anyhow::Result<()> {
         .shutdown_on_signal()
         .run(reconcile_profile, error_policy, ctx)
         .for_each(|res| async move {
-            if let Err(e) = res {
-                tracing::warn!(error = %e, "profile controller error");
+            match res {
+                Err(e) if deserves_warning(&e) => {
+                    tracing::warn!(error = %e, "profile controller error")
+                }
+                Err(e) => tracing::debug!(error = %e, "profile controller error"),
+                Ok(_) => {}
             }
         });
 

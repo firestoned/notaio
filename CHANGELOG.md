@@ -16,6 +16,13 @@ a release, the maintainer renames Unreleased to the version and date.
   clusters where the other suites cannot create fixtures: the controller healthy and leading once,
   every policy published with a bundle that verifies, and direct edits denied.
 
+### Changed
+
+- The controller no longer logs an expired watch ("too old resource version") as a `WARN` "policy
+  controller error": the watcher re-lists by itself, so it is logged at `debug`. So are a reconcile
+  of an object deleted meanwhile, and a failed reconcile, which `reconcile failed, retrying` already
+  reports. Other watch errors, such as a 403, still warn.
+
 ### Security
 
 - A VEX statement for CVE-2026-84243 (glibc gettext and `LANGUAGE`, published after 0.3.1 was
