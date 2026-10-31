@@ -2,7 +2,8 @@
 
 - **Status:** Phases A to D done (2026-10-31): notaio v0.3.1 signs through OpenBao, policies
   reach the cluster only from the private policy repository through Flux, the smoke test passes,
-  and the loop held for a tightening, a widening and a sealed signer. One follow-up open (phase A).
+  and the loop held for a tightening, a widening and a sealed signer. Phase A's follow-up is done
+  and ships in the next release.
 - **Milestone:** M3 in [`ROADMAPS.md`](../../ROADMAPS.md), stage 1 of running it end to end
 - **Related:** roadmap 00 (M3), whose phase 1 reads what this publishes; ADR-0004 (the signer),
   ADR-0009 (releases), ADR-0010 (health and metrics), ADR-0011 (leader election)
@@ -67,8 +68,9 @@ to read and enforce the bundle: roadmap 00, phases 1 to 3.
       published a v3 bundle signed by the transit key, with a `Published` Event; the consumer
       example accepted it against OpenBao's public key and refused it against another key; both
       objects deleted, their bundle with them.
-- [ ] Follow-up: a watch that expires ("too old resource version") is logged as a `WARN` "policy
-      controller error", though the watcher re-lists by itself. Log it quietly.
+- [x] Follow-up: a watch that expires ("too old resource version") is logged as a `WARN` "policy
+      controller error", though the watcher re-lists by itself. Log it quietly. Now at `debug`,
+      with the other controller errors that need no attention; anything else still warns.
 
 ### Phase B: GitOps and the policy repository
 

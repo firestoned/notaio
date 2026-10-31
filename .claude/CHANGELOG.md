@@ -2,6 +2,28 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-31 23:30] - Expired watches logged quietly
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `crates/notaio/src/watch.rs` (new, with `watch_tests.rs`): `deserves_warning` classifies a
+  controller stream error. An expired watch (410 Gone), an `ObjectNotFound` and a
+  `ReconcilerFailed` (already logged and counted by `error_policy`) are routine; anything else
+  warns.
+- `crates/notaio/src/main.rs`: both controllers log routine errors at `debug`, others at `warn`.
+- Docs: CHANGELOG.md Unreleased; roadmap 01's phase A follow-up ticked.
+
+### Why
+Seen on the test cluster (roadmap 01, A7): a watch expiring logged a `WARN` though the watcher
+re-lists by itself, which trains readers to ignore warnings.
+
+### Impact
+- [ ] Breaking change
+- [ ] Requires cluster rollout
+- [ ] Config change only
+- [ ] Documentation only
+
 ## [2026-10-31 23:00] - Roadmap 01 phase D: the loop proven
 
 **Author:** Erick Bourgeois
