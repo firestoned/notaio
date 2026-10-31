@@ -10,6 +10,25 @@ a release, the maintainer renames Unreleased to the version and date.
 
 ## Unreleased
 
+Nothing yet.
+
+## [0.3.0] - 2026-10-31
+
+The contract consumers build on (roadmap 00, phase 0): bundle schema v3 carries each audience's
+endpoints and rules in the shape mediatore's egress proxy uses, consumers pin this tag, and a
+conformance kit says what every consumer must accept and refuse. **This release is breaking.**
+
+### Upgrading from 0.2
+
+1. Rewrite the policy repository's objects as `sandbox.firestoned.io/v1alpha2`: the `apiVersion`,
+   each audience's `endpoints` and `rules`, direct `egress` as `{ endpoint, rules }`, and each
+   ceiling audience's `endpoints`. `notaio lint` from this release checks them, and refuses any
+   v1alpha1 file with `I009`.
+2. Apply this release's `notaio-0.3.0.yaml`, then let GitOps re-apply the objects. v1alpha1 is
+   retired, not converted.
+3. Bundles are published at schema v3. No consumer read v2 bundles, so none breaks; consumers
+   start from this tag.
+
 ### Changed
 
 - **Breaking: the API is `sandbox.firestoned.io/v1alpha2`, and v1alpha1 is retired** (ADR-0013).
@@ -101,5 +120,6 @@ operator needs to run it with two replicas and an OpenBao signer.
 - Its NetworkPolicy allows egress only to DNS, the API server and OpenBao, and ingress only to the
   health and metrics port from the monitoring namespace.
 
+[0.3.0]: https://github.com/firestoned/notaio/releases/tag/v0.3.0
 [0.2.0]: https://github.com/firestoned/notaio/releases/tag/v0.2.0
 [0.1.0]: https://github.com/firestoned/notaio/releases/tag/v0.1.0
