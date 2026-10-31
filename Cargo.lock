@@ -1361,7 +1361,7 @@ checksum = "2bf50223579dc7cdcfb3bfcacf7069ff68243f8c363f62ffa99cf000a6b9c451"
 
 [[package]]
 name = "notaio"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "anyhow",
  "base64 0.23.1",
@@ -1833,7 +1833,7 @@ dependencies = [
 
 [[package]]
 name = "sandboxpolicy-api"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "chrono",
  "k8s-openapi",
@@ -1846,7 +1846,7 @@ dependencies = [
 
 [[package]]
 name = "sandboxpolicy-bundle"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "base64 0.23.1",
  "chrono",
@@ -1861,7 +1861,7 @@ dependencies = [
 
 [[package]]
 name = "sandboxpolicy-core"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "chrono",
  "hex",
@@ -1876,7 +1876,7 @@ dependencies = [
 
 [[package]]
 name = "sandboxpolicy-types"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "chrono",
  "schemars",
