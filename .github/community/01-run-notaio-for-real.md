@@ -74,9 +74,13 @@ to read and enforce the bundle: roadmap 00, phases 1 to 3.
 - [ ] The Flux Operator, pinned, and a `FluxInstance` for Flux; a `GitRepository` for the policy
       repository with a read-only deploy key, and a `Kustomization` per policy namespace, each
       including `deploy/policy-namespace/`.
-- [ ] The policy repository: `policies/<namespace>/`, `ceilings/<namespace>/` under CODEOWNERS;
-      the `notaio lint` workflow from the lint guide, pinned to the release image by digest, a
-      required check.
+- [ ] The policy repository: `namespaces/<namespace>/` holding its namespace, notaio's bundle Role,
+      `policies/` and `ceilings/`, with CODEOWNERS on `ceilings/`; the `notaio lint` workflow from
+      the lint guide, pinned to the release image by digest, in text mode (SARIF upload to Code
+      Scanning needs GitHub Advanced Security on a private repository). Scaffolded, `notaio lint`
+      clean, awaiting its bootstrap pull request.
+- [x] The identity provider emits groups: the GitHub team `firestoned:sandbox-users`, and Dex's
+      GitHub connector with `loadAllGroups` (no restriction on who may log in) and team slugs.
 - [ ] The first real policy: the research agent from mediatore's walkthrough, as v1alpha2, with its
       real audience endpoints and rules, and its ExposureCeiling.
 - [ ] GitOps-only admission, naming Flux's `kustomize-controller`. From here, no direct edit.
@@ -107,6 +111,13 @@ after a policy merge, and the install guide was followed as written, with any st
 work fixed in the guide.
 
 ## 6. Risks
+
+- **Review is not enforced on GitHub's free plan.** Branch protection and rulesets on a private
+  repository need a paid plan, so someone with push access can commit straight to `main`; CODEOWNERS
+  and the lint check show on pull requests but cannot block a merge. What still holds: nobody can
+  edit a policy on the cluster directly (GitOps-only admission), and notaio refuses any policy that
+  breaks a rule or exceeds its ceiling, however it reached `main`. Acceptable for a
+  single-maintainer test cluster; anything others depend on needs a paid plan or another host.
 
 - **The test OpenBao seals on every restart.** Fine for stage 1; a cluster others depend on needs
   auto-unseal first.

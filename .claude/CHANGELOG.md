@@ -2,6 +2,22 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-31 20:00] - Roadmap 01 phase B: groups from the identity provider; review on the free plan
+
+**Author:** Erick Bourgeois
+
+### Changed
+- On the test cluster: Dex (Helm, chart 0.25.2, revision 4 to 5) gained `loadAllGroups: true` and
+  `teamNameField: slug` on its GitHub connector, so tokens carry `org:team` groups; it restricts no
+  organisation, so everyone who could log in still can. Rolled out with no errors; discovery offers
+  the `groups` scope. Rollback is `helm rollback dex 4`. The team `firestoned:sandbox-users` holds
+  the maintainer.
+- The policy repository is scaffolded (`notaio lint` clean, kustomize builds, the bundle Role still
+  binds `notaio-system/notaio`), with Flux's read-only deploy key generated and GitHub's host keys
+  checked against the ones GitHub publishes.
+- Roadmap 01: the identity step done; the repository layout as built; a risk recorded: on GitHub's
+  free plan a private repository has no branch protection, so review is a habit, not a gate.
+
 ## [2026-10-31 18:30] - Roadmap 01 phase A: v0.3.1 installed on the test cluster
 
 **Author:** Erick Bourgeois
