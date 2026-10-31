@@ -2,6 +2,19 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-31 22:00] - Roadmap 01 phase C: the read-only smoke suite
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `crates/notaio/tests/e2e_smoke.rs` (new) and `make cluster-smoke`: three read-only tests (the
+  controller rolled out, ready and leading once with the must-be-zero series at 0 on every
+  replica; every policy published with a bundle that verifies against the OpenBao key and matches
+  its status and identity; a direct edit denied by GitOps-only admission, via a server-side dry
+  run). 3 of 3 on the test cluster; on a cluster without admission the third fails, as it must.
+- Docs: the developer page; roadmap 01 phase C; CHANGELOG.md. The commands and the run log live in
+  the private policy repository's `TESTING.md`, since they name the cluster.
+
 ## [2026-10-31 21:00] - Roadmap 01 phase B done: policies arrive only through Flux
 
 **Author:** Erick Bourgeois

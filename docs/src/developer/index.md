@@ -53,6 +53,21 @@ make policy-lint      # this repository's examples and profiles, with a pinned c
 Running it in a policy repository, its exit and input codes, and the GitHub Actions job are in
 [Lint a policy repository](../guides/lint-in-ci.md).
 
+## Smoke-testing an installation
+
+`e2e_smoke` checks a running installation and changes nothing, so it runs against any cluster,
+including one with GitOps-only admission, where the other suites cannot create their fixtures:
+
+```sh
+make cluster-smoke CLUSTER_KUBECONFIG=<kubeconfig> OPENBAO_PUBLIC_KEY="notaio:v<N> <base64>"
+```
+
+It checks that the controller is fully rolled out and leads exactly once, that every replica is
+ready with both must-be-zero series at 0, that every SandboxPolicy is `Ready=True, Published` with
+a bundle that verifies against the key and matches its status, and that a direct edit is denied
+(a server-side dry run, which admission sees and nothing persists). Run it after installing a
+release and after a policy merge.
+
 ## A test OpenBao for the signer
 
 The production signer is an OpenBao transit key (ADR-0004). `dev/openbao/` stands one up on a
