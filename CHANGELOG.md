@@ -10,7 +10,10 @@ a release, the maintainer renames Unreleased to the version and date.
 
 ## Unreleased
 
-Nothing yet.
+### Security
+
+- A VEX statement for CVE-2026-84243 (glibc gettext and `LANGUAGE`, published after 0.3.1 was
+  built): notaio imports none of the gettext functions, which CI re-checks on every build.
 
 ## [0.3.1] - 2026-10-31
 

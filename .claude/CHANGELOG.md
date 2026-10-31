@@ -2,6 +2,16 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-10-31 23:50] - VEX for CVE-2026-84243
+
+**Author:** Erick Bourgeois
+
+### Changed
+- Verifying v0.3.1 found a new High in the base image, CVE-2026-84243 (glibc gettext reading
+  `LANGUAGE`), unfixed upstream, so the gate passed but the finding count went from 6 to 7.
+  `.vex/CVE-2026-84243.json` and its evidence: the binary imports none of the gettext family or
+  `setlocale`. `make vex-evidence` holds with 20 statements.
+
 ## [2026-10-31 23:30] - Release prep: v0.3.1
 
 **Author:** Erick Bourgeois

@@ -151,6 +151,21 @@
       "nl_langinfo_l"
     ]
   },
+  "CVE-2026-84243": {
+    "symbols_not_imported": [
+      "gettext",
+      "dgettext",
+      "dcgettext",
+      "ngettext",
+      "dngettext",
+      "dcngettext",
+      "textdomain",
+      "bindtextdomain",
+      "bind_textdomain_codeset",
+      "__dcgettext",
+      "__dcngettext"
+    ]
+  },
   "CVE-2026-85091": {
     "libraries_not_linked": [
       "libz.so.1"
