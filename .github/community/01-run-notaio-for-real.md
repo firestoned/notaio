@@ -1,7 +1,8 @@
 # Roadmap 01: run notaio for real
 
-- **Status:** In progress. Phases A and B are done: notaio v0.3.1 signs through OpenBao, and
-  policies reach the cluster only from the private policy repository through Flux. Phase C next.
+- **Status:** Phases A to D done (2026-10-31): notaio v0.3.1 signs through OpenBao, policies
+  reach the cluster only from the private policy repository through Flux, the smoke test passes,
+  and the loop held for a tightening, a widening and a sealed signer. One follow-up open (phase A).
 - **Milestone:** M3 in [`ROADMAPS.md`](../../ROADMAPS.md), stage 1 of running it end to end
 - **Related:** roadmap 00 (M3), whose phase 1 reads what this publishes; ADR-0004 (the signer),
   ADR-0009 (releases), ADR-0010 (health and metrics), ADR-0011 (leader election)
@@ -76,7 +77,7 @@ to read and enforce the bundle: roadmap 00, phases 1 to 3.
       the policy repository's `clusters/core` with a read-only deploy key the maintainer generated,
       and GitHub's host keys checked against the ones GitHub publishes. `platform` and
       `ns-sandboxes` Kustomizations, the second including notaio's bundle Role.
-- [ ] The policy repository: `namespaces/<namespace>/` holding its namespace, notaio's bundle Role,
+- [x] The policy repository: `namespaces/<namespace>/` holding its namespace, notaio's bundle Role,
       `policies/` and `ceilings/`, with CODEOWNERS on `ceilings/`; the `notaio lint` workflow from
       the lint guide, pinned to the release image by digest, in text mode (SARIF upload to Code
       Scanning needs GitHub Advanced Security on a private repository). Bootstrapped by its first
@@ -99,18 +100,24 @@ to read and enforce the bundle: roadmap 00, phases 1 to 3.
       deletes nothing.
 - [x] Passes 3 of 3 on the test cluster. Shown to catch what it guards: on a cluster without the
       admission policy, `a_direct_edit_is_denied` fails.
-- [ ] Run after every notaio release is installed, and after every policy repository merge. The
+- [x] Run after every notaio release is installed, and after every policy repository merge. The
       commands and every run are kept in the policy repository's `TESTING.md`.
 
 ### Phase D: prove the loop
 
-- [ ] A pull request to the policy repository changes one rule: `notaio lint` passes in CI, review
+- [x] A pull request to the policy repository changes one rule: `notaio lint` passes in CI, review
       approves, the merge is applied by Flux, notaio publishes the next version with a `Published`
-      Event, and the bundle verifies with the consumer example and the floor moves.
-- [ ] A pull request that widens an endpoint without widening the ceiling fails `notaio lint` with
-      `L014` before it can merge.
-- [ ] OpenBao sealed on purpose: the policy reports `SigningFailed`, the bundle already published
-      keeps verifying until its `notAfter`, and unsealing recovers without touching notaio.
+      Event, and the bundle verifies with the consumer example and the floor moves. The lease cap
+      went from 3600 s to 1800 s: version 2, verified, the floor moved from 1 to 2.
+- [x] A pull request that widens an endpoint without widening the ceiling fails `notaio lint` with
+      `L014` before it can merge. It did, and nothing reached the cluster. GitHub still offered the
+      merge button: on the free plan a failing check cannot block a merge (section 6), so the
+      cluster's own ceiling check is what stops such a merge from being signed.
+- [x] OpenBao sealed on purpose: the policy reports `SigningFailed`, the bundle already published
+      keeps verifying until its `notAfter`, and unsealing recovers without touching notaio. Sealed,
+      then a tightening merged: `Ready=False, SigningFailed` with a Warning Event and
+      `notaio_signing_failures_total` counting, version 2 still verifying. Unsealed: version 3
+      within 10 s, no restart, the floor moved to 3 and a replay of version 2 was refused.
 
 ## 5. Done when
 
