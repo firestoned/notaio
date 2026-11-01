@@ -25,7 +25,7 @@ the profiles need the CRDs to exist before `kubectl` can even read them. Verify 
 apply them:
 
 ```sh
-V=0.3.2
+V=0.3.3
 gh release download "v$V" --repo firestoned/notaio \
   -p "notaio-$V*.yaml" -p "notaio-$V*.yaml.sigstore.json" -p checksums.sha256
 sha256sum -c checksums.sha256 --ignore-missing
