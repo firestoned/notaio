@@ -1,7 +1,9 @@
 # Roadmap 03: policies delivered as signed OCI artifacts
 
-- **Status:** Not started. The decisions below are recommended, not yet taken. Security owns both
-  the policies and the ceilings (decided 2026-11-01).
+- **Status:** In progress. Phase A is done (2026-11-01): Flux verifies cosign signatures as this
+  roadmap assumes, both signature formats, with no transparency log. The decisions below are
+  recommended, not yet taken. Security owns both the policies and the ceilings (decided
+  2026-11-01).
 - **Milestone:** M3 in [`ROADMAPS.md`](../../ROADMAPS.md), hardening what roadmap 01 built
 - **Related:** roadmap 01 (the policy repository, Flux, GitOps-only admission, and its risk "review
   is not enforced on GitHub's free plan"); ADR-0007 (the ExposureCeiling and Security's approval);
@@ -82,20 +84,30 @@ moving a tag to an unsigned digest is refused, not followed.
 
 ## 4. Work, in order
 
-### Phase A: prove it on kind
+### Phase A: prove it
 
-Things to confirm, not assume, before writing the guide:
+Things to confirm, not assume, before writing the guide. Run on the test cluster's own Flux
+(v2.10.0, source-controller v1.10.1) rather than kind, in a throwaway namespace holding a registry,
+the keys, one `OCIRepository` and one Kustomization applying a ConfigMap, deleted afterwards.
 
-- [ ] Flux (`OCIRepository` with `verify.provider: cosign`) in kind, with a registry in the
-      cluster: an artifact signed with a key is applied; an unsigned one, one signed by another
-      key, and a tag moved to an unsigned digest are refused, with `OCIRepository` `Ready=False`
-      saying why, and nothing of them applied.
-- [ ] Which signature formats the Flux version in use verifies: Cosign 3 stores signatures as OCI
+- [x] Flux (`OCIRepository` with `verify.provider: cosign`), with a registry in the cluster: an
+      artifact signed with a key is applied; an unsigned one, one signed by another key, and a tag
+      moved to an unsigned digest are refused, with `OCIRepository` `Ready=False` saying why, and
+      nothing of them applied. Done 2026-11-01: each refusal reads `failed to verify the signature
+      using provider 'cosign': no matching signatures were found`, `SourceVerified=False`, and the
+      content already applied stays applied.
+- [x] Which signature formats the Flux version in use verifies: Cosign 3 stores signatures as OCI
       referrers in the new bundle format (ADR-0009). If Flux reads only the older format, sign in
-      that format and say so in the guide.
-- [ ] A key-signed artifact with no transparency log upload verifies.
-- [ ] Two artifacts, two `OCIRepository` objects, two signers: a ceiling signed with the policy
-      signer's key is refused.
+      that format and say so in the guide. Done 2026-11-01: both verify, Cosign 3's default and
+      `--new-bundle-format=false`.
+- [x] A key-signed artifact with no transparency log upload verifies. Done 2026-11-01, with a
+      finding: in Cosign 3, `--tlog-upload=false` is refused under the default signing
+      configuration. Sign with `--use-signing-config=false --tlog-upload=false`, or with a
+      `--signing-config` that names no transparency log. Sign by digest: signing a tag is
+      deprecated.
+- [x] Two signers, one required: a ceiling signed with the policy signer's key is refused. Done
+      2026-11-01 with one `OCIRepository` checked against each key in turn: refused against
+      Security's, verified and applied against CI's. Two `OCIRepository` objects are that, twice.
 
 ### Phase B: the policy repository
 
