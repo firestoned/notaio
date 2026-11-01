@@ -88,10 +88,12 @@ nothing else, that another ServiceAccount cannot log in, that another namespace 
 and that the audit log records the signature. It exits non-zero on any surprise and removes what
 it creates.
 
-It needs cert-manager and a default StorageClass. The unseal key and root token go to
+It needs cert-manager and a default StorageClass. The recovery key and root token go to
 `$OPENBAO_STATE/init.json` (mode 600), the public key consumers trust to
-`$OPENBAO_STATE/notaio-public-key.txt`. A restart of the OpenBao pod seals it; run the target
-again to unseal. It is a test instance: one replica, one key share.
+`$OPENBAO_STATE/notaio-public-key.txt`. It unseals itself after a restart, with the `static` seal
+and its key in Secret `openbao-seal` (roadmap 02); running the target against an instance set up
+before that migrates it, with its old unseal key, which becomes the recovery key. It is a test
+instance: one replica, one recovery share, and the seal key in the cluster beside the storage.
 
 ## Signing with OpenBao
 

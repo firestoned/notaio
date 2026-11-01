@@ -2,6 +2,36 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-01 21:00] - Roadmap 02 phase A: the test OpenBao unseals itself
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `dev/openbao/openbao.yaml`: `seal "static"`, its key in Secret `openbao-seal` mounted read-only
+  into the OpenBao pod; the header states where the key sits and what that exposes.
+- `dev/openbao/setup.sh`: creates the seal key before OpenBao starts; initialises with one
+  recovery share; migrates an instance set up before (Shamir) with its old unseal key, which
+  becomes the recovery key; fails, with OpenBao's log, when the key does not open it.
+- `dev/openbao/check.sh`: the seal type is `static`, with a recovery seal.
+- `crates/notaio/tests/e2e_openbao.rs`: after OpenBao is scaled back, the policy it could not sign
+  is published with nobody unsealing anything.
+- Docs: the OpenBao signer guide's "Unsealing after a restart" (the seals 2.7 carries, the
+  migration, the two failure modes, rotation); troubleshooting's `503`; the developer page; the
+  Makefile's comments.
+- Roadmap 02: in progress, the static seal decided; phase A and its two documentation items
+  ticked.
+
+### Why
+Roadmap 02. Proven on kind first: a Shamir instance from the old `dev/openbao` migrated by the new
+`setup.sh` (both transit key versions unchanged, `check.sh` clean), a deleted pod unsealed again
+in 3 s, a wrong key left sealed with `setup.sh` failing on it.
+
+### Impact
+- [ ] Breaking change
+- [ ] Requires cluster rollout
+- [x] Config change only
+- [ ] Documentation only
+
 ## [2026-11-01 16:00] - Roadmap 02: OpenBao unseals itself
 
 **Author:** Erick Bourgeois

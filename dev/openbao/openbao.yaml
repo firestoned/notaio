@@ -1,8 +1,12 @@
 # A single-node OpenBao for developing and testing notaio's transit signer (ADR-0004) on a
 # long-lived test cluster, with PostgreSQL as its storage backend. Not a production deployment:
-# one OpenBao replica, unsealed by hand with dev/openbao/setup.sh after every restart (Shamir,
-# one key share).
+# one OpenBao replica.
 #
+# - It unseals itself (roadmap 02): the `static` seal, its key in Secret openbao-seal, created
+#   by setup.sh with a random key and mounted read-only into the OpenBao pod alone. A missing key
+#   stops OpenBao at start; a wrong one leaves it sealed, saying "message authentication failed".
+#   The key sits in the cluster beside the storage it unwraps: whoever reads Secrets in this
+#   namespace, or holds both the cluster's datastore and PostgreSQL, holds the signing key.
 # - PostgreSQL 18 on a persistent volume holds OpenBao's data, so the transit key survives a
 #   restart of either pod. OpenBao creates its tables (openbao_kv_store, openbao_ha_locks).
 # - The database password and OpenBao's connection URL are in Secret openbao-postgres, created by
@@ -203,6 +207,13 @@ data:
       table = "openbao_kv_store"
       max_connect_retries = 30
     }
+    # Unseals at every start with the key in Secret openbao-seal (roadmap 02). To rotate it, add
+    # a new key to the Secret, move this one to previous_key_id/previous_key and name the new one
+    # here; restart; remove the old one once OpenBao has re-wrapped its keys.
+    seal "static" {
+      current_key_id = "seal-1"
+      current_key    = "file:///seal/seal-1"
+    }
     # Every request, including each signature notaio asks for, to the pod's log (ADR-0004,
     # decision 4). OpenBao 2.x only accepts audit devices declared here, not through the API.
     audit "file" "to-stdout" {
@@ -258,7 +269,8 @@ spec:
           ports:
             - { name: https, containerPort: 8200 }
           readinessProbe:
-            # Ready even sealed or uninitialised: the setup script does those.
+            # Ready even sealed or uninitialised: the setup script initialises, and migrates an
+            # instance that was sealed by Shamir before.
             httpGet:
               path: /v1/sys/health?standbyok=true&sealedcode=204&uninitcode=204
               port: https
@@ -268,6 +280,7 @@ spec:
             - { name: config, mountPath: /config, readOnly: true }
             - { name: tls, mountPath: /tls, readOnly: true }
             - { name: pg-ca, mountPath: /pg-ca, readOnly: true }
+            - { name: seal, mountPath: /seal, readOnly: true }
             - { name: tmp, mountPath: /tmp }
           securityContext:
             allowPrivilegeEscalation: false
@@ -287,6 +300,9 @@ spec:
             secretName: openbao-postgres-tls
             items: [{ key: ca.crt, path: ca.crt }]
             defaultMode: 0440
+        # The static seal's key (roadmap 02): 64 hex characters, one file per key id.
+        - name: seal
+          secret: { secretName: openbao-seal, defaultMode: 0440 }
         - name: tmp
           emptyDir: {}
 ---

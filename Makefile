@@ -122,12 +122,13 @@ docs-clean: ## Remove docs/site/ and docs/.venv/
 #
 # A single-node OpenBao with PostgreSQL storage, for developing the transit signer (ADR-0004)
 # on a long-lived test cluster. Nothing defaults: name the cluster's kubeconfig and a state
-# directory outside the repository, which receives the unseal key and root token (mode 600).
-# Re-run after any restart of the openbao pod, which seals it.
+# directory outside the repository, which receives the recovery key and root token (mode 600).
+# It unseals itself after a restart (the static seal, roadmap 02); re-running migrates an instance
+# that was set up before that.
 OPENBAO_KUBECONFIG ?=
 OPENBAO_STATE ?=
 
-openbao-dev: ## Stand up, or unseal again, the test OpenBao (OPENBAO_KUBECONFIG=... OPENBAO_STATE=...)
+openbao-dev: ## Stand up, or migrate to the static seal, the test OpenBao (OPENBAO_KUBECONFIG=... OPENBAO_STATE=...)
 	@test -n "$(OPENBAO_KUBECONFIG)" || { echo "set OPENBAO_KUBECONFIG to the test cluster's kubeconfig"; exit 1; }
 	@test -n "$(OPENBAO_STATE)" || { echo "set OPENBAO_STATE to a directory outside the repository"; exit 1; }
 	dev/openbao/setup.sh "$(OPENBAO_KUBECONFIG)" "$(OPENBAO_STATE)"

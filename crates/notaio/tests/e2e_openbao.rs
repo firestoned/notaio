@@ -226,7 +226,8 @@ async fn signs_through_openbao_and_fails_closed_without_it() {
         "a bundle was published without a signature from OpenBao"
     );
 
-    // Restore. OpenBao comes back sealed; the Makefile unseals it.
+    // 4. OpenBao back. It unseals itself (the static seal, roadmap 02): nobody runs anything,
+    //    and the policy it could not sign is published on the controller's own retry.
     openbao
         .patch(
             "openbao",
@@ -235,6 +236,14 @@ async fn signs_through_openbao_and_fails_closed_without_it() {
         )
         .await
         .expect("scale OpenBao back to one");
+    wait_ready_reason(&policies, &refused, "Published").await;
+    assert!(
+        cms.get_opt(&bundle_object_name(&refused))
+            .await
+            .expect("get")
+            .is_some(),
+        "published once OpenBao unsealed itself"
+    );
     delete_capped_policy(&client, &ns, &refused).await;
     delete_capped_policy(&client, &ns, &signed).await;
 }
