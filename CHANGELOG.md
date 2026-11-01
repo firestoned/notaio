@@ -10,6 +10,14 @@ a release, the maintainer renames Unreleased to the version and date.
 
 ## Unreleased
 
+Nothing yet.
+
+## [0.3.3] - 2026-11-01
+
+For consumers: the version floor's decision as a function of its own, which mediatore pins this
+release for. Nothing about the controller, policies, bundles or the API changes; upgrading an
+installation is applying the two manifests of this release.
+
 ### Added
 
 - `sandboxpolicy_bundle::floor::next_floor`: the version floor's decision on its own, a pure
@@ -169,6 +177,7 @@ operator needs to run it with two replicas and an OpenBao signer.
 - Its NetworkPolicy allows egress only to DNS, the API server and OpenBao, and ingress only to the
   health and metrics port from the monitoring namespace.
 
+[0.3.3]: https://github.com/firestoned/notaio/releases/tag/v0.3.3
 [0.3.2]: https://github.com/firestoned/notaio/releases/tag/v0.3.2
 [0.3.1]: https://github.com/firestoned/notaio/releases/tag/v0.3.1
 [0.3.0]: https://github.com/firestoned/notaio/releases/tag/v0.3.0

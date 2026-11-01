@@ -2,6 +2,14 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-01 11:00] - Release prep: v0.3.3
+
+**Author:** Erick Bourgeois
+
+### Changed
+- Workspace version 0.3.3; `CHANGELOG.md` gains its `[0.3.3]` section (`next_floor`); the install
+  guide's `V=` is 0.3.3.
+
 ## [2026-11-01 10:00] - The floor decision as a pure function
 
 **Author:** Erick Bourgeois
