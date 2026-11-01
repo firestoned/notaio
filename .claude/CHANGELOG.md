@@ -2,6 +2,23 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-02 09:00] - ADR-0004 decision 6: OpenBao unseals itself
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `docs/adr/0004-signing-key-custody.md`: decision 6 (the seal is a custody decision; the
+  `static` seal for the test instance, `transit` or a KMS for production) and its accepted risk.
+- `docs/architecture.md` known gaps: the test cluster's Flux identity (the first bullet was stale)
+  and the seal key in the cluster.
+- Roadmap 02 phase C done.
+
+### Impact
+- [ ] Breaking change
+- [ ] Requires cluster rollout
+- [ ] Config change only
+- [x] Documentation only
+
 ## [2026-11-01 22:00] - Roadmap 03: policies delivered as signed OCI artifacts
 
 **Author:** Erick Bourgeois

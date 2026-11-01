@@ -291,8 +291,11 @@ and that the version is not below the highest it has accepted. Every failure is 
 ## Known gaps in v0
 
 - The controller, the admission policy and the deployment manifests have run on kind (`make kind-e2e`,
-  in CI) and on a three-node k0s test cluster, where kube-router also enforced the NetworkPolicy. Not
-  yet on a production cluster, and not yet with a real GitOps reconciler as the admitted identity.
+  in CI) and on a three-node k0s test cluster, where kube-router also enforced the NetworkPolicy and
+  Flux is the admitted GitOps identity (roadmap 01). Not yet on a production cluster.
+- The test OpenBao unseals itself with the `static` seal, whose key is in the cluster beside the
+  storage it unwraps (ADR-0004, decision 6). A production signer needs a seal whose key is held
+  elsewhere.
 - Distribution is decided (ADR-0003: ConfigMap, read by mediatore, relayed to guests), but the
   mediatore side is not built yet (ROADMAP M3).
 - A policy that becomes invalid leaves the previous bundle in place until it expires. The bundle

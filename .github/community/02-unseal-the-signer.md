@@ -93,7 +93,8 @@ custody), with the residual risk in the threat model.
       unseals it".
 - [x] Troubleshooting: `OpenBao answered 503` gains the auto-unseal case (the seal key missing or
       wrong).
-- [ ] ADR-0004 amended and the threat model's residual risk.
+- [x] ADR-0004 amended and the threat model's residual risk. Done 2026-11-01: ADR-0004 decision 6
+      and its accepted risk; a known gap in the architecture.
 
 ## 5. Done when
 
