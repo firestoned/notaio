@@ -58,6 +58,14 @@ Options considered:
    latest, as before.
 5. **The development signer stays for development and the e2e only.** A production deployment does
    not set `NOTAIO_SIGNING_KEY_FILE`. Removing it from the default manifests is ROADMAP M2.
+6. *Added 2026-11-01 (roadmap 02):* **OpenBao unseals itself; the Shamir key becomes a recovery
+   key.** A Shamir-sealed OpenBao stays sealed after every restart until a person unseals it, and
+   once consumers enforce bundles an expired one refuses their claims, so a restart at night is an
+   outage by morning. Which seal unwraps OpenBao's root key is a custody decision of its own: it
+   decides who, besides OpenBao, can make it sign. Recommended, and what `dev/openbao` does: the
+   `static` seal, its key in a Secret in OpenBao's namespace, mounted read-only into the OpenBao pod
+   alone. The production shape is the `transit` seal against an OpenBao outside the cluster, or a
+   KMS; the [signer guide](../guides/openbao-signer.md#unsealing-after-a-restart) compares them.
 
 ## Consequences
 
@@ -70,6 +78,12 @@ Options considered:
   cluster, and the auth role binds the ServiceAccount, namespace and token audience. *Revisit
   when* the platform needs protection from a malicious cluster administrator rather than a careless
   or compromised one: that means signing outside the cluster (the CI option above).
+- **Accepted risk (decision 6, the `static` seal):** the seal key sits in the cluster's datastore
+  beside the storage it unwraps. Whoever can read Secrets in OpenBao's namespace, or holds a backup
+  of both the cluster's datastore and OpenBao's storage, can bring OpenBao up and sign as notaio,
+  outside its audit device's reach if they run their own copy. On a single-maintainer test cluster
+  that person is already cluster-admin. *Revisit when* the cluster has other administrators or
+  other users: then the `transit` seal, its key outside the cluster.
 - OpenBao becomes a dependency of publishing. If it is unreachable, notaio cannot sign, so no new
   bundle is published and consumers keep the last good one until it expires. That is fail closed,
   and it makes OpenBao availability part of the bundle lifetime budget.
