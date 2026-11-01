@@ -137,7 +137,7 @@ work fixed in the guide.
   single-maintainer test cluster; anything others depend on needs a paid plan or another host.
 
 - **The test OpenBao seals on every restart.** Fine for stage 1; a cluster others depend on needs
-  auto-unseal first.
+  auto-unseal first: roadmap 02.
 - **No Prometheus.** The smoke test reads `/metrics` directly; alerting is not exercised until a
   monitoring stack is installed.
 - **The private repository's deploy key** is a credential in the cluster. Read-only, one

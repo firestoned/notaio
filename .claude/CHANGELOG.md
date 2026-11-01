@@ -2,6 +2,27 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-01 16:00] - Roadmap 02: OpenBao unseals itself
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `.github/community/02-unseal-the-signer.md` (new): the seal options OpenBao 2.7.1 carries
+  (checked against the binary), the recommendation (the `static` seal, its key in a Secret), the
+  alternatives (transit against an OpenBao outside the cluster; a cloud KMS) and the rejected
+  sidecar; phases A (kind), B (the test cluster), C (docs, ADR-0004 amendment).
+- `ROADMAPS.md` M3 and roadmap 01's risk point to it.
+
+### Why
+A restarted OpenBao stays sealed until a person unseals it; once mediatore enforces bundles, an
+expired bundle refuses claims and mints.
+
+### Impact
+- [ ] Breaking change
+- [ ] Requires cluster rollout
+- [ ] Config change only
+- [x] Documentation only
+
 ## [2026-11-01 15:00] - A key id is trusted once; roadmap 00 phase 1 progress
 
 **Author:** Erick Bourgeois

@@ -92,6 +92,10 @@ pull request to verified bundle. **Stage 1 is done** (2026-10-31): a tightening 
 a verified bundle and a moved floor, a widening past the ceiling failed `L014`, and a sealed
 OpenBao stopped signing without breaking the published bundle, recovering on unseal.
 
+That recovery needs a person. [Roadmap 02](https://github.com/firestoned/notaio/blob/main/.github/community/02-unseal-the-signer.md)
+makes OpenBao unseal itself (recommended: the `static` seal, its key in a Secret) before a consumer
+enforces bundles signed there.
+
 - AgentSandbox (mediatore, since mediatore ADR-0008 took the claim from banlieue): names a policy,
   admission checks eligibility with it as the parameter, the claim records the policy version. No
   policy logic in banlieue or mediatore beyond verifying and enforcing the bundle.
