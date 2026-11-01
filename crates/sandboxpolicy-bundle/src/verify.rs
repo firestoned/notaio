@@ -18,11 +18,34 @@ impl TrustedKeys {
         Self::default()
     }
 
+    /// Trust `public` under `key_id`.
+    ///
+    /// # Errors
+    /// `BundleError::Key` when `public` is not an Ed25519 public key, or when `key_id` is already
+    /// trusted: a second key under the same id would silently replace the first, and which one a
+    /// consumer trusts would depend on the order its configuration lists them.
     pub fn insert(&mut self, key_id: &str, public: [u8; 32]) -> Result<(), BundleError> {
+        if self.0.contains_key(key_id) {
+            return Err(BundleError::Key(format!(
+                "key id {key_id} is already trusted"
+            )));
+        }
         let key = ed25519_dalek::VerifyingKey::from_bytes(&public)
             .map_err(|e| BundleError::Key(e.to_string()))?;
         self.0.insert(key_id.to_string(), key);
         Ok(())
+    }
+
+    /// The trusted key ids, in order.
+    pub fn ids(&self) -> impl Iterator<Item = &str> {
+        self.0.keys().map(String::as_str)
+    }
+}
+
+/// The key ids only: what a log line needs, and nothing a reader could mistake for the keys.
+impl std::fmt::Debug for TrustedKeys {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_set().entries(self.ids()).finish()
     }
 }
 

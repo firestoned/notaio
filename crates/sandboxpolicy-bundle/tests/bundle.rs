@@ -124,6 +124,28 @@ fn unknown_key_is_rejected() {
 }
 
 #[test]
+fn a_key_id_is_trusted_once() {
+    let s = signer();
+    let other = Ed25519Signer::from_seed("other", [9u8; 32]);
+    let mut keys = TrustedKeys::new();
+    keys.insert("notaio:v1", s.verifying_key_bytes()).unwrap();
+    // A second key under the same id would replace the first, silently.
+    let err = keys
+        .insert("notaio:v1", other.verifying_key_bytes())
+        .unwrap_err();
+    assert!(matches!(err, BundleError::Key(_)), "{err:?}");
+    keys.insert("notaio:v2", other.verifying_key_bytes())
+        .unwrap();
+    assert_eq!(keys.ids().collect::<Vec<_>>(), ["notaio:v1", "notaio:v2"]);
+    assert_eq!(format!("{keys:?}"), r#"{"notaio:v1", "notaio:v2"}"#);
+    // The first key is still the one trusted under its id.
+    let env = sign_bundle(&payload(3), &s).unwrap();
+    let mut only_v1 = TrustedKeys::new();
+    only_v1.insert("test-key", s.verifying_key_bytes()).unwrap();
+    assert!(verify_bundle(&env, &only_v1, &VerifyOptions::at(now())).is_ok());
+}
+
+#[test]
 fn right_keyid_wrong_key_is_rejected() {
     let s = signer();
     let env = sign_bundle(&payload(3), &s).unwrap();

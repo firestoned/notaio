@@ -2,6 +2,26 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-01 15:00] - A key id is trusted once; roadmap 00 phase 1 progress
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `crates/sandboxpolicy-bundle/src/verify.rs`: `TrustedKeys::insert` refuses a duplicate key id;
+  `ids()`; `Debug` printing ids only. Test in `tests/bundle.rs`.
+- Roadmap 00: status and phase 1 brought up to date with mediatore's roadmap 09 and ADR-0026
+  (D3 decided for the shadow phase). CHANGELOG.md.
+
+### Why
+Building mediatore's key configuration showed the replacement: mediatore had to guard against it
+itself, and every other consumer would have to as well.
+
+### Impact
+- [ ] Breaking change
+- [ ] Requires cluster rollout
+- [ ] Config change only
+- [ ] Documentation only
+
 ## [2026-11-01 11:00] - Release prep: v0.3.3
 
 **Author:** Erick Bourgeois

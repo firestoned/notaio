@@ -1,7 +1,8 @@
 # Roadmap 00: M3, integrate the consumers
 
 - **Status:** In progress. Phase 0 is complete, released as v0.3.0 (2026-10-31): D1 and D2 are
-  decided and built. Phase 1 is next, in mediatore. D3 to D6 are open.
+  decided and built. Phase 1 is under way in mediatore, as its roadmap 09 and ADR-0026
+  (accepted 2026-11-01), which also decides D3 for the shadow phase. D4 to D6 are open.
 - **Milestone:** M3 in [`ROADMAPS.md`](../../ROADMAPS.md)
 - **Related:** ADR-0002 (the bundle contract), ADR-0003 (distribution), ADR-0004 (signing keys),
   ADR-0008 (the consumer's version floor); mediatore ADR-0008 (AgentSandbox), ADR-0024 (Landlock),
@@ -126,16 +127,27 @@ Each phase is shippable and leaves the system no looser than before.
 
 ### Phase 1: mediatore reads and verifies, in shadow
 
+Tracked in detail by mediatore's roadmap 09, built on its ADR-0026.
+
 - [ ] A Role per policy namespace for `get`, `list` and `watch` on ConfigMaps labelled
       `app.kubernetes.io/managed-by=notaio`.
 - [ ] Watch the bundle ConfigMaps, verify each with `verify_bundle`, keep a floor (a `VersionFloor`
-      over `mediatore-store`, so it survives restarts with the claims).
+      over `mediatore-store`, so it survives restarts with the claims). *Partly done 2026-11-01:*
+      the floor rule became a pure function, `next_floor` (v0.3.3, ADR-0008 amended), because the
+      store is async; mediatore pins v0.3.3, keeps the floor in a `policy_floors` table moved by
+      a compare and set, verifies through `admit` in its `mediatore-policy` crate, passes all 14
+      conformance vectors through it, and reads its trusted keys from its own configuration.
+      The watch itself is next.
 - [ ] Compare each claim's broker configuration with its bundle and log and count every place the
-      broker would allow more. Enforce nothing yet: this phase finds the gaps safely.
+      broker would allow more. Enforce nothing yet: this phase finds the gaps safely. ADR-0026
+      names the gaps `P001` to `P011` and reports them as a `PolicyConformant` condition, since
+      the broker has no metrics endpoint.
 
 ### Phase 2: mediatore enforces the bundle
 
-- [ ] D3: `AgentSandbox.spec.policyRef`, and the eligibility admission policy.
+- [ ] D3: `AgentSandbox.spec.policyRef`, and the eligibility admission policy. The field is
+      decided in mediatore ADR-0026 (optional and immutable in phase 1, required here); the
+      eligibility admission policy is this phase's.
 - [ ] At claim: the policy's audiences are the ceiling for the claim's; the lease is the ceiling
       for `ttl_seconds`; a claim under a policy with no valid bundle is refused.
 - [ ] At every mint: the audience is in the verified bundle, the TTL is the bundle's (which also
