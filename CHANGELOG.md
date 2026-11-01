@@ -10,7 +10,11 @@ a release, the maintainer renames Unreleased to the version and date.
 
 ## Unreleased
 
-Nothing yet.
+### Changed
+
+- `TrustedKeys::insert` refuses a key id that is already trusted, instead of replacing its key:
+  which of two keys a consumer trusted depended on the order its configuration listed them.
+  `TrustedKeys` gains `ids()` and a `Debug` that prints the ids only.
 
 ## [0.3.3] - 2026-11-01
 
