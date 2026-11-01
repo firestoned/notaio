@@ -8,7 +8,9 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use chrono::{DateTime, Duration, TimeZone, Utc};
-use sandboxpolicy_bundle::floor::{accept, FileFloor, MemoryFloor, VersionFloor};
+use sandboxpolicy_bundle::floor::{
+    accept, next_floor, FileFloor, FloorEntry, MemoryFloor, VersionFloor,
+};
 use sandboxpolicy_bundle::*;
 use sandboxpolicy_types::{Access, AudienceGrant, Budgets, KnobId, Lease, Step};
 
@@ -204,4 +206,50 @@ fn the_write_is_atomic_and_leaves_no_temporary_file() {
     assert_eq!(names, vec!["floor.json"]);
     let reopened = FileFloor::open(&path).unwrap();
     assert_eq!(reopened.get(NS, NAME).unwrap().version, 4);
+}
+
+fn verified(uid: &str, version: u64, issued: DateTime<Utc>) -> BundlePayload {
+    verify_bundle(
+        &bundle(uid, version, issued),
+        &keys(),
+        &VerifyOptions::at(issued + Duration::minutes(1)),
+    )
+    .unwrap()
+}
+
+fn entry(uid: &str, version: u64, issued: DateTime<Utc>) -> FloorEntry {
+    FloorEntry {
+        uid: uid.into(),
+        version,
+        issued_at: issued,
+    }
+}
+
+#[test]
+fn next_floor_is_the_rule_accept_applies() {
+    // Every case above, through the pure decision a consumer with its own storage calls.
+    let p = verified("uid-1", 3, t(1));
+    assert_eq!(next_floor(None, &p).unwrap(), entry("uid-1", 3, t(1)));
+    assert_eq!(
+        next_floor(Some(&entry("uid-1", 4, t(1))), &p).unwrap_err(),
+        BundleError::Downgrade { got: 3, min: 4 }
+    );
+    assert_eq!(
+        next_floor(Some(&entry("uid-1", 3, t(2))), &p).unwrap(),
+        entry("uid-1", 3, t(2)),
+        "a re-delivery keeps the later issuedAt"
+    );
+    assert_eq!(
+        next_floor(Some(&entry("uid-1", 2, t(0))), &p).unwrap(),
+        entry("uid-1", 3, t(1))
+    );
+    assert_eq!(
+        next_floor(Some(&entry("uid-0", 9, t(0))), &p).unwrap(),
+        entry("uid-1", 3, t(1)),
+        "a newer incarnation resets the floor"
+    );
+    assert!(matches!(
+        next_floor(Some(&entry("uid-2", 1, t(1))), &p),
+        Err(BundleError::StaleIncarnation { .. })
+    ));
 }

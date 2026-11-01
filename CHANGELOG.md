@@ -10,7 +10,11 @@ a release, the maintainer renames Unreleased to the version and date.
 
 ## Unreleased
 
-Nothing yet.
+### Added
+
+- `sandboxpolicy_bundle::floor::next_floor`: the version floor's decision on its own, a pure
+  function that `accept` now calls. Consumers whose floor lives in an async store or a database
+  transaction apply the same rule without implementing `VersionFloor` (ADR-0008, amended).
 
 ## [0.3.2] - 2026-10-31
 

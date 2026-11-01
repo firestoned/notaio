@@ -2,6 +2,26 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-01 10:00] - The floor decision as a pure function
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `crates/sandboxpolicy-bundle/src/floor.rs`: `next_floor(held, payload)`, the ADR-0008 decisions
+  2 and 3 alone; `accept` calls it, behaviour unchanged. A test drives every case through it.
+- ADR-0008 amended (decision 5); the consumer guide shows the async pattern; CHANGELOG.md.
+
+### Why
+mediatore ADR-0026 keeps the floor in its async store, written in one transaction so replicas
+cannot race it down. notaio's `VersionFloor` is synchronous; the pure function keeps the rule in
+notaio and the I/O in the consumer.
+
+### Impact
+- [ ] Breaking change
+- [ ] Requires cluster rollout
+- [ ] Config change only
+- [ ] Documentation only
+
 ## [2026-10-31 23:45] - Release prep: v0.3.2
 
 **Author:** Erick Bourgeois

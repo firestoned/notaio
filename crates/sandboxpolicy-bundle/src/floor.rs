@@ -164,14 +164,64 @@ impl VersionFloor for FileFloor {
     }
 }
 
+/// The floor decision alone (ADR-0008, decisions 2 and 3): given what the floor holds for the
+/// payload's policy, the entry to record, or why the payload is refused. Pure, so a consumer whose
+/// floor is not a [`VersionFloor`] (an async store, a database transaction that reads the held
+/// row and writes the next one) applies exactly the rule [`accept`] applies.
+///
+/// `payload` must come from [`verify_bundle`]: this checks the floor, nothing else. Use the entry
+/// only after it is stored durably (decision 4).
+///
+/// # Errors
+/// - `BundleError::Downgrade` for a lower version of the incarnation the floor holds;
+/// - `BundleError::StaleIncarnation` for a different incarnation issued no later than the one
+///   the floor holds (a replay from before a recreation).
+pub fn next_floor(
+    held: Option<&FloorEntry>,
+    payload: &BundlePayload,
+) -> Result<FloorEntry, BundleError> {
+    let policy = &payload.content.policy;
+    let meta = &payload.meta;
+    match held {
+        None => Ok(FloorEntry {
+            uid: policy.uid.clone(),
+            version: meta.version,
+            issued_at: meta.issued_at,
+        }),
+        Some(held) if held.uid == policy.uid => {
+            if meta.version < held.version {
+                return Err(BundleError::Downgrade {
+                    got: meta.version,
+                    min: held.version,
+                });
+            }
+            Ok(FloorEntry {
+                uid: held.uid.clone(),
+                version: meta.version,
+                issued_at: meta.issued_at.max(held.issued_at),
+            })
+        }
+        Some(held) => {
+            if meta.issued_at <= held.issued_at {
+                return Err(BundleError::StaleIncarnation {
+                    uid: policy.uid.clone(),
+                });
+            }
+            Ok(FloorEntry {
+                uid: policy.uid.clone(),
+                version: meta.version,
+                issued_at: meta.issued_at,
+            })
+        }
+    }
+}
+
 /// Verifies `env`, checks it against the floor, records the new floor durably, and only then
 /// returns the payload (ADR-0008, decision 4).
 ///
 /// # Errors
 /// - any error from [`verify_bundle`]: the floor is not touched;
-/// - `BundleError::Downgrade` for a lower version of the incarnation the floor holds;
-/// - `BundleError::StaleIncarnation` for a different incarnation issued no later than the one
-///   the floor holds (a replay from before a recreation);
+/// - any error from [`next_floor`];
 /// - `BundleError::Floor` when the new floor cannot be stored: the bundle is refused.
 pub fn accept(
     env: &Envelope,
@@ -181,40 +231,10 @@ pub fn accept(
 ) -> Result<BundlePayload, BundleError> {
     let payload = verify_bundle(env, keys, &VerifyOptions::at(now))?;
     let policy = &payload.content.policy;
-    let meta = &payload.meta;
-
-    let next = match floor.get(&policy.namespace, &policy.name) {
-        None => FloorEntry {
-            uid: policy.uid.clone(),
-            version: meta.version,
-            issued_at: meta.issued_at,
-        },
-        Some(held) if held.uid == policy.uid => {
-            if meta.version < held.version {
-                return Err(BundleError::Downgrade {
-                    got: meta.version,
-                    min: held.version,
-                });
-            }
-            FloorEntry {
-                uid: held.uid,
-                version: meta.version,
-                issued_at: meta.issued_at.max(held.issued_at),
-            }
-        }
-        Some(held) => {
-            if meta.issued_at <= held.issued_at {
-                return Err(BundleError::StaleIncarnation {
-                    uid: policy.uid.clone(),
-                });
-            }
-            FloorEntry {
-                uid: policy.uid.clone(),
-                version: meta.version,
-                issued_at: meta.issued_at,
-            }
-        }
-    };
+    let next = next_floor(
+        floor.get(&policy.namespace, &policy.name).as_ref(),
+        &payload,
+    )?;
     floor.set(&policy.namespace, &policy.name, next)?;
     Ok(payload)
 }

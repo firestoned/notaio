@@ -44,6 +44,12 @@ would bypass the floor.
    floor or the new one. A missing file is an empty floor; a file that does not parse is an
    error, never an empty floor. No new dependency, and still no Kubernetes dependency, so
    mediatore-guest can use it as is.
+
+   *Amended 2026-11-01:* the decision of decisions 2 and 3 is also its own pure function,
+   `next_floor(held, payload)`, which `accept` calls. A consumer whose floor is not a
+   `VersionFloor` (mediatore keeps it in an async database, read and written in one transaction,
+   mediatore ADR-0026) applies the same rule without re-implementing it. Decision 4 still holds:
+   the entry is used only after it is stored.
 6. **A runnable example** shows the whole consumer loop: read an envelope, verify it against a
    trusted key, check and record the floor, report the result.
 
