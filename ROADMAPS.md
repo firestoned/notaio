@@ -4,6 +4,18 @@ Ordered by consequence, like the AgentSandbox security roadmap this project belo
 contracts (types, bundle, version rules) have to be stable before Roadmap A phase 1 of the threat
 model finishes, because the attestation chain delivers a bundle.
 
+## Status board
+
+One row per roadmap; the detail is in `.github/community/`. Update the row in the same pull
+request that changes a roadmap's state.
+
+| # | Roadmap | Status | Detail |
+| --- | --- | --- | --- |
+| 00 | M3: integrate the consumers | In progress: phase 0 done (v0.3.0); phase 1 under way in mediatore (its roadmap 09) | [00-m3-integrate-the-consumers.md](https://github.com/firestoned/notaio/blob/main/.github/community/00-m3-integrate-the-consumers.md) |
+| 01 | Run notaio for real | Done: phases A to D on the test cluster (2026-10-31) | [01-run-notaio-for-real.md](https://github.com/firestoned/notaio/blob/main/.github/community/01-run-notaio-for-real.md) |
+| 02 | OpenBao unseals itself | In progress: the static seal decided, phase A proven on kind; the test cluster next | [02-unseal-the-signer.md](https://github.com/firestoned/notaio/blob/main/.github/community/02-unseal-the-signer.md) |
+| 03 | Policies delivered as signed OCI artifacts | Not started | [03-signed-policy-artifacts.md](https://github.com/firestoned/notaio/blob/main/.github/community/03-signed-policy-artifacts.md) |
+
 ## M0: scaffold and contracts (this repository state)
 
 Done: types, CRDs, knob register and built-in profiles transcribed from the threat model, lint rules
@@ -95,6 +107,12 @@ OpenBao stopped signing without breaking the published bundle, recovering on uns
 That recovery needs a person. [Roadmap 02](https://github.com/firestoned/notaio/blob/main/.github/community/02-unseal-the-signer.md)
 makes OpenBao unseal itself (recommended: the `static` seal, its key in a Secret) before a consumer
 enforces bundles signed there.
+
+[Roadmap 03](https://github.com/firestoned/notaio/blob/main/.github/community/03-signed-policy-artifacts.md)
+delivers the policy repository as signed OCI artifacts that Flux verifies before applying:
+`policies` signed by CI after lint, `ceilings` signed by Security alone. It closes the free-plan
+review gap where it matters, at the ceilings; notaio's bundle signature stays, since it covers what
+notaio computes in the cluster.
 
 - AgentSandbox (mediatore, since mediatore ADR-0008 took the claim from banlieue): names a policy,
   admission checks eligibility with it as the parameter, the claim records the policy version. No
