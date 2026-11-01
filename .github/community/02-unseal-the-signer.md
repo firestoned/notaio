@@ -1,8 +1,7 @@
 # Roadmap 02: OpenBao unseals itself
 
-- **Status:** In progress. The `static` seal is decided (2026-11-01). Phase A is done: proven
-  on kind, with `dev/openbao` on the static seal and a migration from Shamir. Phase B, the test
-  cluster, is next.
+- **Status:** Done (2026-11-01). The test cluster's OpenBao is on the `static` seal: a deleted pod
+  is unsealed again in 4 s with nobody acting, and notaio signs through it.
 - **Milestone:** M3 in [`ROADMAPS.md`](../../ROADMAPS.md): before a consumer enforces bundles signed
   on the test cluster (roadmap 00, phase 2)
 - **Related:** roadmap 01 (section 3, "OpenBao stays the test instance", and its risk "the test
@@ -76,14 +75,18 @@ custody), with the residual risk in the threat model.
 
 ### Phase B: the test cluster
 
-- [ ] Before: a dump of OpenBao's PostgreSQL and the current unseal material, kept off the
-      cluster.
-- [ ] A 32-byte random key in a Secret, the seal stanza in the config, the Deployment mounting
+- [x] Before: a dump of OpenBao's PostgreSQL and the current unseal material, kept off the
+      cluster. Done 2026-11-01: a `pg_dump` that `pg_restore` reads, the state files and the
+      transit key's public keys, kept off the cluster.
+- [x] A 32-byte random key in a Secret, the seal stanza in the config, the Deployment mounting
       it; the rollout, then the migration with the Shamir key. `bao status`: `Seal Type static`,
-      `Recovery Seal`.
-- [ ] Delete the pod: unsealed again without anyone, notaio signs, `make cluster-smoke` passes.
-      The same test as roadmap 01's D3, with the unseal step gone.
-- [ ] The commands and results in the policy repository's `TESTING.md`; here, the results without
+      `Recovery Seal`. Done 2026-11-01 by `setup.sh` as rehearsed, in 21 s: the transit key, the
+      public key consumers trust and the recovery material unchanged; `check.sh` clean.
+- [x] Delete the pod: unsealed again without anyone, notaio signs, `make cluster-smoke` passes.
+      The same test as roadmap 01's D3, with the unseal step gone. Done 2026-11-01: unsealed in
+      4 s; notaio's next half-lifetime re-sign went through it, audited, with no warning; smoke
+      3 of 3.
+- [x] The commands and results in the policy repository's `TESTING.md`; here, the results without
       names.
 
 ### Phase C: documentation

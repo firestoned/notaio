@@ -2,6 +2,23 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-01 23:00] - Roadmap 02 done: the test cluster's OpenBao unseals itself
+
+**Author:** Erick Bourgeois
+
+### Changed
+- Roadmap 02 phase B ticked and the roadmap done: on the test cluster, a backup, the migration by
+  `setup.sh` (21 s; transit key and public key unchanged), `check.sh` clean, a deleted pod unsealed
+  in 4 s, notaio's next re-sign through it, smoke 3 of 3. Commands and names in the policy
+  repository's `TESTING.md`.
+- `ROADMAPS.md`: row 02 done, the M3 prose; roadmap 01's OpenBao risk resolved.
+
+### Impact
+- [ ] Breaking change
+- [ ] Requires cluster rollout
+- [ ] Config change only
+- [x] Documentation only
+
 ## [2026-11-02 09:00] - ADR-0004 decision 6: OpenBao unseals itself
 
 **Author:** Erick Bourgeois
