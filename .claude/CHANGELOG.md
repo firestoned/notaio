@@ -2,6 +2,30 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-01 22:00] - Roadmap 03: policies delivered as signed OCI artifacts
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `.github/community/03-signed-policy-artifacts.md` (new): two artifacts (`policies`, `ceilings`)
+  each verified by its own Flux `OCIRepository`; `policies` signed keyless by CI after lint,
+  `ceilings` by Security with a key it alone holds; what the artifact signature proves versus the
+  bundle signature, which stays; phases A (kind, with the format and Rekor questions to confirm),
+  B (the policy repository), C (the test cluster), D (an ADR, a guide, the threat model); the
+  source-in-the-bundle idea left to its own ADR.
+- `ROADMAPS.md`: M3 points to it, and a status board, one row per roadmap (00 to 03), which it
+  lacked; roadmap 02 had been listed only in the M3 prose.
+
+### Why
+Roadmap 01's free-plan gap: anyone with push access changes what Flux applies. Signing the
+ceilings by hand moves Security's approval from a field to a signature that Flux checks.
+
+### Impact
+- [ ] Breaking change
+- [ ] Requires cluster rollout
+- [ ] Config change only
+- [x] Documentation only
+
 ## [2026-11-01 21:00] - Roadmap 02 phase A: the test OpenBao unseals itself
 
 **Author:** Erick Bourgeois
