@@ -2,6 +2,24 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-01 23:45] - Roadmap 03 phase A: Flux verifies cosign signatures as assumed
+
+**Author:** Erick Bourgeois
+
+### Changed
+- Roadmap 03 phase A ticked, run on the test cluster's Flux v2.10.0 in a throwaway namespace:
+  key-signed artifacts verify in both Cosign formats with no transparency log; unsigned, wrong-key
+  and a tag moved to an unsigned digest are refused with the reason, the applied content kept. The
+  Cosign 3 finding: `--tlog-upload=false` needs `--use-signing-config=false` (or a signing config
+  with no transparency log); sign by digest.
+- `ROADMAPS.md` row 03 in progress.
+
+### Impact
+- [ ] Breaking change
+- [ ] Requires cluster rollout
+- [ ] Config change only
+- [x] Documentation only
+
 ## [2026-11-01 23:00] - Roadmap 02 done: the test cluster's OpenBao unseals itself
 
 **Author:** Erick Bourgeois
