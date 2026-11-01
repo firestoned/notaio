@@ -90,4 +90,36 @@ reason, a `SigningFailed` warning Event is recorded once, and `notaio_signing_fa
 rises. Bundles already published stay valid until their `notAfter`, so a short outage is
 invisible to consumers. Alert on it (see [Observe notaio](observability.md)).
 
-A restarted OpenBao is sealed until someone unseals it; notaio retries and recovers on its own.
+## Unsealing after a restart
+
+An OpenBao sealed with Shamir keys comes back sealed after every restart, and stays sealed until
+someone unseals it: notaio retries and recovers on its own, but a restart at night is an outage
+by the time bundles expire. Give OpenBao a seal that unseals it at start. Which one is a custody
+decision; the options OpenBao 2.7 carries:
+
+| Seal | The key that unwraps OpenBao lives | Costs |
+| --- | --- | --- |
+| `static` | in a file or environment variable OpenBao reads at start, typically a Secret beside it | Whoever reads that Secret and holds OpenBao's storage holds the signing key |
+| `transit` | in another OpenBao or Vault, outside the cluster | A second instance to run and unseal, and a renewable token |
+| `awskms`, `gcpckms`, `azurekeyvault` | in a cloud KMS | A cloud account, its credentials, and a network dependency at every start |
+
+notaio's test instance (`dev/openbao`) uses `static`, its key in Secret `openbao-seal`
+(roadmap 02):
+
+```hcl
+seal "static" {
+  current_key_id = "seal-1"
+  current_key    = "file:///seal/seal-1"   # 32 bytes, raw or as 64 hex characters
+}
+```
+
+- **Moving an instance from Shamir:** add the stanza, restart, then
+  `bao operator unseal -migrate <unseal key>`. The transit key and every version of it stay as
+  they were; the Shamir key becomes the recovery key, needed for a few operator actions and
+  never for a restart. Keep it where the unseal key was kept.
+- **A missing key file** stops OpenBao at start (`Error configuring seal "static"`); **a wrong
+  key** leaves it sealed, logging `message authentication failed`. Neither signs with anything
+  else.
+- **Rotating the seal key:** add the new key beside the old, name it in `current_key_id` and
+  `current_key`, move the old one to `previous_key_id` and `previous_key`, restart; remove the old
+  key once OpenBao has re-wrapped with the new one.

@@ -46,7 +46,7 @@ kubectl -n notaio-system logs deploy/notaio | grep -i openbao
 | The message starts with | Likely cause |
 | --- | --- |
 | `cannot reach OpenBao` | The address, the NetworkPolicy egress rule to OpenBao, or TLS: ConfigMap `openbao-ca` must hold the CA that signed OpenBao's certificate. |
-| `OpenBao answered 503` | OpenBao is sealed, usually after a restart. Unseal it; notaio recovers on its own. |
+| `OpenBao answered 503` | OpenBao is sealed, usually after a restart. With a Shamir seal, unseal it; with an auto-unseal seal, its log says why it could not (for `static`: the key file missing, or `message authentication failed` for a wrong key). notaio recovers on its own once it is unsealed. See [unsealing](openbao-signer.md#unsealing-after-a-restart). |
 | `OpenBao answered 403`, or `OpenBao refused the token` | The Kubernetes auth role does not match (ServiceAccount `notaio`, namespace `notaio-system`, audience `openbao`), or its policy does not allow `update` on `transit/sign/<key>`. The body says which. |
 | `OpenBao answered 500: ... requested version for signing is higher than the latest key version` | `NOTAIO_OPENBAO_KEY_VERSION` names a version the key does not have yet. An older version below the key's `min_encryption_version` is refused too. |
 | `... but NOTAIO_OPENBAO_KEY_VERSION pins v<N>` | OpenBao signed with another version than the pin. Nothing was published; check the key's configuration in OpenBao. |

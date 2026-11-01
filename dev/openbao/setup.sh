@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
 # Copyright (c) 2026 Erick Bourgeois, notaio
 # SPDX-License-Identifier: Apache-2.0
-# Bring dev/openbao/openbao.yaml to the state notaio's transit signer needs (ADR-0004), and
-# again after any restart (it re-seals). Idempotent: every step checks before it acts.
+# Bring dev/openbao/openbao.yaml to the state notaio's transit signer needs (ADR-0004).
+# Idempotent: every step checks before it acts. OpenBao unseals itself (roadmap 02), so a
+# restart needs nothing from here.
 #
-#   1. apply the manifests; create Secret openbao-postgres (random password and the
-#      sslmode=verify-full connection URL) the first time only
+#   1. create Secret openbao-seal (a random static seal key) and Secret openbao-postgres (random
+#      password and the sslmode=verify-full connection URL), each the first time only; apply the
+#      manifests
 #   2. wait for the certificates, PostgreSQL and OpenBao
-#   3. initialise (one Shamir share) and unseal
+#   3. initialise (one recovery share), or, for an instance initialised before roadmap 02 with a
+#      Shamir key, migrate it to the static seal with that key, which becomes the recovery key
 #   4. check the audit device (declared in openbao.hcl) is active: every signature request is
 #      logged outside notaio
 #   5. transit: a non-exportable ed25519 key `notaio`
@@ -15,8 +18,10 @@
 #      role for notaio-system/notaio, audience openbao, 15 minute tokens
 #   7. print the public key consumers trust (key id notaio:v<N>)
 #
-# The unseal key and root token are written to <state dir>/init.json, mode 600, on the machine
-# that runs this. They never go into the repository or the cluster.
+# The recovery key and root token are written to <state dir>/init.json, mode 600, on the machine
+# that runs this. They never go into the repository or the cluster. (For a migrated instance the
+# file keeps its old shape: `unseal_keys_b64` holds what is now the recovery key.) The seal key
+# lives only in Secret openbao-seal; it is never printed.
 #
 #   setup.sh <kubeconfig> <state dir>
 set -euo pipefail
@@ -30,6 +35,14 @@ umask 077
 mkdir -p "$STATE"
 command -v jq >/dev/null || { echo "jq is required" >&2; exit 1; }
 
+# The seal key first: OpenBao will not start without it.
+kubectl --kubeconfig "$KUBECONFIG_PATH" get namespace "$NS" >/dev/null 2>&1 \
+  || kubectl --kubeconfig "$KUBECONFIG_PATH" create namespace "$NS" >/dev/null
+if ! "${K[@]}" get secret openbao-seal >/dev/null 2>&1; then
+  "${K[@]}" create secret generic openbao-seal \
+    --from-literal=seal-1="$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')" >/dev/null
+  echo "openbao: generated the static seal key (Secret openbao-seal)"
+fi
 kubectl --kubeconfig "$KUBECONFIG_PATH" apply -f "$HERE/openbao.yaml" >/dev/null
 echo "openbao: manifests applied"
 
@@ -55,14 +68,31 @@ status() {
   if [ -n "$out" ]; then echo "$out"; else echo '{"initialized":false,"sealed":true}'; fi
 }
 
+# A pod just rolled may still be reading its seal; give it the time the seal retries take.
+for _ in $(seq 1 12); do
+  s=$(status)
+  [ "$(jq -r .initialized <<<"$s")" != "true" ] || [ "$(jq -r .sealed <<<"$s")" != "true" ] \
+    || [ "$(jq -r '.migration // false' <<<"$s")" = "true" ] && break
+  sleep 5
+done
 if [ "$(status | jq -r .initialized)" != "true" ]; then
-  bao operator init -key-shares=1 -key-threshold=1 -format=json > "$STATE/init.json"
-  echo "openbao: initialised (unseal key and root token in $STATE/init.json)"
+  bao operator init -recovery-shares=1 -recovery-threshold=1 -format=json > "$STATE/init.json"
+  echo "openbao: initialised on the static seal (recovery key and root token in $STATE/init.json)"
+fi
+if [ "$(status | jq -r '.migration // false')" = "true" ]; then
+  # Initialised before roadmap 02: its Shamir key unwraps it once more and becomes the recovery key.
+  bao operator unseal -migrate "$(jq -r '.unseal_keys_b64[0]' "$STATE/init.json")" >/dev/null
+  echo "openbao: migrated from Shamir to the static seal; the old unseal key is now the recovery key"
 fi
 if [ "$(status | jq -r .sealed)" = "true" ]; then
-  bao operator unseal "$(jq -r '.unseal_keys_b64[0]' "$STATE/init.json")" >/dev/null
-  echo "openbao: unsealed"
+  echo "openbao: still sealed: the key in Secret openbao-seal does not open this OpenBao" >&2
+  "${K[@]}" logs deploy/openbao --tail=3 >&2 || true
+  exit 1
 fi
+[ "$(status | jq -r .type)" = "static" ] \
+  || { echo "openbao: seal type is $(status | jq -r .type), not static" >&2; exit 1; }
+echo "openbao: unsealed by the static seal"
+
 ROOT=$(jq -r .root_token "$STATE/init.json")
 bao_root() { "${K[@]}" exec deploy/openbao -- env BAO_TOKEN="$ROOT" bao "$@"; }
 bao_root_stdin() { "${K[@]}" exec -i deploy/openbao -- env BAO_TOKEN="$ROOT" bao "$@"; }

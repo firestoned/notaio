@@ -92,3 +92,46 @@ In production, a non-exportable ed25519 key in OpenBao transit
 ([ADR-0004](../adr/0004-signing-key-custody.md)). notaio authenticates with its ServiceAccount and
 may only request signatures; it never holds the key, and OpenBao audits every request. The key id
 in the envelope names the key version, `notaio:v<N>`, so a rotation is visible to consumers.
+
+## When notaio signs
+
+A policy is signed only when every step below passes, in this order. A failure at any step signs
+nothing new: the policy's `Ready` condition gives the reason
+([every reason, and what to do](../guides/troubleshooting.md#by-ready-reason)), and the bundle
+already published stays in place, valid until its `notAfter`.
+
+1. **Only the leader signs.** A replica without the Lease does nothing, and the leader checks it
+   still holds the Lease again just before it asks for a signature
+   ([ADR-0011](../adr/0011-leader-election.md)).
+2. **The evaluator compiles a bundle.** The profile exists and passes lint; grants that expired or
+   lack an approval are left out; the policy passes every lint rule against the effective knobs;
+   the exposure, active grants included, is within an approved ExposureCeiling; the content has a
+   canonical form. The version goes up only when the content's digest changes, and `notAfter` is
+   one bundle lifetime away, or the earliest active grant's expiry if that is sooner.
+3. **Something changed.** An unchanged policy is not signed again until its bundle is within half
+   its lifetime of `notAfter`, so with the default hour a policy nobody touches is re-signed about
+   every 30 minutes, at the same version.
+4. **The fail-open guard agrees.** A second, independent check of what the evaluator already
+   guarantees: a ceiling exists, no lint finding is an error, no applied grant has expired, and
+   `notAfter` is in the future. It never refuses in a correct build; `notaio_fail_open_total`
+   counts it if it does ([ADR-0010](../adr/0010-health-metrics-and-events.md)).
+5. **OpenBao signs.** A refusal, an unreachable OpenBao or a sealed one is `SigningFailed`, a
+   Warning Event and `notaio_signing_failures_total`; the policy's status keeps the previous
+   version and digest, which are what consumers still hold.
+
+Only then is the `<policy>-bundle` ConfigMap written and `Ready=True, Published` set.
+[The life of a change](life-of-a-change.md) follows the same steps from the pull request onward.
+
+## What the signature does not cover
+
+The bundle signature proves that notaio computed this effective policy from the objects it found in
+the cluster, and when. It says nothing about how those objects got there. That is the job of the
+steps before notaio: review in the policy repository, `notaio lint` in its CI, a GitOps reconciler
+as the only identity allowed to change them, and, if your GitOps tool supports it, a signature on
+what it delivers, checked before it applies anything.
+
+The two cannot replace each other. A signature over the delivered policy is checked once, when it
+is pulled, and covers what someone wrote; the bundle is computed in the cluster from the policy, its
+profile, the grants active at that moment and its ceiling, re-signed as grants expire and its
+lifetime runs out, and checked by every consumer, which does not trust the Kubernetes API it reads
+the bundle from. Signing what is delivered is planned in the project's roadmap 03.

@@ -1,6 +1,8 @@
 # Roadmap 02: OpenBao unseals itself
 
-- **Status:** Not started. The decision below is recommended, not yet taken.
+- **Status:** In progress. The `static` seal is decided (2026-11-01). Phase A is done: proven
+  on kind, with `dev/openbao` on the static seal and a migration from Shamir. Phase B, the test
+  cluster, is next.
 - **Milestone:** M3 in [`ROADMAPS.md`](../../ROADMAPS.md): before a consumer enforces bundles signed
   on the test cluster (roadmap 00, phase 2)
 - **Related:** roadmap 01 (section 3, "OpenBao stays the test instance", and its risk "the test
@@ -56,14 +58,21 @@ custody), with the residual risk in the threat model.
 
 ### Phase A: prove it on kind
 
-- [ ] The kind OpenBao of `e2e_openbao` on the `static` seal: initialise, write a transit key,
-      restart the pod, and it is unsealed and signs, with no unseal step.
-- [ ] A migration from Shamir, as the test cluster will do it: a Shamir-sealed instance with a
+- [x] The kind OpenBao of `e2e_openbao` on the `static` seal: initialise, write a transit key,
+      restart the pod, and it is unsealed and signs, with no unseal step. Done 2026-11-01:
+      `dev/openbao` carries the seal, its key in Secret `openbao-seal`; `e2e_openbao` scales
+      OpenBao to zero and back, and the policy it could not sign is published with nobody
+      unsealing anything; a deleted pod is unsealed again in 3 s.
+- [x] A migration from Shamir, as the test cluster will do it: a Shamir-sealed instance with a
       transit key, the seal stanza added, a restart, `bao operator unseal -migrate` with the
       Shamir key; the transit key and its versions survive, and notaio's pinned key version
-      still signs.
-- [ ] A missing or wrong key: OpenBao refuses to start unsealed, and says why. A pod that cannot
-      unseal is not a pod that signs with something else.
+      still signs. Done 2026-11-01: the previous `dev/openbao`, then the new `setup.sh`, which
+      migrates by itself; both transit key versions and their public keys unchanged, a pinned
+      v1 signs, `check.sh` clean, a second run of `setup.sh` changes nothing.
+- [x] A missing or wrong key: OpenBao refuses to start unsealed, and says why. A pod that cannot
+      unseal is not a pod that signs with something else. Done 2026-11-01: a missing file stops
+      OpenBao at start (`Error configuring seal "static"`); a wrong key leaves it sealed,
+      logging `message authentication failed`, and `setup.sh` fails with that line.
 
 ### Phase B: the test cluster
 
@@ -79,10 +88,10 @@ custody), with the residual risk in the threat model.
 
 ### Phase C: documentation
 
-- [ ] The OpenBao signer guide: an unsealing section (the seal options, the recommended one, the
+- [x] The OpenBao signer guide: an unsealing section (the seal options, the recommended one, the
       migration, rotating the seal key), replacing "a restarted OpenBao is sealed until someone
       unseals it".
-- [ ] Troubleshooting: `OpenBao answered 503` gains the auto-unseal case (the seal key missing or
+- [x] Troubleshooting: `OpenBao answered 503` gains the auto-unseal case (the seal key missing or
       wrong).
 - [ ] ADR-0004 amended and the threat model's residual risk.
 

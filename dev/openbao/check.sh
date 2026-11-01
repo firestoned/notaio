@@ -4,7 +4,8 @@
 # Check that the test OpenBao (dev/openbao/openbao.yaml, set up by setup.sh) is what ADR-0004
 # asks for, from the outside, the way the signer will use it. Exits non-zero on any surprise.
 #
-#   - OpenBao is initialised and unsealed, and its data is in PostgreSQL
+#   - OpenBao is initialised, unsealed by the static seal (roadmap 02), and its data is in
+#     PostgreSQL
 #   - transit key notaio is ed25519 and not exportable
 #   - notaio-system/notaio logs in (projected token, audience openbao) and can sign
 #   - ...and cannot export or rotate the key, read its config, use another key, encrypt, or
@@ -55,6 +56,8 @@ echo "openbao"
 st=$(kubectl -n openbao exec deploy/openbao -- bao status -format=json 2>/dev/null || true)
 expect "initialised" true "$(jq -r .initialized <<<"$st")"
 expect "unsealed" false "$(jq -r .sealed <<<"$st")"
+expect "seal type" static "$(jq -r .type <<<"$st")"
+expect "recovery seal" true "$(jq -r .recovery_seal <<<"$st")"
 expect "storage backend" postgresql "$(jq -r .storage_type <<<"$st")"
 rows=$(kubectl -n openbao exec statefulset/openbao-postgres -- psql -U openbao -d openbao -Atc 'select count(*) > 0 from openbao_kv_store')
 expect "data in PostgreSQL" t "$rows"
