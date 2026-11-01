@@ -75,6 +75,19 @@ then compares with the floor:
 `FileFloor` writes atomically (a temporary file, synced, renamed), and a damaged file is an error,
 never an empty floor. Implement `VersionFloor` for another store if a file does not suit you.
 
+If your store is async, or the floor lives in a database row you read and write in one
+transaction, call the decision on its own and keep the order: verify, decide, store, then act.
+
+```rust
+use sandboxpolicy_bundle::floor::next_floor;
+
+let payload = verify_bundle(&envelope, &keys, &VerifyOptions::at(Utc::now()))?;
+let held = store.floor(&policy.namespace, &policy.name).await?;    // in your transaction
+let next = next_floor(held.as_ref(), &payload)?;                   // Downgrade, StaleIncarnation
+store.set_floor(&policy.namespace, &policy.name, &next).await?;    // commit, then
+enforce(payload);
+```
+
 ## Try it
 
 ```sh
