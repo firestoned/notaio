@@ -1,8 +1,9 @@
 # Roadmap 00: M3, integrate the consumers
 
 - **Status:** In progress. Phase 0 is complete, released as v0.3.0 (2026-10-31): D1 and D2 are
-  decided and built. Phase 1 is under way in mediatore, as its roadmap 09 and ADR-0026
-  (accepted 2026-11-01), which also decides D3 for the shadow phase. D4 to D6 are open.
+  decided and built. Phase 1 is complete in mediatore (its roadmap 09 and ADR-0026, done
+  2026-11-02), which also decided D3 for the shadow phase. Phase 2, enforcing the bundle, is
+  next; D4 to D6 are open.
 - **Milestone:** M3 in [`ROADMAPS.md`](../../ROADMAPS.md)
 - **Related:** ADR-0002 (the bundle contract), ADR-0003 (distribution), ADR-0004 (signing keys),
   ADR-0008 (the consumer's version floor); mediatore ADR-0008 (AgentSandbox), ADR-0024 (Landlock),
@@ -129,19 +130,21 @@ Each phase is shippable and leaves the system no looser than before.
 
 Tracked in detail by mediatore's roadmap 09, built on its ADR-0026.
 
-- [ ] A Role per policy namespace for `get`, `list` and `watch` on ConfigMaps labelled
-      `app.kubernetes.io/managed-by=notaio`.
-- [ ] Watch the bundle ConfigMaps, verify each with `verify_bundle`, keep a floor (a `VersionFloor`
-      over `mediatore-store`, so it survives restarts with the claims). *Partly done 2026-11-01:*
-      the floor rule became a pure function, `next_floor` (v0.3.3, ADR-0008 amended), because the
-      store is async; mediatore pins v0.3.3, keeps the floor in a `policy_floors` table moved by
-      a compare and set, verifies through `admit` in its `mediatore-policy` crate, passes all 14
-      conformance vectors through it, and reads its trusted keys from its own configuration.
-      The watch itself is next.
-- [ ] Compare each claim's broker configuration with its bundle and log and count every place the
-      broker would allow more. Enforce nothing yet: this phase finds the gaps safely. ADR-0026
-      names the gaps `P001` to `P011` and reports them as a `PolicyConformant` condition, since
-      the broker has no metrics endpoint.
+- [x] A Role per policy namespace for `get`, `list` and `watch` on ConfigMaps labelled
+      `app.kubernetes.io/managed-by=notaio`. Done in mediatore's `deploy/`.
+- [x] Watch the bundle ConfigMaps, verify each with `verify_bundle`, keep a floor (a `VersionFloor`
+      over `mediatore-store`, so it survives restarts with the claims). Done 2026-11-02, with one
+      change of shape: the floor rule became a pure function, `next_floor` (v0.3.3, ADR-0008
+      amended), because the store is async; mediatore pins v0.3.3, keeps the floor in a
+      `policy_floors` table moved by a compare and set, verifies through `admit` in its
+      `mediatore-policy` crate (all 14 conformance vectors pass through it), reads its trusted
+      keys from its own configuration, and watches the bundles with a reflector on every replica.
+- [x] Compare each claim's broker configuration with its bundle and log and count every place the
+      broker would allow more. Enforce nothing yet: this phase finds the gaps safely. Done
+      2026-11-02: the gaps `P001` to `P011` (ADR-0026), each a log line and a `PolicyConformant`
+      condition on the `AgentSandbox`, since the broker has no metrics endpoint;
+      `AgentSandbox.spec.policyRef` names the policy (optional in this phase); proven live by
+      mediatore's `make kind-e2e-policy`, with notaio installed from its release.
 
 ### Phase 2: mediatore enforces the bundle
 
