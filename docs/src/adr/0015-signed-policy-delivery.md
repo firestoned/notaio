@@ -1,0 +1,1 @@
+--8<-- "adr/0015-signed-policy-delivery.md"

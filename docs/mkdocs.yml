@@ -143,6 +143,7 @@ nav:
       - Grant a Relaxation: guides/grant-a-relaxation.md
       - Approve an Exposure Ceiling: guides/approve-a-ceiling.md
       - Lint a Policy Repository: guides/lint-in-ci.md
+      - Deliver Signed Policies: guides/deliver-signed-policies.md
       - Consume a Bundle: guides/consume-a-bundle.md
       - Observe notaio: guides/observability.md
       - Rotate the Signing Key: guides/rotate-the-signing-key.md
@@ -181,6 +182,7 @@ nav:
       - "ADR-0012: Image scanning and VEX": adr/0012-image-scanning-and-vex.md
       - "ADR-0013: Bundle v3 and v1alpha2": adr/0013-bundle-v3-routes-and-v1alpha2.md
       - "ADR-0014: Consumer distribution": adr/0014-consumer-distribution.md
+      - "ADR-0015: Signed policy delivery": adr/0015-signed-policy-delivery.md
   - Reference:
       - Glossary: glossary.md
       - CRD API: reference/crds.md

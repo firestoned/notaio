@@ -1,13 +1,10 @@
 # Roadmap 03: policies delivered as signed OCI artifacts
 
-- **Status:** In progress. Phase A is done (2026-11-01): Flux verifies cosign signatures as this
-  roadmap assumes, both signature formats, with no transparency log. D1 and D2 are decided
-  (2026-11-02); Security owns both the policies and the ceilings. Phase B is done (2026-11-02): CI
-  publishes and signs both artifacts, and Security has signed the first `ceilings` with its own
-  key. Phase C is done (2026-11-02): the test cluster takes its policy namespace only from the
-  signed artifacts; a tightening went through, a CI-only ceiling was refused until Security
-  signed it, and an unsigned push was refused. Phase D (an ADR, a guide, the threat model) is
-  next.
+- **Status:** Done (2026-11-02). The test cluster takes its policy namespace only from two signed
+  OCI artifacts: `policies` signed by CI, `ceilings` by Security. Recorded as
+  [ADR-0015](../../docs/adr/0015-signed-policy-delivery.md), with a
+  [guide](../../docs/src/guides/deliver-signed-policies.md). The source in the bundle (below) is a
+  separate, later decision.
 - **Milestone:** M3 in [`ROADMAPS.md`](../../ROADMAPS.md), hardening what roadmap 01 built
 - **Related:** roadmap 01 (the policy repository, Flux, GitOps-only admission, and its risk "review
   is not enforced on GitHub's free plan"); ADR-0007 (the ExposureCeiling and Security's approval);
@@ -173,12 +170,17 @@ the keys, one `OCIRepository` and one Kustomization applying a ConfigMap, delete
 
 ### Phase D: documentation and decision record
 
-- [ ] An ADR in notaio recording the recommended delivery (two artifacts, two signers, Flux
-      verification) as the documented path, with git delivery kept as the simple one.
-- [ ] A guide: deliver policies as signed OCI artifacts, with the CI workflow, Security's
-      procedure, and the `OCIRepository` objects.
-- [ ] The threat model: T8.2 (a silent policy edit) gains the signed source as a control before
+- [x] An ADR in notaio recording the recommended delivery (two artifacts, two signers, Flux
+      verification) as the documented path, with git delivery kept as the simple one. Done
+      2026-11-02: ADR-0015, with the Cosign 3 details the procedure depends on.
+- [x] A guide: deliver policies as signed OCI artifacts, with the CI workflow, Security's
+      procedure, and the `OCIRepository` objects. Done 2026-11-02:
+      `docs/src/guides/deliver-signed-policies.md`, including the cutover without a gap and how
+      to check each refusal.
+- [x] The threat model: T8.2 (a silent policy edit) gains the signed source as a control before
       admission; the residual risk of CI-signed policies, bounded by Security-signed ceilings.
+      Done 2026-11-02: the T8.2 row of the threat model mapping, and a guarantee on the security
+      page.
 
 ### Later, separate decision: the source in the bundle
 

@@ -11,10 +11,10 @@ request that changes a roadmap's state.
 
 | # | Roadmap | Status | Detail |
 | --- | --- | --- | --- |
-| 00 | M3: integrate the consumers | In progress: phase 0 done (v0.3.0); phase 1 under way in mediatore (its roadmap 09) | [00-m3-integrate-the-consumers.md](https://github.com/firestoned/notaio/blob/main/.github/community/00-m3-integrate-the-consumers.md) |
+| 00 | M3: integrate the consumers | In progress: phase 0 done (v0.3.0); phase 1 done in mediatore (its roadmap 09, 2026-11-02); phase 2, enforcing, next | [00-m3-integrate-the-consumers.md](https://github.com/firestoned/notaio/blob/main/.github/community/00-m3-integrate-the-consumers.md) |
 | 01 | Run notaio for real | Done: phases A to D on the test cluster (2026-10-31) | [01-run-notaio-for-real.md](https://github.com/firestoned/notaio/blob/main/.github/community/01-run-notaio-for-real.md) |
 | 02 | OpenBao unseals itself | Done: the static seal, proven on kind and on the test cluster (2026-11-01) | [02-unseal-the-signer.md](https://github.com/firestoned/notaio/blob/main/.github/community/02-unseal-the-signer.md) |
-| 03 | Policies delivered as signed OCI artifacts | In progress: phases A to C done, the test cluster on the signed artifacts with every refusal shown (2026-11-02); phase D (ADR, guide, threat model) next | [03-signed-policy-artifacts.md](https://github.com/firestoned/notaio/blob/main/.github/community/03-signed-policy-artifacts.md) |
+| 03 | Policies delivered as signed OCI artifacts | Done: the test cluster on two signed artifacts, every refusal shown; ADR-0015 and a guide (2026-11-02) | [03-signed-policy-artifacts.md](https://github.com/firestoned/notaio/blob/main/.github/community/03-signed-policy-artifacts.md) |
 
 ## M0: scaffold and contracts (this repository state)
 
@@ -93,7 +93,9 @@ carries), then four phases.
 **Phase 0, notaio's contract, is done: v0.3.0** (2026-10-31). D1 (ADR-0014: consumers pin a release
 tag; the bundle crate's dependencies are kept small in CI) and D2 (ADR-0013: bundle v3 with
 endpoints and rules per audience, API v1alpha2) are decided and built, and the conformance kit
-says what every consumer must accept and refuse. Next is phase 1, in mediatore: read and verify
+says what every consumer must accept and refuse. Phase 1 is done too, in mediatore (2026-11-02): it
+reads, verifies and floors every bundle and reports every gap with its configuration, enforcing
+nothing. Next is phase 2, enforcing the bundle. Phase 1 was: read and verify
 the bundles in shadow. D3 to D6 are open.
 
 Running notaio for real, before any consumer reads it, is planned in
