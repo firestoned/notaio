@@ -10,6 +10,13 @@ a release, the maintainer renames Unreleased to the version and date.
 
 ## Unreleased
 
+### Added
+
+- A guide, [Deliver signed policies](https://firestoned.github.io/notaio/guides/deliver-signed-policies/),
+  and ADR-0015: a policy repository published as two signed OCI artifacts that Flux verifies
+  before applying, `policies` signed by CI and `ceilings` by Security, so a push credential can
+  never change a ceiling. Nothing in notaio changes; notaio's bundle signature stays.
+
 ### Changed
 
 - `TrustedKeys::insert` refuses a key id that is already trusted, instead of replacing its key:

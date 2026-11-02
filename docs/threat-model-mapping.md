@@ -36,7 +36,7 @@ to the AgentSandbox Threat Model and Security Roadmap. When that document change
 
 | Model item | Where |
 | --- | --- |
-| T8.2 silent edit of a policy | `deploy/admission/gitops-only.yaml` here (ExposureCeiling included), tested by `e2e_admission` on kind and k0s, plus review in the policy repository. The two-person review rule is a repository setting. The controller cannot edit policy objects either (`10-rbac.yaml`, `e2e_rbac`). |
+| T8.2 silent edit of a policy | `deploy/admission/gitops-only.yaml` here (ExposureCeiling included), tested by `e2e_admission` on kind and k0s, plus review in the policy repository. The two-person review rule is a repository setting. The controller cannot edit policy objects either (`10-rbac.yaml`, `e2e_rbac`). Before admission, optionally, signed delivery (ADR-0015): Flux applies a policy only with CI's signature from the default branch, and a ceiling only with Security's own, whoever can push; residual risk, a CI-signed policy proves a build and not a review, bounded by its Security-signed ceiling. |
 | Profile eligibility by group (K7.2, T7.3) | Banlieue admission, using these objects as parameters |
 | Enforcement of egress, tools, leases, budgets, jail and guard settings | Gateway, mediatore, mediatore-guest, from the bundle. Distribution (ADR-0003): mediatore reads the bundle ConfigMap through the API and relays it unchanged to guests, which verify it themselves. Not built yet (ROADMAP M3). |
 | Token minting per policy and audience (T5.3) | Mediatore |

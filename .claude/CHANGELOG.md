@@ -2,6 +2,40 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-02 17:00] - Roadmap 00 phase 1 done (in mediatore)
+
+**Author:** Erick Bourgeois
+
+### Changed
+- Roadmap 00: phase 1's three items ticked from mediatore's finished roadmap 09 (the Role, the
+  reflector and floor, the shadow comparison and its live tier); status: phase 2 next.
+- `ROADMAPS.md`: row 00 and the M3 prose.
+
+### Impact
+- [ ] Breaking change
+- [ ] Requires cluster rollout
+- [ ] Config change only
+- [x] Documentation only
+
+## [2026-11-02 16:00] - Roadmap 03 done: ADR-0015 and the signed-delivery guide
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `docs/adr/0015-signed-policy-delivery.md` (new, with its site wrapper): two artifacts, two
+  signers, Flux verification; the accepted risk of CI-signed policies; the Cosign 3 details.
+- `docs/src/guides/deliver-signed-policies.md` (new): the CI job, Security's procedure (and the
+  `COSIGN_KEY` warning), the `OCIRepository` objects, the cutover without a gap, the checks.
+- Threat model mapping (T8.2) and the security page's guarantees; the guides index and nav;
+  CHANGELOG.md Unreleased.
+- Roadmap 03 done; `ROADMAPS.md` row 03.
+
+### Impact
+- [ ] Breaking change
+- [ ] Requires cluster rollout
+- [ ] Config change only
+- [x] Documentation only
+
 ## [2026-11-02 13:30] - Roadmap 03 phase C: the test cluster on the signed artifacts
 
 **Author:** Erick Bourgeois
