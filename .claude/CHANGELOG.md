@@ -2,6 +2,22 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-02 13:30] - Roadmap 03 phase C: the test cluster on the signed artifacts
+
+**Author:** Erick Bourgeois
+
+### Changed
+- Roadmap 03 phase C: the cutover (three steps, no object recreated), the tightening through the
+  signed path, the CI-only ceiling refused until Security signed it, smoke after each; the
+  signing-config follow-up done. The unsigned `policies` push is left.
+- `ROADMAPS.md` row 03.
+
+### Impact
+- [ ] Breaking change
+- [ ] Requires cluster rollout
+- [ ] Config change only
+- [x] Documentation only
+
 ## [2026-11-02 11:00] - Roadmap 03 phase B done
 
 **Author:** Erick Bourgeois

@@ -4,7 +4,9 @@
   roadmap assumes, both signature formats, with no transparency log. D1 and D2 are decided
   (2026-11-02); Security owns both the policies and the ceilings. Phase B is done (2026-11-02): CI
   publishes and signs both artifacts, and Security has signed the first `ceilings` with its own
-  key. Phase C, the cutover on the test cluster, is next.
+  key. Phase C is under way (2026-11-02): the test cluster takes its policy namespace only from
+  the signed artifacts; a tightening went through, and a CI-only ceiling was refused until
+  Security signed it. The unsigned-push refusal is left.
 - **Milestone:** M3 in [`ROADMAPS.md`](../../ROADMAPS.md), hardening what roadmap 01 built
 - **Related:** roadmap 01 (the policy repository, Flux, GitOps-only admission, and its risk "review
   is not enforced on GitHub's free plan"); ADR-0007 (the ExposureCeiling and Security's approval);
@@ -138,19 +140,33 @@ the keys, one `OCIRepository` and one Kustomization applying a ConfigMap, delete
         script should move to before they are removed.
 - [x] The commands in the repository's README and `TESTING.md`. Done 2026-11-02: the README's
       published-artifacts and signing sections; `TESTING.md` rows P1 to P6.
-- [ ] Follow-up: `scripts/sign-ceilings.sh` signs with a `--signing-config` that has no
-      transparency log, instead of the deprecated flags.
+- [x] Follow-up: `scripts/sign-ceilings.sh` signs with a `--signing-config` that has no
+      transparency log, instead of the deprecated flags. Done 2026-11-02: `cosign signing-config
+      create` with no service, tried against a throwaway registry first (no warning when signing;
+      a wrong key still refused). Verifying a log-less signature always warns that skipping the
+      log is insecure, so the script reports that check itself. The next ceilings signature is
+      its first real use.
 
 ### Phase C: the test cluster
 
-- [ ] The registry token in a Secret; the two `OCIRepository` objects with their `verify` blocks;
+- [x] The registry token in a Secret; the two `OCIRepository` objects with their `verify` blocks;
       the Kustomizations moved from the git source to them; the git source and its deploy key
-      removed once nothing uses them.
-- [ ] Repeat roadmap 01's D1 (a tightening reaches a verified bundle) through the new path.
+      removed once nothing uses them. Done 2026-11-02 in three steps, each a pull request to the
+      policy repository: the two sources alone (both verified, the first keyless check on the
+      cluster); Kustomizations applying from them, with the git-based one's prune off for the
+      handover; then the git-based one removed. No object was deleted or recreated, and the
+      policy stayed at its version. The git source and its deploy key stay: Flux's own
+      configuration and the admission policy still arrive through git; only the policy
+      namespaces moved.
+- [x] Repeat roadmap 01's D1 (a tightening reaches a verified bundle) through the new path. Done
+      2026-11-02: a token lifetime 600 s to 480 s, signed by CI, applied by Flux, published by
+      notaio as the next version.
 - [ ] Refusals on the real cluster: a `policies` artifact pushed without a signature, and a
       `ceilings` artifact signed by CI, each leave the cluster as it was, with the reason on the
-      `OCIRepository`.
-- [ ] `make cluster-smoke` after each.
+      `OCIRepository`. The ceilings half done 2026-11-02: a CI-only ceiling was refused
+      (`SourceVerified=False`, the Security-signed one kept applied) until Security signed it,
+      then applied. The unsigned `policies` push is next.
+- [x] `make cluster-smoke` after each. 3 of 3 after every step so far.
 
 ### Phase D: documentation and decision record
 
