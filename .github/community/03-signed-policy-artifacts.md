@@ -2,8 +2,9 @@
 
 - **Status:** In progress. Phase A is done (2026-11-01): Flux verifies cosign signatures as this
   roadmap assumes, both signature formats, with no transparency log. D1 and D2 are decided
-  (2026-11-02); Security owns both the policies and the ceilings. CI publishes both artifacts;
-  Security's own signing on the ceilings is what remains of phase B.
+  (2026-11-02); Security owns both the policies and the ceilings. Phase B is done (2026-11-02): CI
+  publishes and signs both artifacts, and Security has signed the first `ceilings` with its own
+  key. Phase C, the cutover on the test cluster, is next.
 - **Milestone:** M3 in [`ROADMAPS.md`](../../ROADMAPS.md), hardening what roadmap 01 built
 - **Related:** roadmap 01 (the policy repository, Flux, GitOps-only admission, and its risk "review
   is not enforced on GitHub's free plan"); ADR-0007 (the ExposureCeiling and Security's approval);
@@ -123,11 +124,22 @@ the keys, one `OCIRepository` and one Kustomization applying a ConfigMap, delete
       repository's layout and its git delivery stay as they are; both artifacts are private
       packages linked to the repository, tagged by commit (`ceilings` by content) and `latest`.
       CI also signs `ceilings`, keyless, as provenance (D2).
-- [ ] Security's signing, written down as a short procedure and a script: CI pushes the `ceilings`
+- [x] Security's signing, written down as a short procedure and a script: CI pushes the `ceilings`
       artifact when it changes; Security checks CI's signature, reviews the content, and signs it
-      by digest with Security's key. The script and the procedure are written (2026-11-02);
-      Security's key pair, and its first signature, are next.
-- [ ] The commands in the repository's README and `TESTING.md`.
+      by digest with Security's key. Done 2026-11-02: Security's key pair made with `cosign
+      generate-key-pair`, the public half committed to the repository, the private half kept off
+      it (`*.key` ignored); the first `ceilings` signed with the script, and verified against the
+      public key as Flux will. Two findings, both in the procedure now:
+      - cosign reads a `COSIGN_KEY` environment variable as `--key` on every command, so the
+        script takes `SECURITY_KEY` instead and keeps `COSIGN_KEY` out of cosign's environment;
+        otherwise the keyless check of CI's signature receives a key as well and refuses.
+      - Cosign 3 deprecates `--use-signing-config` and `--tlog-upload`. They still work; the
+        replacement is a `--signing-config` file with no transparency log service, which the
+        script should move to before they are removed.
+- [x] The commands in the repository's README and `TESTING.md`. Done 2026-11-02: the README's
+      published-artifacts and signing sections; `TESTING.md` rows P1 to P6.
+- [ ] Follow-up: `scripts/sign-ceilings.sh` signs with a `--signing-config` that has no
+      transparency log, instead of the deprecated flags.
 
 ### Phase C: the test cluster
 
