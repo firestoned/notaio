@@ -93,10 +93,10 @@ carries), then four phases.
 **Phase 0, notaio's contract, is done: v0.3.0** (2026-10-31). D1 (ADR-0014: consumers pin a release
 tag; the bundle crate's dependencies are kept small in CI) and D2 (ADR-0013: bundle v3 with
 endpoints and rules per audience, API v1alpha2) are decided and built, and the conformance kit
-says what every consumer must accept and refuse. Phase 1 is done too, in mediatore (2026-11-02): it
-reads, verifies and floors every bundle and reports every gap with its configuration, enforcing
-nothing. Next is phase 2, enforcing the bundle. Phase 1 was: read and verify
-the bundles in shadow. D3 to D6 are open.
+says what every consumer must accept and refuse. **Phase 1 is done too,** in mediatore
+(2026-11-02, its roadmap 09 and ADR-0026): it reads, verifies and floors every bundle and reports
+every gap between its configuration and the bundle, enforcing nothing. D3 is decided for that
+shadow phase; D4 to D6 are open. Next is phase 2: mediatore enforces the bundle.
 
 Running notaio for real, before any consumer reads it, is planned in
 [roadmap 01](https://github.com/firestoned/notaio/blob/main/.github/community/01-run-notaio-for-real.md):
