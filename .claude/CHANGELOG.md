@@ -9,7 +9,7 @@ Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 ### Changed
 - Roadmap 03 phase C: the cutover (three steps, no object recreated), the tightening through the
   signed path, the CI-only ceiling refused until Security signed it, smoke after each; the
-  signing-config follow-up done. The unsigned `policies` push is left.
+  signing-config follow-up done; the unsigned `policies` push refused. Phase C done.
 - `ROADMAPS.md` row 03.
 
 ### Impact

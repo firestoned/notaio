@@ -4,9 +4,10 @@
   roadmap assumes, both signature formats, with no transparency log. D1 and D2 are decided
   (2026-11-02); Security owns both the policies and the ceilings. Phase B is done (2026-11-02): CI
   publishes and signs both artifacts, and Security has signed the first `ceilings` with its own
-  key. Phase C is under way (2026-11-02): the test cluster takes its policy namespace only from
-  the signed artifacts; a tightening went through, and a CI-only ceiling was refused until
-  Security signed it. The unsigned-push refusal is left.
+  key. Phase C is done (2026-11-02): the test cluster takes its policy namespace only from the
+  signed artifacts; a tightening went through, a CI-only ceiling was refused until Security
+  signed it, and an unsigned push was refused. Phase D (an ADR, a guide, the threat model) is
+  next.
 - **Milestone:** M3 in [`ROADMAPS.md`](../../ROADMAPS.md), hardening what roadmap 01 built
 - **Related:** roadmap 01 (the policy repository, Flux, GitOps-only admission, and its risk "review
   is not enforced on GitHub's free plan"); ADR-0007 (the ExposureCeiling and Security's approval);
@@ -163,9 +164,11 @@ the keys, one `OCIRepository` and one Kustomization applying a ConfigMap, delete
       notaio as the next version.
 - [ ] Refusals on the real cluster: a `policies` artifact pushed without a signature, and a
       `ceilings` artifact signed by CI, each leave the cluster as it was, with the reason on the
-      `OCIRepository`. The ceilings half done 2026-11-02: a CI-only ceiling was refused
-      (`SourceVerified=False`, the Security-signed one kept applied) until Security signed it,
-      then applied. The unsigned `policies` push is next.
+      `OCIRepository`. Done 2026-11-02: a CI-only ceiling was refused (`SourceVerified=False`,
+      the Security-signed one kept applied) until Security signed it, then applied; a widened
+      policy pushed straight to `policies:latest` with no signature, as a leaked push token
+      could, was refused (`no signatures found`), the signed one kept applied and the bundle
+      unchanged.
 - [x] `make cluster-smoke` after each. 3 of 3 after every step so far.
 
 ### Phase D: documentation and decision record
