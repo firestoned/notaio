@@ -1,9 +1,9 @@
 # Roadmap 03: policies delivered as signed OCI artifacts
 
 - **Status:** In progress. Phase A is done (2026-11-01): Flux verifies cosign signatures as this
-  roadmap assumes, both signature formats, with no transparency log. The decisions below are
-  recommended, not yet taken. Security owns both the policies and the ceilings (decided
-  2026-11-01).
+  roadmap assumes, both signature formats, with no transparency log. D1 and D2 are decided
+  (2026-11-02); Security owns both the policies and the ceilings. CI publishes both artifacts;
+  Security's own signing on the ceilings is what remains of phase B.
 - **Milestone:** M3 in [`ROADMAPS.md`](../../ROADMAPS.md), hardening what roadmap 01 built
 - **Related:** roadmap 01 (the policy repository, Flux, GitOps-only admission, and its risk "review
   is not enforced on GitHub's free plan"); ADR-0007 (the ExposureCeiling and Security's approval);
@@ -54,13 +54,19 @@ between teams. It is between two identities: CI's signature, which anyone who ca
 - *Rejected:* one artifact signed by CI. It would leave the ceilings, the line Security approves,
   signed by whatever can make CI run.
 
-**D2. Who signs, and with what.**
+**D2. Who signs, and with what.** *Decided 2026-11-02:* CI signs both, keyless; Security also
+signs the ceilings, by hand, with a key; Flux requires CI's signature on `policies` and Security's
+on `ceilings`.
 
-- *Recommended:* `policies` is signed by the policy repository's CI after `notaio lint` passes on
-  `main`, keyless (the workflow's identity, matched by Flux's `matchOIDCIdentity` on the
-  repository, workflow and `refs/heads/main`). `ceilings` is signed by a Security member, by hand,
-  after review, with a key Security alone holds (hardware-backed where possible); Flux checks it
-  against that public key.
+- `policies` is signed by the policy repository's CI after `notaio lint` passes on `main`,
+  keyless (the workflow's identity, matched by Flux's `matchOIDCIdentity` on the repository,
+  workflow and `refs/heads/main`). That is the signature Flux requires.
+- `ceilings` is signed twice. CI signs it keyless, as provenance: built by the workflow from
+  `main` after lint. A Security member then signs it by hand, after review, with a key Security
+  alone holds (password-protected now, hardware-backed later), using a script that refuses a
+  digest CI did not sign. Flux checks Security's signature against its public key. An
+  `OCIRepository` verifies one method, a key or a keyless identity, so Flux enforces Security's
+  and the script enforces CI's.
 - Why not keyless for Security as well: Fulcio certificates name the signer, and Rekor publishes
   them. For a person that is their email address in a public log, beside the digest of an artifact
   from a private repository. A key, with no transparency log upload, keeps that private, at the
@@ -111,10 +117,16 @@ the keys, one `OCIRepository` and one Kustomization applying a ConfigMap, delete
 
 ### Phase B: the policy repository
 
-- [ ] CI on `main`: `notaio lint`, then `flux push artifact` of `policies`, then `cosign sign`
-      keyless; the ceilings directory excluded from it.
-- [ ] Security's signing, written down as a short procedure and a script: build the `ceilings`
-      artifact from a reviewed commit, push it, sign it with Security's key.
+- [x] CI on `main`: `notaio lint`, then `flux push artifact` of `policies`, then `cosign sign`
+      keyless; the ceilings directory excluded from it. Done 2026-11-01: a `publish` job after
+      lint, with the Flux CLI v2.10.0; it renders each namespace and splits it by kind, so the
+      repository's layout and its git delivery stay as they are; both artifacts are private
+      packages linked to the repository, tagged by commit (`ceilings` by content) and `latest`.
+      CI also signs `ceilings`, keyless, as provenance (D2).
+- [ ] Security's signing, written down as a short procedure and a script: CI pushes the `ceilings`
+      artifact when it changes; Security checks CI's signature, reviews the content, and signs it
+      by digest with Security's key. The script and the procedure are written (2026-11-02);
+      Security's key pair, and its first signature, are next.
 - [ ] The commands in the repository's README and `TESTING.md`.
 
 ### Phase C: the test cluster

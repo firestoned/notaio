@@ -2,6 +2,22 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-02 10:00] - Roadmap 03: D1 and D2 decided, CI publishes
+
+**Author:** Erick Bourgeois
+
+### Changed
+- Roadmap 03: D2 decided (CI signs both artifacts keyless; Security also signs `ceilings` with a
+  key; Flux requires CI's on `policies`, Security's on `ceilings`); phase B's CI item done, the
+  Security item's script and procedure written.
+- `ROADMAPS.md` row 03.
+
+### Impact
+- [ ] Breaking change
+- [ ] Requires cluster rollout
+- [ ] Config change only
+- [x] Documentation only
+
 ## [2026-11-01 23:45] - Roadmap 03 phase A: Flux verifies cosign signatures as assumed
 
 **Author:** Erick Bourgeois
