@@ -2,6 +2,22 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-02 11:00] - Roadmap 03 phase B done
+
+**Author:** Erick Bourgeois
+
+### Changed
+- Roadmap 03: phase B's Security item and documentation item done (Security's key pair, the
+  first `ceilings` signed and verified); the `COSIGN_KEY` and deprecated-flag findings recorded;
+  a follow-up for a no-transparency-log signing config. Status: phase C next.
+- `ROADMAPS.md` row 03.
+
+### Impact
+- [ ] Breaking change
+- [ ] Requires cluster rollout
+- [ ] Config change only
+- [x] Documentation only
+
 ## [2026-11-02 10:00] - Roadmap 03: D1 and D2 decided, CI publishes
 
 **Author:** Erick Bourgeois
