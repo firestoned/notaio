@@ -275,15 +275,15 @@ release-manifest: ## Render RELEASE_DIR/notaio-VERSION-crds.yaml and notaio-VERS
 # The workspace version in VERSION_FILE, as set-version writes it.
 workspace-version = $$(awk -F'"' '/^\[workspace\.package\]/ { p = 1; next } /^\[/ { p = 0 } p && /^version *=/ { print $$2; exit }' $(VERSION_FILE))
 
-release-version: ## A release's version from its tag: set-version, then match Cargo.lock offline; a GitHub warning when Cargo.toml said otherwise
+release-version: ## A release's version from its tag: set-version and, when it moved, Cargo.lock's workspace entries; a GitHub warning when Cargo.toml said otherwise
 	@test -n "$(VERSION)" || { echo "set VERSION, e.g. make release-version VERSION=1.2.3"; exit 1; }
 	@was=$(workspace-version); \
-	  if [ "$$was" != "$(VERSION)" ]; then \
-	    echo "::warning title=Released without release prep::Cargo.toml says $$was at this tag; the release is stamped $(VERSION). Bump Cargo.toml and add CHANGELOG.md's [$(VERSION)] section on main."; \
-	  fi
-	@$(MAKE) --no-print-directory set-version VERSION=$(VERSION)
-	@cargo update --workspace --offline -q
-	@echo "Cargo.lock: workspace crates at $(VERSION)"
+	  if [ "$$was" = "$(VERSION)" ]; then echo "Cargo.toml and Cargo.lock: already $(VERSION)"; exit 0; fi; \
+	  echo "::warning title=Released without release prep::Cargo.toml says $$was at this tag; the release is stamped $(VERSION). Bump Cargo.toml and add CHANGELOG.md's [$(VERSION)] section on main."; \
+	  $(MAKE) --no-print-directory set-version VERSION=$(VERSION) && \
+	  cargo update --workspace -q && \
+	  cargo metadata --locked --format-version 1 >/dev/null && \
+	  echo "Cargo.lock: workspace crates at $(VERSION)"
 
 set-version: ## Set [workspace.package] version in VERSION_FILE to VERSION; fails if the file does not then say so
 	@test -n "$(VERSION)" || { echo "set VERSION, e.g. make set-version VERSION=1.2.3"; exit 1; }
@@ -311,9 +311,9 @@ set-version-test: ## Prove set-version changes the workspace version, and only i
 	  grep -q '^version = "0.0.0-set-version-test"' "$$tmp/Cargo.toml" || { echo "set-version did not set the version"; exit 1; }; \
 	  cp -R Cargo.toml Cargo.lock crates "$$tmp/" && \
 	  $(MAKE) --no-print-directory -s set-version VERSION=9.8.7 VERSION_FILE="$$tmp/Cargo.toml" >/dev/null && \
-	  ( cd "$$tmp" && cargo update --workspace --offline -q 2>"$$tmp/metadata.err" \
+	  ( cd "$$tmp" && cargo update --workspace -q 2>"$$tmp/metadata.err" \
 	    && cargo metadata --locked --format-version 1 >/dev/null 2>>"$$tmp/metadata.err" ) || \
-	    { cat "$$tmp/metadata.err"; echo "the release path fails at a new version: the lock is not matched offline, or an internal dependency pins one"; exit 1; }; \
+	    { cat "$$tmp/metadata.err"; echo "the release path fails at a new version: the lock is not matched, or an internal dependency pins one"; exit 1; }; \
 	  echo "set-version-test: ok"
 
 # ----- CI gating -------------------------------------------------------------
