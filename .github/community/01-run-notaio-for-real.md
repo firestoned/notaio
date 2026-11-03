@@ -139,6 +139,8 @@ work fixed in the guide.
 - **The test OpenBao seals on every restart.** Fine for stage 1; a cluster others depend on needs
   auto-unseal first: roadmap 02. Resolved 2026-11-01: it unseals itself with the `static` seal.
 - **No Prometheus.** The smoke test reads `/metrics` directly; alerting is not exercised until a
-  monitoring stack is installed.
+  monitoring stack is installed. Mostly resolved 2026-11-03: Prometheus scrapes notaio with the
+  observability guide's PodMonitor and alerts; Alertmanager has no receiver yet, so an alert pages
+  nobody.
 - **The private repository's deploy key** is a credential in the cluster. Read-only, one
   repository, rotated with the repository's settings.
