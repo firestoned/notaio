@@ -17,7 +17,7 @@ RUST_LOG         ?= info
         kind-e2e-install kind-e2e-bundle kind-e2e-rbac kind-e2e-admission kind-e2e-leader kind-e2e-openbao \
         kind-cert-manager kind-openbao cluster-deploy cluster-undeploy cluster-smoke openbao-e2e \
         docs docs-serve docs-clean docs-linkcheck docs-reference docs-reference-check policy-lint openbao-dev openbao-dev-check \
-        license-check bundle-deps-check conformance conformance-check cargo-auditable release-binary sbom-check grype-install vexctl-install vex-evidence vex-evidence-test vex-assemble image-scan image-gate release-manifest release-manifest-sign release-manifest-test set-version set-version-test
+        license-check bundle-deps-check conformance conformance-check cargo-auditable release-binary release-version sbom-check grype-install vexctl-install vex-evidence vex-evidence-test vex-assemble image-scan image-gate release-manifest release-manifest-sign release-manifest-test set-version set-version-test
 
 help: ## Show this help
 	@echo 'Usage: make [target] [VAR=value ...]'
@@ -272,6 +272,19 @@ release-manifest: ## Render RELEASE_DIR/notaio-VERSION-crds.yaml and notaio-VERS
 	  } | sed -E 's#(image: )$(RELEASE_IMAGE):[^[:space:]]+#\1$(RELEASE_IMAGE)@$(IMAGE_DIGEST)#' > "$$out"; \
 	  echo "✓ $$out ($(RELEASE_IMAGE)@$(IMAGE_DIGEST))"
 
+# The workspace version in VERSION_FILE, as set-version writes it.
+workspace-version = $$(awk -F'"' '/^\[workspace\.package\]/ { p = 1; next } /^\[/ { p = 0 } p && /^version *=/ { print $$2; exit }' $(VERSION_FILE))
+
+release-version: ## A release's version from its tag: set-version, then match Cargo.lock offline; a GitHub warning when Cargo.toml said otherwise
+	@test -n "$(VERSION)" || { echo "set VERSION, e.g. make release-version VERSION=1.2.3"; exit 1; }
+	@was=$(workspace-version); \
+	  if [ "$$was" != "$(VERSION)" ]; then \
+	    echo "::warning title=Released without release prep::Cargo.toml says $$was at this tag; the release is stamped $(VERSION). Bump Cargo.toml and add CHANGELOG.md's [$(VERSION)] section on main."; \
+	  fi
+	@$(MAKE) --no-print-directory set-version VERSION=$(VERSION)
+	@cargo update --workspace --offline -q
+	@echo "Cargo.lock: workspace crates at $(VERSION)"
+
 set-version: ## Set [workspace.package] version in VERSION_FILE to VERSION; fails if the file does not then say so
 	@test -n "$(VERSION)" || { echo "set VERSION, e.g. make set-version VERSION=1.2.3"; exit 1; }
 	@perl -i -pe 's/^version = ".*"/version = "$(VERSION)"/ if /^\[workspace\.package\]/ ... /^\[/' $(VERSION_FILE)
@@ -289,7 +302,7 @@ release-manifest-test: ## Prove release-manifest pins the image by digest, once,
 	    "ghcr.io/$(ORG)/$(BINARY)@$$digest" && \
 	  echo "release-manifest-test: ok"
 
-set-version-test: ## Prove set-version changes the workspace version, and only it, and the workspace still resolves
+set-version-test: ## Prove set-version changes the workspace version, and only it, and a release build's --locked still holds after the lock is matched
 	@tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT; \
 	  cp Cargo.toml "$$tmp/Cargo.toml"; \
 	  $(MAKE) --no-print-directory -s set-version VERSION=0.0.0-set-version-test VERSION_FILE="$$tmp/Cargo.toml" >/dev/null && \
@@ -298,8 +311,9 @@ set-version-test: ## Prove set-version changes the workspace version, and only i
 	  grep -q '^version = "0.0.0-set-version-test"' "$$tmp/Cargo.toml" || { echo "set-version did not set the version"; exit 1; }; \
 	  cp -R Cargo.toml Cargo.lock crates "$$tmp/" && \
 	  $(MAKE) --no-print-directory -s set-version VERSION=9.8.7 VERSION_FILE="$$tmp/Cargo.toml" >/dev/null && \
-	  ( cd "$$tmp" && cargo metadata --format-version 1 >/dev/null 2>"$$tmp/metadata.err" ) || \
-	    { cat "$$tmp/metadata.err"; echo "the workspace does not resolve at a new version: does an internal dependency pin one?"; exit 1; }; \
+	  ( cd "$$tmp" && cargo update --workspace --offline -q 2>"$$tmp/metadata.err" \
+	    && cargo metadata --locked --format-version 1 >/dev/null 2>>"$$tmp/metadata.err" ) || \
+	    { cat "$$tmp/metadata.err"; echo "the release path fails at a new version: the lock is not matched offline, or an internal dependency pins one"; exit 1; }; \
 	  echo "set-version-test: ok"
 
 # ----- CI gating -------------------------------------------------------------
