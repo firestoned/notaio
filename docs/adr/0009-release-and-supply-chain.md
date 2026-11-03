@@ -60,6 +60,15 @@ does not need yet.
    is tested there, per the workflow rules. The workflow installs tools, and calls Make targets and
    the actions that can only run in CI (buildx, Cosign, attestation, release upload).
 
+   *Amended 2026-11-03:* **the tag is the version.** `make release-version` stamps it into
+   `Cargo.toml` and matches `Cargo.lock` offline (`cargo update --workspace --offline`, which
+   moves only the workspace crates), so the `--locked` build holds whatever the tree said, and a
+   release needs no release-prep commit. When `Cargo.toml` disagreed it warns, without failing: the
+   source at the tag keeps the old version and `CHANGELOG.md` has no section for the release yet,
+   both caught up on `main` afterwards. `--locked` stays: no dependency can change between the
+   reviewed lock and the released binary. v0.3.4's first build, cut before its prep commit, failed
+   because only `Cargo.toml` was stamped.
+
 ## Consequences
 
 - An image digest from a release can be verified end to end without trusting the registry:

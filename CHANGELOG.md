@@ -10,12 +10,28 @@ a release, the maintainer renames Unreleased to the version and date.
 
 ## Unreleased
 
+Nothing yet.
+
+## [0.3.4] - 2026-11-02
+
+For consumers: a key id is trusted once. Nothing about the controller, policies, bundles or the API
+changes; upgrading an installation is applying the two manifests of this release.
+
 ### Added
 
 - A guide, [Deliver signed policies](https://firestoned.github.io/notaio/guides/deliver-signed-policies/),
   and ADR-0015: a policy repository published as two signed OCI artifacts that Flux verifies
   before applying, `policies` signed by CI and `ceilings` by Security, so a push credential can
   never change a ceiling. Nothing in notaio changes; notaio's bundle signature stays.
+
+### Fixed
+
+- A release no longer needs a release-prep commit: the tag is the version. `make release-version`
+  stamps it into `Cargo.toml` and matches `Cargo.lock` offline, so the binary is still built
+  `--locked`, and warns when `Cargo.toml` said otherwise (ADR-0009, amended). Before, only
+  `Cargo.toml` was stamped, and a release cut ahead of its prep commit failed to build (`cannot
+  update the lock file`), as v0.3.4's first attempt did; that attempt published nothing, and the
+  release was recreated. `make set-version-test` checks the path with `--locked`.
 
 ### Changed
 
@@ -188,6 +204,7 @@ operator needs to run it with two replicas and an OpenBao signer.
 - Its NetworkPolicy allows egress only to DNS, the API server and OpenBao, and ingress only to the
   health and metrics port from the monitoring namespace.
 
+[0.3.4]: https://github.com/firestoned/notaio/releases/tag/v0.3.4
 [0.3.3]: https://github.com/firestoned/notaio/releases/tag/v0.3.3
 [0.3.2]: https://github.com/firestoned/notaio/releases/tag/v0.3.2
 [0.3.1]: https://github.com/firestoned/notaio/releases/tag/v0.3.1

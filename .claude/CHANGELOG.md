@@ -2,6 +2,30 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-03 09:00] - v0.3.4: release prep, and a release workflow that survives without it
+
+**Author:** Erick Bourgeois
+
+### Changed
+- Workspace version 0.3.4; `CHANGELOG.md` gains its `[0.3.4]` section (the `TrustedKeys` change,
+  ADR-0015's guide, the workflow fix); the install guide's `V=` is 0.3.4.
+- `make release-version` (new): the tag's version into `Cargo.toml`, `Cargo.lock` matched offline,
+  a GitHub warning when `Cargo.toml` said otherwise; the build workflow calls it after installing
+  the toolchain, in place of `set-version`. `--locked` stays. `make set-version-test` checks the path
+  with `--locked`. ADR-0009 decision 6 amended (the tag is the version); the developer page says
+  how to cut a release.
+
+### Why
+v0.3.4 was released before its release-prep commit; the stamp moved `Cargo.toml` but not
+`Cargo.lock`, and the `--locked` binary build refused. Nothing was published; the release is
+recreated on this commit.
+
+### Impact
+- [ ] Breaking change
+- [ ] Requires cluster rollout
+- [ ] Config change only
+- [ ] Documentation only
+
 ## [2026-11-02 17:00] - Roadmap 00 phase 1 done (in mediatore)
 
 **Author:** Erick Bourgeois
