@@ -54,6 +54,14 @@ does not need yet.
    any. The per-namespace bundle Role left the install manifest for
    `deploy/policy-namespace/`: it named an example namespace every install would have had to
    create or edit. Both found by installing a release on a real cluster (roadmap 01).
+
+   *Amended 2026-11-05:* the CLI ships as release assets too, `notaio-linux-amd64` and
+   `notaio-linux-arm64`, each with a keyless Cosign bundle and a line in `checksums.sha256`. They are
+   the binaries the image carries, not a second build. A policy repository runs `notaio lint` in
+   CI on runners that have no container runtime, so an image alone left it with no way to lint
+   (found by the first pull request of an on-premises policy repository). They are glibc-linked,
+   like the image, so a runner older than the build host's glibc cannot run them; the release job
+   logs the version each needs. A static musl build would remove that limit and is not done here.
 5. **The admission policy is not in the install manifest.** `deploy/admission/gitops-only.yaml`
    names the site's GitOps identity, so each installation adapts and applies it itself.
 6. **The logic lives in the Makefile** (`release-binary`, `release-manifest`, `set-version`) and
