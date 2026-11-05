@@ -17,7 +17,7 @@ RUST_LOG         ?= info
         kind-e2e-install kind-e2e-bundle kind-e2e-rbac kind-e2e-admission kind-e2e-leader kind-e2e-openbao \
         kind-cert-manager kind-openbao cluster-deploy cluster-undeploy cluster-smoke openbao-e2e \
         docs docs-serve docs-clean docs-linkcheck docs-reference docs-reference-check policy-lint openbao-dev openbao-dev-check \
-        license-check bundle-deps-check conformance conformance-check cargo-auditable release-binary release-version sbom-check grype-install vexctl-install vex-evidence vex-evidence-test vex-assemble image-scan image-gate release-manifest release-manifest-sign release-manifest-test set-version set-version-test
+        license-check bundle-deps-check conformance conformance-check cargo-auditable release-binary release-version sbom-check grype-install vexctl-install vex-evidence vex-evidence-test vex-assemble image-scan image-gate release-manifest release-manifest-sign release-manifest-test release-binary-assets release-binary-sign release-binary-assets-test set-version set-version-test
 
 help: ## Show this help
 	@echo 'Usage: make [target] [VAR=value ...]'
@@ -598,6 +598,46 @@ release-manifest-sign: ## Cosign-sign (keyless) both release manifests in RELEAS
 	@for f in "$(RELEASE_DIR)/notaio-$(VERSION)-crds.yaml" "$(RELEASE_DIR)/notaio-$(VERSION).yaml"; do \
 	  cosign sign-blob --yes --bundle "$$f.sigstore.json" "$$f" || exit 1; \
 	done
+
+# The CLI as release assets (ADR-0009 decision 4, amended 2026-11-05): `notaio lint` runs in CI of a policy repository
+# whose runners have no docker, so the same binaries the image carries are attached, one per architecture, as plain
+# executables a Makefile can fetch with curl and check against checksums.sha256.
+RELEASE_ARCHES  ?= amd64 arm64
+BINARY_ARTIFACTS ?= $(CURDIR)/artifacts
+
+release-binary-assets: ## Gather BINARY_ARTIFACTS/notaio-linux-<arch>/notaio into RELEASE_DIR/notaio-linux-<arch>, executable, for each of RELEASE_ARCHES
+	@mkdir -p "$(RELEASE_DIR)"
+	@for arch in $(RELEASE_ARCHES); do \
+	  src="$(BINARY_ARTIFACTS)/notaio-linux-$$arch/notaio"; \
+	  test -s "$$src" || { echo "no binary at $$src"; exit 1; }; \
+	  install -m 755 "$$src" "$(RELEASE_DIR)/notaio-linux-$$arch" || exit 1; \
+	  if command -v objdump >/dev/null 2>&1; then \
+	    echo "notaio-linux-$$arch needs glibc $$(objdump -T "$$src" 2>/dev/null | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1 | sed 's/GLIBC_//')"; \
+	  fi; \
+	done
+
+release-binary-sign: ## Cosign-sign (keyless) each binary in RELEASE_DIR, a .sigstore.json bundle each (CI)
+	@for arch in $(RELEASE_ARCHES); do \
+	  f="$(RELEASE_DIR)/notaio-linux-$$arch"; \
+	  cosign sign-blob --yes --bundle "$$f.sigstore.json" "$$f" || exit 1; \
+	done
+
+release-binary-assets-test: ## Prove release-binary-assets names, copies and marks executable each architecture's binary, and refuses a missing one
+	@tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT; \
+	  for arch in $(RELEASE_ARCHES); do \
+	    mkdir -p "$$tmp/in/notaio-linux-$$arch"; printf 'fake %s' "$$arch" > "$$tmp/in/notaio-linux-$$arch/notaio"; \
+	  done; \
+	  $(MAKE) --no-print-directory -s release-binary-assets BINARY_ARTIFACTS="$$tmp/in" RELEASE_DIR="$$tmp/out" >/dev/null || exit 1; \
+	  for arch in $(RELEASE_ARCHES); do \
+	    f="$$tmp/out/notaio-linux-$$arch"; \
+	    test -x "$$f" || { echo "release-binary-assets-test: $$f is not executable"; exit 1; }; \
+	    test "$$(cat "$$f")" = "fake $$arch" || { echo "release-binary-assets-test: $$f has the wrong content"; exit 1; }; \
+	  done; \
+	  rm -rf "$$tmp/in/notaio-linux-arm64"; \
+	  if $(MAKE) --no-print-directory -s release-binary-assets BINARY_ARTIFACTS="$$tmp/in" RELEASE_DIR="$$tmp/out2" >/dev/null 2>&1; then \
+	    echo "release-binary-assets-test: a missing arm64 binary was accepted"; exit 1; \
+	  fi; \
+	  echo "release-binary-assets-test: ok"
 
 cluster-undeploy: ## Remove everything cluster-deploy created from CLUSTER_KUBECONFIG
 	@test -n "$(CLUSTER_KUBECONFIG)" || { echo "set CLUSTER_KUBECONFIG"; exit 1; }

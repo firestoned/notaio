@@ -10,7 +10,13 @@ a release, the maintainer renames Unreleased to the version and date.
 
 ## Unreleased
 
-Nothing yet.
+### Added
+
+- Each release attaches the CLI as plain executables, `notaio-linux-amd64` and `notaio-linux-arm64`,
+  the same binaries the image carries, each with a keyless Cosign bundle (`.sigstore.json`) and a
+  line in `checksums.sha256`. A policy repository whose CI runners have no docker can fetch
+  `notaio lint` with curl and check it. The binaries are glibc-linked; the release job's log
+  names the glibc version they need.
 
 ## [0.3.4] - 2026-11-02
 
