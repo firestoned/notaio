@@ -71,7 +71,7 @@ async fn pin_key_version(client: &Client, version: Option<&str>) {
         let deployments = deployments.clone();
         async move {
             let d = deployments.get("notaio").await.ok()?;
-            let want = d.spec.as_ref()?.replicas.unwrap_or(1);
+            let want = d.spec.replicas.unwrap_or(1);
             let s = d.status?;
             let done = s.observed_generation >= d.metadata.generation
                 && s.updated_replicas == Some(want)
@@ -114,7 +114,7 @@ async fn signs_through_openbao_and_fails_closed_without_it() {
     // 0. The deployed controller is configured for OpenBao and holds no development seed.
     let deployments: Api<Deployment> = Api::namespaced(client.clone(), &controller_namespace());
     let d = deployments.get("notaio").await.expect("deployment/notaio");
-    let env: Vec<String> = d.spec.unwrap().template.spec.unwrap().containers[0]
+    let env: Vec<String> = d.spec.template.spec.unwrap().containers[0]
         .env
         .clone()
         .unwrap_or_default()

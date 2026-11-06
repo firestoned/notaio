@@ -2,6 +2,29 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-06 12:00] - kube 5, k8s-openapi 0.29: the dependency upgrade validated
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `cargo upgrade --incompatible` (Erick): kube 4 to 5, k8s-openapi 0.28 to 0.29, tokio 1.54.1,
+  serde_json 1.0.154, schemars 1.2.3, serde-saphyr 2.1.1, prometheus-client 0.25.2; 97 lock entries.
+- `crates/notaio/tests/e2e_smoke.rs`, `e2e_openbao.rs`: `Deployment.spec` is no longer an `Option`
+  in k8s-openapi 0.29 (three uses). No library or controller code changed.
+- CHANGELOG.md Unreleased.
+
+### Why
+Validated on slate: lint, 159 tests, manifests/docs-reference/conformance/bundle-deps/license
+checks, `cargo deny`, the release build with an SBOM of 194 Rust crates (kube 5.0.0 among them) and
+all 20 VEX statements holding, and `make kind-e2e-ci E2E_SUITE=all` on a fresh kind cluster: install,
+bundle, rbac, admission, leader, openbao, all passed.
+
+### Impact
+- [ ] Breaking change
+- [ ] Requires cluster rollout
+- [ ] Config change only
+- [ ] Documentation only
+
 ## [2026-11-03 09:00] - v0.3.4: release prep, and a release workflow that survives without it
 
 **Author:** Erick Bourgeois

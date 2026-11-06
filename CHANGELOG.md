@@ -18,6 +18,12 @@ a release, the maintainer renames Unreleased to the version and date.
   `notaio lint` with curl and check it. The binaries are glibc-linked; the release job's log
   names the glibc version they need.
 
+### Changed
+
+- kube 5 and k8s-openapi 0.29 (from 4 and 0.28), with tokio, serde_json, schemars, serde-saphyr and
+  prometheus-client at their latest. No behaviour change: the controller, the CRDs and the bundle
+  are as they were. k8s-openapi 0.29 makes `Deployment.spec` required, which only the e2e tests read.
+
 ## [0.3.4] - 2026-11-02
 
 For consumers: a key id is trusted once. Nothing about the controller, policies, bundles or the API
