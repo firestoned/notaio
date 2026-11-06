@@ -38,7 +38,7 @@ async fn the_controller_is_healthy_and_leads_once() {
 
     let d: Api<Deployment> = Api::namespaced(client.clone(), &ns);
     let d = d.get("notaio").await.expect("deployment/notaio");
-    let want = d.spec.as_ref().and_then(|s| s.replicas).unwrap_or(1);
+    let want = d.spec.replicas.unwrap_or(1);
     let status = d.status.expect("deployment status");
     assert_eq!(
         status.available_replicas,
