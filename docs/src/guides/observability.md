@@ -1,3 +1,7 @@
+---
+status: implemented
+---
+
 # Observe notaio
 
 notaio serves `/healthz`, `/readyz` and `/metrics` on port 8080 and records Kubernetes Events on

@@ -153,3 +153,14 @@ a:focus, button:focus {
 }
 h1:hover .headerlink, h2:hover .headerlink, h3:hover .headerlink,
 h4:hover .headerlink, h5:hover .headerlink, h6:hover .headerlink { opacity: 1; }
+
+/* Page status icons (front matter `status:`, mkdocs.yml `extra.status`): implemented, partly
+   implemented, planned. Material Design Icons: check-circle, circle-half-full, circle-outline. */
+:root {
+  --md-status--implemented: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2m-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8z"/></svg>');
+  --md-status--partial: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-10 10 10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m0 2a8 8 0 0 1 8 8 8 8 0 0 1-8 8z"/></svg>');
+  --md-status--planned: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a8 8 0 0 1-8-8 8 8 0 0 1 8-8 8 8 0 0 1 8 8 8 8 0 0 1-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2"/></svg>');
+}
+.md-status--implemented::after { -webkit-mask-image: var(--md-status--implemented); mask-image: var(--md-status--implemented); }
+.md-status--partial::after { -webkit-mask-image: var(--md-status--partial); mask-image: var(--md-status--partial); }
+.md-status--planned::after { -webkit-mask-image: var(--md-status--planned); mask-image: var(--md-status--planned); }

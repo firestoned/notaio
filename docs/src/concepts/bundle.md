@@ -1,4 +1,10 @@
+---
+status: partial
+---
+
 # The bundle
+
+--8<-- "snippets/status-consumers.md"
 
 The **bundle** is what notaio publishes for each Ready policy: the complete, effective policy,
 signed. Every enforcement point (the gateway, mediatore, mediatore-guest inside the VM) verifies it
@@ -134,4 +140,6 @@ The two cannot replace each other. A signature over the delivered policy is chec
 is pulled, and covers what someone wrote; the bundle is computed in the cluster from the policy, its
 profile, the grants active at that moment and its ceiling, re-signed as grants expire and its
 lifetime runs out, and checked by every consumer, which does not trust the Kubernetes API it reads
-the bundle from. Signing what is delivered is planned in the project's roadmap 03.
+the bundle from. Signing what is delivered is the subject of
+[ADR-0015](../adr/0015-signed-policy-delivery.md) and its guide,
+[Deliver signed policies](../guides/deliver-signed-policies.md).

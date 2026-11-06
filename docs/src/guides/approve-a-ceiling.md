@@ -1,3 +1,7 @@
+---
+status: implemented
+---
+
 # Approve an exposure ceiling
 
 For the `Security` role. An [ExposureCeiling](../concepts/ceilings.md) is your record that a

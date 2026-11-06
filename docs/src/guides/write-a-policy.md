@@ -1,3 +1,7 @@
+---
+status: implemented
+---
+
 # Write a policy
 
 This takes a team from nothing to a published, signed bundle: pick a profile, write the policy and

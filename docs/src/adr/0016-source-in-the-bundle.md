@@ -1,0 +1,1 @@
+--8<-- "adr/0016-source-in-the-bundle.md"

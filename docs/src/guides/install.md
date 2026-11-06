@@ -1,3 +1,7 @@
+---
+status: implemented
+---
+
 # Install notaio
 
 This installs a release into a cluster: the four CRDs, the controller, its RBAC and

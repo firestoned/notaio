@@ -1,3 +1,7 @@
+---
+status: implemented
+---
+
 # SandboxProfile
 
 A **SandboxProfile** is a named set of knob steps. It is cluster scoped and platform owned: teams

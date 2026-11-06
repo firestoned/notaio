@@ -20,6 +20,9 @@ a release, the maintainer renames Unreleased to the version and date.
 
 ### Changed
 
+- The documentation marks every page Implemented, Partly implemented or Planned, shown in the
+  navigation. Pages that describe consumers enforcing a bundle open with what is built today
+  (mediatore verifies in shadow) and what is planned (enforcing, the guest, the gateway).
 - kube 5 and k8s-openapi 0.29 (from 4 and 0.28), with tokio, serde_json, schemars, serde-saphyr and
   prometheus-client at their latest. No behaviour change: the controller, the CRDs and the bundle
   are as they were. k8s-openapi 0.29 makes `Deployment.spec` required, which only the e2e tests read.

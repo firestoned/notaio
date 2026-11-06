@@ -1,3 +1,7 @@
+---
+status: implemented
+---
+
 # Glossary
 
 The identifiers and terms used across these docs. Where a family of codes has a full, current list,

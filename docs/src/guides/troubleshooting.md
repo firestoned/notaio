@@ -1,3 +1,7 @@
+---
+status: implemented
+---
+
 # Troubleshooting
 
 Start from the policy's `Ready` condition: its reason says which gate stopped it.

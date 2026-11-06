@@ -1,3 +1,7 @@
+---
+status: implemented
+---
+
 # Deliver policies as signed OCI artifacts
 
 With plain GitOps, whatever the policy repository's default branch holds reaches the cluster. This

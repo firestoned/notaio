@@ -1,4 +1,10 @@
+---
+status: partial
+---
+
 # The life of a change
+
+--8<-- "snippets/status-consumers.md"
 
 One change, a team asking for package installation on its policy, followed from pull request to
 enforcement. Every gate it passes is listed, with what enforces it.

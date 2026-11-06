@@ -124,6 +124,12 @@ extra_javascript:
   - javascripts/mermaid-init.js
 
 extra:
+  # Page status, shown in the navigation (front matter `status:` on each page): what a page
+  # describes is built, partly built, or planned. Icons in stylesheets/extra.css.
+  status:
+    implemented: Implemented
+    partial: Partly implemented
+    planned: Planned
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/firestoned/notaio
@@ -183,6 +189,7 @@ nav:
       - "ADR-0013: Bundle v3 and v1alpha2": adr/0013-bundle-v3-routes-and-v1alpha2.md
       - "ADR-0014: Consumer distribution": adr/0014-consumer-distribution.md
       - "ADR-0015: Signed policy delivery": adr/0015-signed-policy-delivery.md
+      - "ADR-0016: Source in the bundle (proposed)": adr/0016-source-in-the-bundle.md
   - Reference:
       - Glossary: glossary.md
       - CRD API: reference/crds.md

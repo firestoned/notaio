@@ -1,4 +1,10 @@
+---
+status: partial
+---
+
 # Security
+
+--8<-- "snippets/status-consumers.md"
 
 notaio sits on the trust path of every AgentSandbox VM: mediatore and mediatore-guest enforce what
 its bundles say. Its security posture is therefore part of the platform's, and it is defined by the

@@ -1,3 +1,7 @@
+---
+status: implemented
+---
+
 # Local Development
 
 Rust 1.89 or newer. Every target below is the same one CI runs, so green locally is green in CI.

@@ -139,5 +139,7 @@ a licence review. Confirm employer sign-off first.
 
 Done: `SECURITY.md` (private vulnerability reporting), a MkDocs site (`make docs`, published to
 GitHub Pages from `main`) that pulls in the canonical docs, and the Apache-2.0 `LICENSE` with SPDX
-headers on every source file, checked in CI. Still open: status labels on every page, employer
-sign-off.
+headers on every source file, checked in CI, and a status on every page (2026-11-06): each is
+marked Implemented, Partly implemented or Planned in the navigation, and the partly implemented
+ones open with what is built and what is not (the consumers' enforcement, roadmap 00 phases 2 to
+4). Still open: employer sign-off.

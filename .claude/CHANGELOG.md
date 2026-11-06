@@ -2,6 +2,44 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-06 17:00] - ADR-0016 proposed: the source of a policy in its bundle
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `docs/adr/0016-source-in-the-bundle.md` (new, Proposed, with its site wrapper and nav entry): an
+  annotation `sandbox.firestoned.io/source` the delivery pipeline stamps, copied unverified into
+  `content.sources`; no GitOps API; a `bundle/v4` that consumers accept before notaio emits it,
+  because `verify_bundle` recomputes the digest from parsed content and refuses an unknown field.
+  Waits for a consumer that needs it (roadmap 00 D6).
+- Roadmap 03's "later" note points to it.
+
+### Impact
+- [ ] Breaking change
+- [ ] Requires cluster rollout
+- [ ] Config change only
+- [x] Documentation only
+
+## [2026-11-06 16:00] - Docs: a status on every page (M5)
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `docs/mkdocs.yml` `extra.status` (implemented, partial, planned), icons in
+  `docs/src/stylesheets/extra.css`; front matter `status:` on every content page (changelog and
+  governance unlabelled, ADRs keep their own Status); `docs/snippets/status-consumers.md`, the
+  note at the top of the seven pages that describe consumers enforcing.
+- `crates/notaio/src/reference.rs`: generated pages open with `status: implemented` front matter;
+  `reference_tests.rs` checks it; `docs/src/reference/` regenerated.
+- `docs/src/concepts/bundle.md`: signed delivery is ADR-0015, no longer "planned in roadmap 03".
+- `ROADMAPS.md` M5: status labels done; CHANGELOG.md Unreleased.
+
+### Impact
+- [ ] Breaking change
+- [ ] Requires cluster rollout
+- [ ] Config change only
+- [x] Documentation only
+
 ## [2026-11-06 12:00] - kube 5, k8s-openapi 0.29: the dependency upgrade validated
 
 **Author:** Erick Bourgeois

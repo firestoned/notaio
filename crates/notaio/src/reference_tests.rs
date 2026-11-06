@@ -17,7 +17,14 @@ fn every_page_says_it_is_generated_and_is_deterministic() {
     let a = pages();
     assert_eq!(a, pages(), "two renders differ, so the CI check would flap");
     for (name, content) in a {
-        assert!(content.starts_with(GENERATED), "{name}");
+        // Front matter first (MkDocs reads it only there), then the generated notice.
+        assert!(content.starts_with(FRONT_MATTER), "{name}");
+        assert!(
+            content[FRONT_MATTER.len()..]
+                .trim_start()
+                .starts_with(GENERATED),
+            "{name}"
+        );
         assert!(
             content.ends_with('\n') && !content.ends_with("\n\n"),
             "{name}"
