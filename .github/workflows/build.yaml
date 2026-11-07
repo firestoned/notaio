@@ -406,7 +406,11 @@ jobs:
     name: 🔍 Scan Image
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    needs: [docker]
+    # After `attest`, never beside it: GHCR has no referrers API, so cosign and the provenance
+    # action both record their attestation in one fallback index tag next to the image, each by
+    # reading the index and writing it back. Run together, the later write drops the earlier
+    # entry; v0.3.6 lost its VEX attestation that way (provenance pushed half a second after it).
+    needs: [docker, attest]
     permissions:
       contents: read
       packages: write
