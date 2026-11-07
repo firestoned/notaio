@@ -10,13 +10,26 @@ a release, the maintainer renames Unreleased to the version and date.
 
 ## Unreleased
 
+### Fixed
+
+- A release's VEX attestation could be lost: the provenance and the VEX attestation were pushed by
+  two jobs at once, and GHCR (no referrers API) keeps both in one index that each job reads and
+  rewrites, so the later write dropped the earlier entry. v0.3.6's image lost its VEX attestation
+  that way (re-attested since); the scan job now runs after the attest job.
+
+### Security
+
+- A VEX statement for CVE-2026-76844 (zlib's `gz_write`, High, no fix): `zlib1g` is in the base
+  image, but notaio does not link `libz.so.1`, which CI re-checks on every build.
+
+## [0.3.6] - 2026-11-07
+
+notaio warns about direct egress the egress gateway cannot enforce, and moves to kube 5. The
+controller's behaviour is otherwise unchanged; upgrading is applying the two manifests of this
+release. Released without a release-prep commit too: the source at the `v0.3.6` tag says 0.3.4.
+
 ### Added
 
-- Each release attaches the CLI as plain executables, `notaio-linux-amd64` and `notaio-linux-arm64`,
-  the same binaries the image carries, each with a keyless Cosign bundle (`.sigstore.json`) and a
-  line in `checksums.sha256`. A policy repository whose CI runners have no docker can fetch
-  `notaio lint` with curl and check it. The binaries are glibc-linked; the release job's log
-  names the glibc version they need.
 - Lint rule `L019`, a warning: a direct egress entry with method and path `rules`, or a wildcard
   host. mediatore's egress gateway admits an exact `host:port` and sees no path, so it does not
   serve such an entry (mediatore ADR-0030); the warning says so before the policy is merged.
@@ -30,6 +43,20 @@ a release, the maintainer renames Unreleased to the version and date.
 - kube 5 and k8s-openapi 0.29 (from 4 and 0.28), with tokio, serde_json, schemars, serde-saphyr and
   prometheus-client at their latest. No behaviour change: the controller, the CRDs and the bundle
   are as they were. k8s-openapi 0.29 makes `Deployment.spec` required, which only the e2e tests read.
+
+## [0.3.5] - 2026-11-05
+
+The CLI as release assets, for policy repositories whose CI cannot run the image. Nothing about the
+controller, policies, bundles or the API changes. Released without a release-prep commit (the tag is
+the version, ADR-0009): the source at the `v0.3.5` tag still says 0.3.4.
+
+### Added
+
+- Each release attaches the CLI as plain executables, `notaio-linux-amd64` and `notaio-linux-arm64`,
+  the same binaries the image carries, each with a keyless Cosign bundle (`.sigstore.json`) and a
+  line in `checksums.sha256`. A policy repository whose CI runners have no docker can fetch
+  `notaio lint` with curl and check it. The binaries are glibc-linked; the release job's log
+  names the glibc version they need.
 
 ## [0.3.4] - 2026-11-02
 
@@ -223,6 +250,8 @@ operator needs to run it with two replicas and an OpenBao signer.
 - Its NetworkPolicy allows egress only to DNS, the API server and OpenBao, and ingress only to the
   health and metrics port from the monitoring namespace.
 
+[0.3.6]: https://github.com/firestoned/notaio/releases/tag/v0.3.6
+[0.3.5]: https://github.com/firestoned/notaio/releases/tag/v0.3.5
 [0.3.4]: https://github.com/firestoned/notaio/releases/tag/v0.3.4
 [0.3.3]: https://github.com/firestoned/notaio/releases/tag/v0.3.3
 [0.3.2]: https://github.com/firestoned/notaio/releases/tag/v0.3.2
