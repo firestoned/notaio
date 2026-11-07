@@ -1,0 +1,19 @@
+# Copyright (c) 2026 Erick Bourgeois, notaio
+# SPDX-License-Identifier: Apache-2.0
+#
+# notaio's Grafana dashboard, as a ConfigMap Grafana's dashboard sidecar loads (the label below is
+# the kube-prometheus-stack default). Apply with `kubectl apply -k deploy/monitoring`; without the
+# sidecar, import notaio-dashboard.json in Grafana instead. The sidecar must search this
+# namespace (`grafana.sidecar.dashboards.searchNamespace`). See docs/src/guides/observability.md.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: notaio-system
+generatorOptions:
+  disableNameSuffixHash: true
+  labels:
+    grafana_dashboard: "1"
+    app.kubernetes.io/name: notaio
+configMapGenerator:
+  - name: notaio-dashboard
+    files:
+      - notaio-dashboard.json

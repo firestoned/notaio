@@ -190,6 +190,7 @@ nav:
       - "ADR-0014: Consumer distribution": adr/0014-consumer-distribution.md
       - "ADR-0015: Signed policy delivery": adr/0015-signed-policy-delivery.md
       - "ADR-0016: Source in the bundle (proposed)": adr/0016-source-in-the-bundle.md
+      - "ADR-0017: Audience classification (proposed)": adr/0017-audience-classification.md
   - Reference:
       - Glossary: glossary.md
       - CRD API: reference/crds.md

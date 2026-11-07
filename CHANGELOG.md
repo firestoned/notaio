@@ -30,6 +30,9 @@ release. Released without a release-prep commit too: the source at the `v0.3.6` 
 
 ### Added
 
+- A Grafana dashboard, `deploy/monitoring/` (`kubectl apply -k deploy/monitoring`, or import the
+  JSON): controller health, policies by `Ready` reason, bundle expiry and age, and every active
+  knob grant by time to expiry and by age. See Observe notaio, Dashboard.
 - Lint rule `L019`, a warning: a direct egress entry with method and path `rules`, or a wildcard
   host. mediatore's egress gateway admits an exact `host:port` and sees no path, so it does not
   serve such an entry (mediatore ADR-0030); the warning says so before the policy is merged.
