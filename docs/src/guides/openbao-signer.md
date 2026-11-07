@@ -1,3 +1,7 @@
+---
+status: implemented
+---
+
 # Set up the OpenBao signer
 
 notaio signs bundles with an ed25519 key in OpenBao's transit engine, which never leaves OpenBao

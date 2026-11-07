@@ -1,3 +1,7 @@
+---
+status: implemented
+---
+
 # KnobGrant
 
 A **KnobGrant** is a time-boxed relaxation of one knob for one policy. It is how a team gets a

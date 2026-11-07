@@ -1,3 +1,7 @@
+---
+status: implemented
+---
+
 # Rotate the signing key
 
 OpenBao transit keeps every version of a key. notaio signs with the version you pin, or the latest

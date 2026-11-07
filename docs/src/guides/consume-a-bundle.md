@@ -1,4 +1,10 @@
+---
+status: partial
+---
+
 # Consume a bundle
+
+--8<-- "snippets/status-consumers.md"
 
 For authors of the components that enforce policy: mediatore, mediatore-guest and the egress
 gateway. A consumer never evaluates policy; it verifies the bundle and enforces what it says

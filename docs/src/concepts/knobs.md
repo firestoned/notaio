@@ -1,3 +1,7 @@
+---
+status: implemented
+---
+
 # Knobs and steps
 
 A **knob** is one adjustable control from section 9 of the AgentSandbox threat model, such as

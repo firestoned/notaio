@@ -1,3 +1,7 @@
+---
+status: implemented
+---
+
 # Lint a policy repository
 
 `notaio lint` runs the controller's own checks on policy files, so a change that would not publish

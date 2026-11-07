@@ -1,4 +1,10 @@
+---
+status: partial
+---
+
 # Concepts
+
+--8<-- "snippets/status-consumers.md"
 
 notaio turns reviewed policy objects into signed bundles that every enforcement point in a sandbox
 can verify on its own. These pages explain the pieces, from the smallest up.

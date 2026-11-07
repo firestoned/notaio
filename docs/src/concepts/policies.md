@@ -1,3 +1,7 @@
+---
+status: implemented
+---
+
 # SandboxPolicy
 
 A **SandboxPolicy** says who may claim a sandbox, under which [profile](profiles.md), and what the

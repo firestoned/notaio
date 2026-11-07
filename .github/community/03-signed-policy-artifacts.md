@@ -184,10 +184,10 @@ the keys, one `OCIRepository` and one Kustomization applying a ConfigMap, delete
 
 ### Later, separate decision: the source in the bundle
 
-Recording in each bundle which signed artifact (digest and signer) its policy came from would let
-a consumer follow the chain from author to enforcement. It changes the bundle's content, so it is
-a schema change with its own ADR, and notaio has to learn the source revision without depending
-on Flux's API. Not part of this roadmap.
+Recording in each bundle which source its policy came from is designed as
+[ADR-0016](../../docs/adr/0016-source-in-the-bundle.md), proposed 2026-11-06: an annotation the
+pipeline stamps on the objects, copied into a `bundle/v4` the consumers accept first. Not part of
+this roadmap; built when a consumer needs it.
 
 ## 5. Done when
 

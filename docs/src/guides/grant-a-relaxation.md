@@ -1,3 +1,7 @@
+---
+status: implemented
+---
+
 # Grant a relaxation
 
 A [KnobGrant](../concepts/grants.md) loosens one knob, by one step, for one policy, until a date.

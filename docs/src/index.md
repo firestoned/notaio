@@ -1,4 +1,10 @@
+---
+status: partial
+---
+
 # notaio
+
+--8<-- "snippets/status-consumers.md"
 
 **The notary of the AgentSandbox platform** (Italian *notaio*, "noh-TAH-yoh"). notaio turns a small,
 reviewable `SandboxPolicy` into a signed, versioned bundle that

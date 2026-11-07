@@ -1,3 +1,7 @@
+---
+status: implemented
+---
+
 # ExposureCeiling
 
 An **ExposureCeiling** is the approved maximum of what one policy may expose: the audiences it may
