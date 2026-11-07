@@ -17,6 +17,10 @@ a release, the maintainer renames Unreleased to the version and date.
   line in `checksums.sha256`. A policy repository whose CI runners have no docker can fetch
   `notaio lint` with curl and check it. The binaries are glibc-linked; the release job's log
   names the glibc version they need.
+- Lint rule `L019`, a warning: a direct egress entry with method and path `rules`, or a wildcard
+  host. mediatore's egress gateway admits an exact `host:port` and sees no path, so it does not
+  serve such an entry (mediatore ADR-0030); the warning says so before the policy is merged.
+  ADR-0013 amended.
 
 ### Changed
 

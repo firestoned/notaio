@@ -5,6 +5,7 @@
 use chrono::{DateTime, Duration, TimeZone, Utc};
 use sandboxpolicy_api::*;
 use sandboxpolicy_core::ceilings::Ceilings;
+use sandboxpolicy_core::lint::Severity;
 use sandboxpolicy_core::{builtin, evaluate, registry, EvalInput, EvalOutput};
 use sandboxpolicy_types::*;
 
@@ -468,7 +469,7 @@ fn rules_table_matches_the_documented_codes() {
             "{code} differs between RULES and the documented table"
         );
     }
-    assert_eq!(sandboxpolicy_core::lint::RULES.len(), 18);
+    assert_eq!(sandboxpolicy_core::lint::RULES.len(), 19);
 }
 
 fn ready_reason(o: &EvalOutput) -> Option<&str> {
@@ -703,6 +704,56 @@ fn l007_checks_direct_egress_in_its_new_shape() {
             o.findings
         );
     }
+}
+
+#[test]
+fn l019_warns_of_direct_egress_the_gateway_cannot_enforce() {
+    // Lab is K4.1 R3: rules and wildcard hosts are allowed (no L007), but the gateway matches an
+    // exact host:port and sees no path (mediatore ADR-0030), so it serves neither: a warning.
+    let lab = profile("lab");
+    let cases = [
+        (
+            EgressRule {
+                endpoint: "pkg.example:443".into(),
+                rules: vec![rule("GET", "/simple/**")],
+            },
+            true,
+        ),
+        (
+            EgressRule {
+                endpoint: "*.example:443".into(),
+                rules: vec![],
+            },
+            true,
+        ),
+        (
+            EgressRule {
+                endpoint: "pkg.example:443".into(),
+                rules: vec![],
+            },
+            false,
+        ),
+    ];
+    for (e, warned) in cases {
+        let mut po = policy("lab", vec![]);
+        po.spec.egress.push(e.clone());
+        let o = run(&po, Some(&lab), &[], None);
+        let l019: Vec<_> = o.findings.iter().filter(|f| f.code == "L019").collect();
+        assert_eq!(!l019.is_empty(), warned, "{e:?}: {:?}", o.findings);
+        assert!(
+            l019.iter().all(|f| f.severity == Severity::Warning),
+            "L019 is a warning, never an error: {l019:?}"
+        );
+        assert!(!codes_of(&o).contains(&"L007"), "{e:?}: {:?}", o.findings);
+    }
+    // Where K4.1 allows only a name (standard, R1), a plain entry draws neither code.
+    let mut po = policy("standard", vec![]);
+    po.spec.egress.push(EgressRule {
+        endpoint: "pkg.example:443".into(),
+        rules: vec![],
+    });
+    let o = run(&po, Some(&profile("standard")), &[], None);
+    assert!(!codes_of(&o).contains(&"L019"), "{:?}", o.findings);
 }
 
 #[test]

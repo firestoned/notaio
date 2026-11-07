@@ -58,6 +58,11 @@ Things that are refused, and why:
 - **A lease or budget above the K7.3 and K4.3 ceilings** (`L009`). Leave them out for the ceiling.
 
 An empty `subjects.groups` is allowed but warned about (`L010`): nobody could claim a sandbox.
+A direct egress entry with method and path `rules`, or with a wildcard host, is warned about too
+(`L019`): the egress gateway admits an exact `host:port` and sees no path, so it does not serve
+such an entry. To limit what may be called at a host, reach it as an audience, whose `rules` the
+broker's proxy enforces. The gateway's two other refusals, an IP literal and an entry without a
+port, never get that far: they are errors (`L007`).
 
 ## 3. Write its ceiling
 
