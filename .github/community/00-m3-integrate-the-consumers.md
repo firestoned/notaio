@@ -2,8 +2,11 @@
 
 - **Status:** In progress. Phase 0 is complete, released as v0.3.0 (2026-10-31): D1 and D2 are
   decided and built. Phase 1 is complete in mediatore (its roadmap 09 and ADR-0026, done
-  2026-11-02), which also decided D3 for the shadow phase. Phase 2, enforcing the bundle, is
-  next; D4 to D6 are open.
+  2026-11-02), which also decided D3 for the shadow phase. Phase 4 is largely built (2026-11-05):
+  mediatore's egress gateway authorizes on the broker's per-claim answer (D5 decided, mediatore
+  ADR-0028), and the verified bundle's direct egress joins that answer behind a switch that
+  defaults to shadow (mediatore ADR-0030), which is also phase 2's first enforcing slice. D4 and
+  D6 are open.
 - **Milestone:** M3 in [`ROADMAPS.md`](../../ROADMAPS.md)
 - **Related:** ADR-0002 (the bundle contract), ADR-0003 (distribution), ADR-0004 (signing keys),
   ADR-0008 (the consumer's version floor); mediatore ADR-0008 (AgentSandbox), ADR-0024 (Landlock),
@@ -97,7 +100,7 @@ The ExposureCeiling gains endpoints per audience to match (an L014 extension).
   image release, which is already signed.
 
 **D5. Whether the gateway verifies the bundle** (mediatore; the ADR banlieue ADR-0109 points to,
-which needs writing). Recommended: no. The gateway authorizes on the broker's per-claim answer,
+which needs writing). *Decided 2026-11-02, as recommended, in mediatore ADR-0028:* no. The gateway authorizes on the broker's per-claim answer,
 and the broker is the verifier. A gateway that verified too would need the keys, the floor and
 the policy namespace, for no gain over mTLS to a broker that already did it.
 
@@ -158,6 +161,14 @@ Tracked in detail by mediatore's roadmap 09, built on its ADR-0026.
       A bundle that expired or was superseded since the claim refuses the mint.
 - [ ] The broker config's `egress` and `rules` are removed, or kept only as a ceiling the bundle
       must fit inside.
+- [ ] *First slice built 2026-11-05 (mediatore ADR-0030, roadmap 11):* the verified bundle's
+      direct `egress[]` joins a claim's gateway allowlist, behind a per-environment switch that
+      defaults to `shadow`; entries the gateway cannot enforce exactly (method and path `rules`,
+      wildcard hosts) are not served, which notaio's `L019` now warns about (IP literals and
+      missing ports are `L007` errors already). In `shadow` no direct egress is served at all: a
+      policy's `egress[]` has no effect at the gateway until the switch is `enforce`. The live
+      proof through the real gateway and the rollout (shadow, then enforce per environment) are
+      open.
 
 ### Phase 3: the guest verifies and renders
 
@@ -169,8 +180,12 @@ Tracked in detail by mediatore's roadmap 09, built on its ADR-0026.
 
 ### Phase 4: the gateway
 
-- [ ] D5 recorded in mediatore. The gateway's per-claim allowlist, answered by the broker, comes
-      from the verified bundle.
+- [x] D5 recorded in mediatore. Done 2026-11-02: mediatore ADR-0028, the egress gateway (Envoy,
+      SPIFFE identity) authorizing each connection on the broker's per-claim answer; built as
+      mediatore's roadmap 10.
+- [ ] The gateway's per-claim allowlist, answered by the broker, comes from the verified bundle.
+      Direct egress does, behind the switch (ADR-0030, phase 2 above); audience endpoints still
+      come from the broker's configuration until phase 2's mint and claim checks land.
 
 ## 5. Done when
 
