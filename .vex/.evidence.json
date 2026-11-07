@@ -111,6 +111,11 @@
       "globfree64"
     ]
   },
+  "CVE-2026-76844": {
+    "libraries_not_linked": [
+      "libz.so.1"
+    ]
+  },
   "CVE-2026-77117": {
     "symbols_not_imported": [
       "iconv",

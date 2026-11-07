@@ -2,6 +2,48 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-07 16:00] - v0.3.6 verified: the lost VEX attestation, and a new zlib CVE
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `.github/workflows/build.yaml`: `scan` needs `attest`. Both pushed an attestation to the same
+  fallback referrers index at once (GHCR has no referrers API; each reads and rewrites the index);
+  in v0.3.6 the provenance, pushed half a second after the VEX attestation, dropped it.
+- `.vex/CVE-2026-76844.json` and its evidence (libz.so.1 not linked): `make vex-evidence` holds for
+  21 statements; a Grype scan of v0.3.6's image with them reports no High.
+- CHANGELOG.md Unreleased.
+
+### Why
+Verifying v0.3.6: everything else held (checksums; Cosign on the manifests, both CLI binaries and
+the image; SLSA provenance; SBOM 194 crates with kube 5.0.0; the amd64 binary reports 0.3.6, stamped
+from the tag without a prep commit); the VEX attestation was missing and a new High was unaccounted.
+
+### Impact
+- [ ] Breaking change
+- [ ] Requires cluster rollout
+- [ ] Config change only
+- [ ] Documentation only
+
+## [2026-11-07 14:00] - After v0.3.5 and v0.3.6: the version and changelog they shipped without
+
+**Author:** Erick Bourgeois
+
+### Changed
+- Workspace version 0.3.6; `CHANGELOG.md`'s Unreleased split into `[0.3.6]` (L019, kube 5, the
+  docs status labels) and `[0.3.5]` (the CLI release assets), each noting that it was released
+  without a prep commit; the install guide's `V=` is 0.3.6.
+
+### Why
+Both releases were cut from `main` by tag alone (ADR-0009, the tag is the version); the artifacts
+are stamped right, the source on `main` catches up here.
+
+### Impact
+- [ ] Breaking change
+- [ ] Requires cluster rollout
+- [ ] Config change only
+- [x] Documentation only
+
 ## [2026-11-07 10:00] - L019, and roadmap 00 caught up with mediatore's gateway
 
 **Author:** Erick Bourgeois
