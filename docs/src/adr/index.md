@@ -20,6 +20,9 @@ code that implements it, and every implemented ADR ends with a full pass over th
 | [ADR-0012](0012-image-scanning-and-vex.md) | Image scanning and VEX |
 | [ADR-0013](0013-bundle-v3-routes-and-v1alpha2.md) | Bundle v3, routes per audience, and API v1alpha2 |
 | [ADR-0014](0014-consumer-distribution.md) | How consumers get the bundle crates |
+| [ADR-0015](0015-signed-policy-delivery.md) | Policies delivered as signed OCI artifacts |
+| [ADR-0016](0016-source-in-the-bundle.md) | The source of a policy, recorded in its bundle (proposed) |
+| [ADR-0017](0017-audience-classification.md) | Audience classification, so Lab policies reach lab audiences only (proposed) |
 
 ADRs live in [`docs/adr/`](https://github.com/firestoned/notaio/tree/main/docs/adr) in the
 repository and are never renumbered.

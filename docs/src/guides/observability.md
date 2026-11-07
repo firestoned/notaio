@@ -91,8 +91,27 @@ Lease's 15 seconds, so two minutes rules out a normal failover.
 expiry and the reconcile it schedules. A bundle normally refreshes at half its lifetime, so
 `NotaioBundleNearExpiry` firing means refreshes are failing.
 
-For a relaxation dashboard, table `notaio_relaxation_expires_in_seconds` by namespace and grant,
-next to `notaio_relaxation_age_seconds`.
+## Dashboard
+
+`deploy/monitoring/` holds a Grafana dashboard over these metrics, in four rows:
+
+| Row | Shows |
+| --- | --- |
+| Health | replicas up, leaders (exactly one), fail-open refusals, signing failures, relaxations past expiry, reconcile errors |
+| Policies | policies by `Ready` reason, objects failing lint by kind, bundles published over time |
+| Bundles | each policy's time to `notAfter`, and its bundle's age (a sawtooth at half the lifetime is healthy) |
+| Relaxations | knob grants by phase, and each active grant by time to expiry and by age |
+
+With kube-prometheus-stack, Grafana's dashboard sidecar loads it from a ConfigMap labelled
+`grafana_dashboard: "1"`. The ConfigMap is in `notaio-system`, so the sidecar must search there
+(`grafana.sidecar.dashboards.searchNamespace: ALL`, the chart's default):
+
+```sh
+kubectl apply -k deploy/monitoring
+```
+
+Without the sidecar, import `deploy/monitoring/notaio-dashboard.json` in Grafana and pick the
+Prometheus data source when asked.
 
 ## Events
 

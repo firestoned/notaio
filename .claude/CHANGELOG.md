@@ -2,6 +2,32 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-07 17:30] - ADR-0017 proposed (audience classification); a Grafana dashboard
+
+**Author:** Erick Bourgeois
+
+### Added
+- `docs/adr/0017-audience-classification.md` (Proposed): `dataScope` on each ExposureCeiling
+  audience, unclassified meaning `Internal`, and lint `L020` refusing a `LabOnly` policy that
+  exposes a non-lab audience. Calls out its one interpretation of the model (every audience of a
+  Lab policy, because `L003` assumes it) for review. Stub, nav entry, and index rows for ADR-0015
+  to ADR-0017 (the index lacked 0015 and 0016).
+- `deploy/monitoring/`: `notaio-dashboard.json` (18 panels, Health, Policies, Bundles, Relaxations)
+  and a kustomization that wraps it in ConfigMap `notaio-dashboard` with the sidecar label.
+  Every query ran against a live Prometheus; Grafana 12.2 imports it.
+- Observe notaio: a Dashboard section. ROADMAPS M4: knob dashboard done, audience classification
+  proposed.
+
+### Why
+M4: the threat model's "lab audiences only" for K5.2 and K5.3 was not enforceable, and the knob
+dashboard was a sentence in the guide.
+
+### Impact
+- [ ] Breaking change
+- [ ] Requires cluster rollout
+- [ ] Config change only
+- [x] Documentation only
+
 ## [2026-11-07 16:00] - v0.3.6 verified: the lost VEX attestation, and a new zlib CVE
 
 **Author:** Erick Bourgeois
