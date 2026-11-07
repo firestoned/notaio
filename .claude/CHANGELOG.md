@@ -2,6 +2,29 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-07 10:00] - L019, and roadmap 00 caught up with mediatore's gateway
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `crates/sandboxpolicy-core/src/lint.rs`: `L019`, a warning on a direct egress entry with method
+  and path rules or a wildcard host, which mediatore's gateway does not serve (its ADR-0030
+  decision 3). Test `l019_warns_of_direct_egress_the_gateway_cannot_enforce`; the rule count 19;
+  the lint reference regenerated.
+- Docs: ADR-0013 decision 5 amended; glossary, the policy concept, write-a-policy.
+- Roadmap 00: D5 decided (mediatore ADR-0028), phase 4 largely built, phase 2's first slice
+  (ADR-0030, behind a switch); `ROADMAPS.md` row 00. CHANGELOG.md Unreleased.
+
+### Why
+mediatore's gateway serves an exact host:port only; notaio accepted entries it would never serve,
+and an author would learn that only from mediatore's `P007`.
+
+### Impact
+- [ ] Breaking change
+- [ ] Requires cluster rollout
+- [ ] Config change only
+- [ ] Documentation only
+
 ## [2026-11-06 17:00] - ADR-0016 proposed: the source of a policy in its bundle
 
 **Author:** Erick Bourgeois

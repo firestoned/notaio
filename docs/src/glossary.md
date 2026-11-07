@@ -45,7 +45,7 @@ by `notaio lint` alike, with a stable code that is never renumbered. They come i
 | `L005` to `L010` | a policy against its knobs: audiences, write access and token lifetime, direct egress, tools, lease and budgets, subjects |
 | `L011` to `L013` | a grant: one step, a lifetime within its cap, every required approval |
 | `L014` to `L016` | the exposure ceiling: the policy within it, a ceiling present, Security's approval |
-| `L017`, `L018` | endpoints: well-formed and exact, reachable one way only |
+| `L017` to `L019` | endpoints: well-formed and exact, reachable one way only; direct egress the gateway cannot enforce (a warning) |
 
 The full, current list: [Lint Rules](reference/lint-rules.md).
 

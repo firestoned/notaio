@@ -11,7 +11,7 @@ request that changes a roadmap's state.
 
 | # | Roadmap | Status | Detail |
 | --- | --- | --- | --- |
-| 00 | M3: integrate the consumers | In progress: phase 0 done (v0.3.0); phase 1 done in mediatore (its roadmap 09, 2026-11-02); phase 2, enforcing, next | [00-m3-integrate-the-consumers.md](https://github.com/firestoned/notaio/blob/main/.github/community/00-m3-integrate-the-consumers.md) |
+| 00 | M3: integrate the consumers | In progress: phases 0 and 1 done; phase 4 largely built (mediatore's gateway, D5 decided); phase 2 has its first slice behind a switch (2026-11-05) | [00-m3-integrate-the-consumers.md](https://github.com/firestoned/notaio/blob/main/.github/community/00-m3-integrate-the-consumers.md) |
 | 01 | Run notaio for real | Done: phases A to D on the test cluster (2026-10-31) | [01-run-notaio-for-real.md](https://github.com/firestoned/notaio/blob/main/.github/community/01-run-notaio-for-real.md) |
 | 02 | OpenBao unseals itself | Done: the static seal, proven on kind and on the test cluster (2026-11-01) | [02-unseal-the-signer.md](https://github.com/firestoned/notaio/blob/main/.github/community/02-unseal-the-signer.md) |
 | 03 | Policies delivered as signed OCI artifacts | Done: the test cluster on two signed artifacts, every refusal shown; ADR-0015 and a guide (2026-11-02) | [03-signed-policy-artifacts.md](https://github.com/firestoned/notaio/blob/main/.github/community/03-signed-policy-artifacts.md) |

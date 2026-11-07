@@ -37,6 +37,16 @@ renderings of one policy, which is what M3 removes.
    nftables disagreeing about how it is reached.
 5. **Two lint rules.** `L017`: an audience endpoint or rule is malformed. `L018`: an endpoint is
    reachable two ways. `L007` checks direct egress in its new shape.
+
+   *Amended 2026-11-07:* a third, `L019`, a warning: a direct egress entry the gateway cannot
+   enforce, because it carries method and path `rules` or a wildcard host. mediatore's egress
+   gateway admits an exact `host:port` and sees no path (mediatore ADR-0030, decision 3), so it
+   serves neither, failing closed; without the warning a policy author learns that only from
+   mediatore's `P007` finding. A warning, not an error: the policy is valid, and an entry may be
+   enforceable later (an interception ADR in mediatore), at which point `L019` narrows. The
+   gateway's two other refusals, an IP literal and an entry without a port, are already `L007`
+   errors at every K4.1 step, so together `L007` and `L019` cover every shape ADR-0030 does not
+   serve.
 6. **The exposure and its ceiling follow.** `status.maxExposure.audiences[]` and the
    ExposureCeiling's `audiences[]` gain `endpoints`; an audience endpoint the ceiling does not list
    for that audience is an `L014` finding, so widening where a token may be used needs Security's

@@ -22,6 +22,7 @@
 //! | L016 | The ceiling lacks an approval from the `Security` role |
 //! | L017 | An audience endpoint or rule is malformed |
 //! | L018 | An endpoint is reachable two ways: in two audiences, or in an audience and direct egress |
+//! | L019 | A direct egress entry the gateway cannot enforce: method and path rules, or a wildcard host |
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -82,6 +83,10 @@ pub const RULES: &[(&str, &str)] = &[
     (
         "L018",
         "An endpoint is reachable two ways: in two audiences, or in an audience and direct egress",
+    ),
+    (
+        "L019",
+        "A direct egress entry the gateway cannot enforce: method and path rules, or a wildcard host",
     ),
 ];
 
@@ -345,6 +350,14 @@ pub fn lint_policy(
                         "wildcard hosts need K4.1 at R3",
                     ));
                 }
+                // The gateway admits an exact host:port only (mediatore ADR-0030 decision 3).
+                if host.contains('*') {
+                    out.push(Finding::warn(
+                        "L019",
+                        &path,
+                        "the gateway matches an exact host:port, so a wildcard host is not served: name each host (an IP literal or a missing port is refused outright, L007)",
+                    ));
+                }
             }
         }
         if !e.rules.is_empty() && k41 < Step::R2 {
@@ -352,6 +365,15 @@ pub fn lint_policy(
                 "L007",
                 &path,
                 "method and path rules need K4.1 at R2 or above",
+            ));
+        }
+        // The gateway sees an authority, not a path: it cannot hold an entry to some calls, so it
+        // does not serve one that asks (mediatore ADR-0030 decision 3). Valid policy, not reached.
+        if !e.rules.is_empty() {
+            out.push(Finding::warn(
+                "L019",
+                &path,
+                "the gateway does not enforce method and path rules on direct egress, so this entry is not served; reach it as an audience, whose rules the broker's proxy enforces (an IP literal or a missing port is refused outright, L007)",
             ));
         }
         for (j, r) in e.rules.iter().enumerate() {
