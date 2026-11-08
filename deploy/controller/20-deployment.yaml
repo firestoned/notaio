@@ -72,8 +72,10 @@ spec:
               value: info
             - name: NOTAIO_LOG_JSON
               value: "1"
+            # 300 to 86400; anything else stops the controller (ADR-0018). Shorter lands an invalid
+            # policy sooner; longer gives the signer more time to be down before bundles expire.
             - name: NOTAIO_BUNDLE_LIFETIME_SECONDS
-              value: "3600"
+              value: "900"
             # The signer: a non-exportable OpenBao transit key (ADR-0004). notaio logs in with its
             # ServiceAccount (the projected token below) and may only request signatures. Point the
             # address at your OpenBao, and put the CA that signed its certificate in ConfigMap

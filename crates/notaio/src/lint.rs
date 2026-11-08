@@ -32,10 +32,6 @@ use serde_json::{json, Value};
 /// The API group whose objects are checked. Everything else in the inputs is ignored.
 const GROUP_PREFIX: &str = "sandbox.firestoned.io/";
 
-/// Bundle lifetime used for the compile. It affects only `notAfter`, which lint does not report;
-/// it matches the controller's default (`NOTAIO_BUNDLE_LIFETIME_SECONDS`).
-const BUNDLE_LIFETIME_SECONDS: i64 = 3600;
-
 /// The input codes, as `(code, meaning)`, in code order (the table above, as data).
 pub const INPUT_RULES: &[(&str, &str)] = &[
     (
@@ -408,7 +404,8 @@ fn lint_policy(
         prev_version: None,
         prev_digest: None,
         prev_conditions: &[],
-        bundle_lifetime: Duration::seconds(BUNDLE_LIFETIME_SECONDS),
+        // It affects only `notAfter`, which lint does not report: the controller's default.
+        bundle_lifetime: Duration::seconds(crate::cli::DEFAULT_BUNDLE_LIFETIME_SECONDS),
         ceilings,
     });
 

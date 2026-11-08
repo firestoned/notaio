@@ -227,6 +227,13 @@ pub fn render(counters: &Counters, snap: &Snapshot<'_>) -> String {
             .get_or_create(&key)
             .set(seconds(not_after - now));
     }
+    let lifetime: Gauge = Gauge::default();
+    lifetime.set(snap.bundle_lifetime.num_seconds());
+    registry.register(
+        "notaio_bundle_lifetime_seconds",
+        "The configured bundle lifetime: alert on time left as a fraction of it (ADR-0018)",
+        lifetime,
+    );
     registry.register(
         "notaio_bundle_age_seconds",
         "Age of each policy's published bundle",

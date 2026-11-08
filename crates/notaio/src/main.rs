@@ -24,7 +24,7 @@ use kube::runtime::reflector::{self, ObjectRef, Store};
 use kube::runtime::{watcher, WatchStreamExt};
 use kube::{Api, Client};
 use notaio::cli::{
-    Cli, Command, Format, LintArgs, DEFAULT_BUNDLE_LIFETIME_SECONDS, DEFAULT_NAMESPACE,
+    bundle_lifetime_seconds, Cli, Command, Format, LintArgs, DEFAULT_NAMESPACE,
     ENV_BUNDLE_LIFETIME, ENV_HTTP_ADDR, ENV_LOG_JSON, ENV_NAMESPACE, ENV_POD_NAME,
 };
 use notaio::http::Observed;
@@ -147,10 +147,8 @@ async fn run_controller() -> anyhow::Result<()> {
         tracing_subscriber::fmt().with_env_filter(filter).init();
     }
 
-    let lifetime_secs: i64 = std::env::var(ENV_BUNDLE_LIFETIME)
-        .ok()
-        .and_then(|v| v.parse().ok())
-        .unwrap_or(DEFAULT_BUNDLE_LIFETIME_SECONDS);
+    let lifetime_secs =
+        bundle_lifetime_seconds(std::env::var(ENV_BUNDLE_LIFETIME).ok().as_deref())?;
     let signer = signer::from_env()?;
     match &signer {
         Some(s) => tracing::info!(signer = %s.describe(), "signing bundles"),

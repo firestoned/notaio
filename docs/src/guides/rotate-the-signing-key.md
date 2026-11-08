@@ -45,7 +45,7 @@ Through GitOps, set it in your patch of `deploy/controller/20-deployment.yaml` i
 
 4. **Watch the bundles move.** notaio does not re-sign on a pin change; each bundle moves the next
    time it is signed, when its policy changes or at its half-life refresh. With the default
-   one-hour lifetime, every bundle is signed by the new version within about 30 minutes. A
+   15-minute lifetime, every bundle is signed by the new version within about 7.5 minutes. A
    bundle's key id is in its envelope:
 
     ```sh

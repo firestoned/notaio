@@ -10,6 +10,22 @@ a release, the maintainer renames Unreleased to the version and date.
 
 ## Unreleased
 
+### Changed
+
+- The bundle lifetime defaults to 15 minutes, not an hour (ADR-0018): a policy that turns invalid
+  stops being honoured within 15 minutes, and OpenBao may be down 7.5 to 15 minutes before bundles
+  expire. The release manifest sets `NOTAIO_BUNDLE_LIFETIME_SECONDS=900`; keep the hour by setting
+  3600 in your copy. A tightened policy is unaffected: it is a new version at once.
+- `NOTAIO_BUNDLE_LIFETIME_SECONDS` must be a whole number from 300 to 86400. Anything else stops the
+  controller with an error naming it; before, a value that did not parse silently became an hour,
+  and zero or a negative value was used as given.
+- Observe notaio: `NotaioBundleNearExpiry` fires under a quarter of the lifetime left, instead of
+  under 600 seconds, which a 15-minute lifetime would keep firing. Update your copy of the rule.
+
+### Added
+
+- `notaio_bundle_lifetime_seconds`, the configured lifetime, for alerts relative to it.
+
 ## [0.4.0] - 2026-11-07
 
 notaio can tell lab audiences from internal ones, and keeps a Lab policy to lab audiences

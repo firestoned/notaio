@@ -482,7 +482,7 @@ pub fn environment_variables() -> Vec<(&'static str, String, &'static str)> {
         (
             cli::ENV_BUNDLE_LIFETIME,
             cli::DEFAULT_BUNDLE_LIFETIME_SECONDS.to_string(),
-            "How long a bundle is valid, in seconds. Bounds how long a tightening takes to land.",
+            "How long a bundle is valid, in seconds, 300 to 86400 (anything else stops the controller). Bounds how long a policy that turns invalid stays honoured, and how long the signer may be down before bundles expire (ADR-0018).",
         ),
         (
             cli::ENV_HTTP_ADDR,

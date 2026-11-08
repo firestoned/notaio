@@ -2,6 +2,27 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-07 22:30] - ADR-0018 implemented: a 15-minute, bounded bundle lifetime
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `crates/notaio/src/cli.rs`: `bundle_lifetime_seconds`, default 900, bounds 300 to 86400, an error
+  naming the variable otherwise; `main.rs` uses it with `?` (exit 1). Tests first in
+  `cli_tests.rs` (default, in bounds, `15m`, empty, 0, negative, 299, 86401, `1e3`).
+- `metrics.rs`: `notaio_bundle_lifetime_seconds` (test in `metrics_tests.rs`; the reference test
+  now counts 14 families). `lint.rs` uses the controller's default instead of its own 3600.
+- `deploy/controller/20-deployment.yaml`: 900, with a comment on the trade.
+- Docs: glossary, bundle concepts, key rotation, observability (alert relative to the lifetime),
+  architecture; ADR-0018 Accepted, ADR-0002 open decision 3 marked resolved; threat model pass
+  stamped against ADR-0018 (the T5.4 row says the bound); ROADMAPS M4.
+
+### Impact
+- [x] Breaking change (the default lifetime, and a refused out-of-bounds value)
+- [x] Requires cluster rollout
+- [ ] Config change only
+- [ ] Documentation only
+
 ## [2026-11-07 21:30] - ADR-0018 proposed: tightening latency
 
 **Author:** Erick Bourgeois

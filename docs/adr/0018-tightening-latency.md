@@ -1,13 +1,16 @@
 # ADR-0018: Tightening latency: a shorter, bounded bundle lifetime
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-07
+- **Proposed:** 2026-11-07
 - **Deciders:** Erick Bourgeois
 - **Related:** Resolves ADR-0002 open decision 3; ADR-0003 (distribution: mediatore watches the
   bundle ConfigMaps), ADR-0008 (the consumer's version floor), ADR-0010 (metrics and alerts),
   ADR-0004 (the signer); `ROADMAPS.md` M4; threat model T5.4
 
-Proposed: the design is here for review before any code. Nothing below is built.
+Implemented (2026-11-07): `bundle_lifetime_seconds` and its bounds in `crates/notaio/src/cli.rs`
+(tests in `cli_tests.rs`), the 900-second value in `deploy/controller/20-deployment.yaml`,
+`notaio_bundle_lifetime_seconds`, and the observability guide's alert.
 
 ## Context
 
@@ -68,8 +71,9 @@ Two more facts:
 - A signer outage now has 7.5 to 15 minutes before sandboxes lose their policy, and the alerts have
   less time to reach someone. `NotaioSigningFailing` (10 minutes) stays inside that budget; sites
   that cannot react that fast set a longer lifetime, which the bounds allow.
-- **An upgrade changes behaviour without a manifest change.** Sites that relied on the hour should
-  set `NOTAIO_BUNDLE_LIFETIME_SECONDS=3600` in the Deployment; the release notes say so.
+- **An upgrade changes the lifetime.** The release manifest sets 900; a site that wants the hour
+  sets `NOTAIO_BUNDLE_LIFETIME_SECONDS=3600` in its copy. A site that set a value the bounds now
+  refuse finds the controller stopped with an error naming it. The release notes say both.
 - **CALM step deferred:** notaio has no CALM model yet; `docs/architecture.md`'s known gaps say
   the new bound.
 
