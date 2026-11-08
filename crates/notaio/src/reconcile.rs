@@ -14,6 +14,7 @@ use kube::{Client, Resource, ResourceExt};
 use notaio::events::{self, Note};
 use notaio::guard::{self, Evaluated};
 use notaio::metrics::Counters;
+use notaio::refresh;
 use sandboxpolicy_api::{
     ExposureCeiling, GrantPhase, KnobGrant, KnobGrantStatus, SandboxPolicy, SandboxPolicyStatus,
     SandboxProfile, SandboxProfileStatus,
@@ -242,13 +243,19 @@ pub async fn reconcile_policy(policy: Arc<SandboxPolicy>, ctx: Arc<Ctx>) -> Resu
         }
     }
 
-    let stale = prev
-        .bundle_not_after
-        .is_none_or(|t| t <= now + ctx.bundle_lifetime / 2);
+    let stale = refresh::is_stale(prev.bundle_not_after, ctx.bundle_lifetime, now);
     let unchanged = same_modulo_expiry(&prev, &status)
         && !(stale && status.bundle_not_after != prev.bundle_not_after);
     if unchanged {
-        return Ok(Action::requeue(std_dur(out.requeue_after)));
+        // Wake up when the bundle turns stale, not only after the evaluator's requeue, or the
+        // refresh can slip to almost `notAfter` (ADR-0018, decision 1).
+        let wait = refresh::next_check(
+            out.requeue_after,
+            prev.bundle_not_after,
+            ctx.bundle_lifetime,
+            now,
+        );
+        return Ok(Action::requeue(std_dur(wait)));
     }
 
     if let (Some(bundle), Some(signer)) = (&out.bundle, &ctx.signer) {

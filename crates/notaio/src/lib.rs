@@ -14,4 +14,5 @@ pub mod lint;
 pub mod metrics;
 pub mod openbao;
 pub mod reference;
+pub mod refresh;
 pub mod watch;

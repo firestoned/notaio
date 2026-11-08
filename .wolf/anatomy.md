@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-11-08T02:08:01.333Z
-> Files: 71 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-11-08T17:30:50.961Z
+> Files: 73 tracked | Anatomy hits: 0 | Misses: 0
 
 > Project structure index. Auto-maintained by OpenWolf hooks and daemon.
 > Run `openwolf scan` to generate, or wait for the first Claude Code session.
@@ -34,6 +34,11 @@
 ## .github/workflows/
 
 - `ci.yaml` — CI: ci (~175 tok)
+
+## crates/notaio/src/
+
+- `refresh_tests.rs` — SPDX-License-Identifier: Apache-2.0 (~866 tok)
+- `refresh.rs` — When a published bundle is re-signed. A bundle is refreshed once half its lifetime is left (~506 tok)
 
 ## crates/notaio/tests/
 

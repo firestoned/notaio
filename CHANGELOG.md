@@ -10,6 +10,15 @@ a release, the maintainer renames Unreleased to the version and date.
 
 ## Unreleased
 
+### Fixed
+
+- A bundle could be re-signed long after half its lifetime, as late as a moment before it expired:
+  an unchanged policy was checked again only half a lifetime after its last reconcile, so a
+  reconcile just before the bundle was due (after a restart, a leader change or any watch event)
+  pushed the refresh to almost `notAfter`, and `NotaioBundleNearExpiry` fired. The controller now
+  also wakes up when the bundle falls due, so it is re-signed with half its lifetime left, and a
+  signer fault at refresh has the whole other half to clear.
+
 ## [0.5.0] - 2026-11-08
 
 Bundles now last 15 minutes by default instead of an hour, so a policy that turns invalid stops
