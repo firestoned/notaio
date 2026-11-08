@@ -243,6 +243,9 @@ status.
 
 - **Idempotent.** It writes only when something other than the refresh timestamp changed, so its own
   status writes do not cause a reconcile loop.
+- **Refreshes on time.** An unchanged policy is checked again after half the lifetime, or at the
+  moment its bundle has half its lifetime left, whichever is first (`refresh.rs`), so a reconcile
+  that happens just before that moment cannot push the refresh to `notAfter`.
 - **Fails closed.** No profile, an invalid profile or an invalid policy means no new bundle. With no
   signing key configured it validates and reports `Ready=False, NoSigner` and publishes nothing.
   Unsigned bundles are never published.

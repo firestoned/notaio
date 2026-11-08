@@ -2,6 +2,31 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-08 17:40] - Fix: the half-lifetime refresh could slip to notAfter
+
+**Author:** Erick Bourgeois
+
+### Fixed
+- `crates/notaio/src/refresh.rs` (new, in the library so it is tested): `is_stale` (moved out of
+  `reconcile.rs`) and `next_check`, the wait before reconciling an unchanged policy: the
+  evaluator's requeue or the moment the bundle turns stale plus one second, whichever is first,
+  never under one second. `reconcile.rs` uses both.
+- Found installing v0.5.0 on the test cluster: reconciles ran every 450 s from the restart, one at
+  655 s left found the hour bundle fresh, the next re-signed it with 205 s left, and
+  `NotaioBundleNearExpiry` fired. Present in every earlier release (with an hour, a refresh could
+  come seconds before expiry just the same).
+- Tests first in `refresh_tests.rs`: the incident, every phase from 451 s to four lifetimes left,
+  the evaluator's earlier grant requeue, no bundle, an already stale bundle. Against the old
+  behaviour three of nine fail.
+- Docs: CHANGELOG Unreleased (Fixed), ADR-0018 note, architecture ("Refreshes on time"). No
+  threat model change: the T5.4 row already says what the controller now does.
+
+### Impact
+- [ ] Breaking change
+- [x] Requires cluster rollout
+- [ ] Config change only
+- [ ] Documentation only
+
 ## [2026-11-07 22:30] - ADR-0018 implemented: a 15-minute, bounded bundle lifetime
 
 **Author:** Erick Bourgeois

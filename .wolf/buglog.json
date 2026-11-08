@@ -26,6 +26,20 @@
         "labels",
         "monitoring"
       ]
+    },
+    {
+      "id": "bug-003",
+      "date": "2026-11-08",
+      "error_message": "NotaioBundleNearExpiry fired: bundle re-signed with 205 s of its lifetime left instead of half",
+      "file": "crates/notaio/src/reconcile.rs",
+      "root_cause": "an unchanged reconcile requeued a fixed half-lifetime, regardless of when the bundle turns stale; a reconcile just before that point pushed the refresh to almost notAfter",
+      "fix": "refresh::next_check: requeue at the earlier of the evaluator's requeue and the stale moment (+1 s)",
+      "tags": [
+        "refresh",
+        "requeue",
+        "bundle",
+        "lifetime"
+      ]
     }
   ]
 }

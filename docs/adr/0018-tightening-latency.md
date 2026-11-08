@@ -12,6 +12,11 @@ Implemented (2026-11-07): `bundle_lifetime_seconds` and its bounds in `crates/no
 (tests in `cli_tests.rs`), the 900-second value in `deploy/controller/20-deployment.yaml`,
 `notaio_bundle_lifetime_seconds`, and the observability guide's alert.
 
+Fixed (2026-11-08): "refreshed at half" did not hold. An unchanged policy was checked again only
+half a lifetime after its last reconcile, so the refresh could slip to almost `notAfter`; the
+first install on the test cluster re-signed a bundle with 205 seconds left and the alert above
+fired. `crates/notaio/src/refresh.rs` also wakes the reconcile when the bundle falls due.
+
 ## Context
 
 ADR-0002 left open how long a tightening takes to land, with two options: a shorter bundle
