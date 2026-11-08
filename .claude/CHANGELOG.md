@@ -2,6 +2,25 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-07 20:30] - Release prep for v0.4.0
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `Cargo.toml` and `Cargo.lock` at 0.4.0 (`make set-version`, `cargo update --workspace`; `--locked`
+  holds).
+- CHANGELOG.md: `[0.4.0]`. The dashboard, L020 and honorLabels entries had been inserted under
+  `[0.3.6]` (the first `### Added` after Unreleased was 0.3.6's); moved to 0.4.0.
+
+### Why
+L020 can stop an unclassified Lab policy publishing, so a minor version.
+
+### Impact
+- [ ] Breaking change
+- [ ] Requires cluster rollout
+- [ ] Config change only
+- [x] Documentation only
+
 ## [2026-11-07 19:00] - ADR-0017 implemented: audience classification and L020; honorLabels
 
 **Author:** Erick Bourgeois

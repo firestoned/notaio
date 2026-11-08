@@ -21,6 +21,8 @@ budget_tokens: 2000
 
 <!-- Mistakes made and corrected. Each entry prevents the same mistake recurring. -->
 <!-- Format: [YYYY-MM-DD] Description of what went wrong and what to do instead. -->
+- [2026-11-07] CHANGELOG.md: searching for "### Added" after "## Unreleased" found the released [0.3.6] section's heading, so entries landed in a shipped release. Bound the search to the Unreleased section (up to the next "## ["), and create the heading there when it is missing.
+- [2026-11-07] ROADMAPS.md is pulled into the docs site: link docs and ADRs from it with absolute URLs (GitHub or the Pages site), never repo-relative paths, or `make docs --strict` fails.
 
 ## Decision Log
 
