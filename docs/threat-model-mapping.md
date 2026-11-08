@@ -18,7 +18,7 @@ to the AgentSandbox Threat Model and Security Roadmap. When that document change
 | Lab-only knobs (K6.3 R1, K8.2 R1) | lint L004 |
 | "Wildcard audiences are never allowed" (K5.3) | lint L005 |
 | Read-only token scope by default (K5.2), token TTL ceilings (K5.1) | lint L006 |
-| Lab audiences only (K5.2, K5.3 for Lab) | each ExposureCeiling audience carries a `dataScope`, set by Security, unset meaning `Internal`; a policy on a `LabOnly` profile exposing an audience not classified `LabOnly` publishes nothing (lint L020 in `lint_exposure`, in `notaio lint` and the controller; ADR-0017) |
+| Lab audiences only (K5.2, K5.3 for Lab) | each ExposureCeiling audience carries a `dataScope`, set by Security, unset meaning `Internal`; a policy on a `LabOnly` profile exposing an audience not classified `LabOnly` publishes nothing (lint L020 in `lint_exposure`, in `notaio lint` and the controller; ADR-0017). Two ceilings that classify one audience differently are a warning in `notaio lint` (L021) |
 | Egress default deny, no direct-IP egress (K4.1, T4.1) | lint L007 on direct egress; every audience endpoint is an exact name, never a wildcard or IP literal (L017), reached through the broker's proxy, so K4.1 R0 still means all calls are brokered; an endpoint is reachable one way only (L018). ADR-0013. |
 | Tool and MCP pinning (K1.3, T1.2) | lint L008 |
 | Lease and egress volume ceilings (K7.3, K4.3) | lint L009, `ceilings.rs` |

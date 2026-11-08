@@ -24,11 +24,14 @@
 //! | L018 | An endpoint is reachable two ways: in two audiences, or in an audience and direct egress |
 //! | L019 | A direct egress entry the gateway cannot enforce: method and path rules, or a wildcard host |
 //! | L020 | A policy on a `LabOnly` profile exposes an audience its ceiling does not classify `LabOnly` |
+//! | L021 | Two ceilings classify the same audience differently (a warning, from `notaio lint`) |
 
 use std::collections::{BTreeMap, BTreeSet};
 
 use chrono::{DateTime, Duration, Utc};
-use sandboxpolicy_api::{ExposureCeilingSpec, KnobGrantSpec, MaxExposure, SandboxPolicySpec};
+use sandboxpolicy_api::{
+    CeilingAudience, ExposureCeilingSpec, KnobGrantSpec, MaxExposure, SandboxPolicySpec,
+};
 use sandboxpolicy_types::{Access, DataScope, EndpointRule, KnobId, Role, Step};
 
 use crate::ceilings::Ceilings;
@@ -92,6 +95,10 @@ pub const RULES: &[(&str, &str)] = &[
     (
         "L020",
         "A policy on a LabOnly profile exposes an audience its ceiling does not classify LabOnly",
+    ),
+    (
+        "L021",
+        "Two ceilings classify the same audience differently",
     ),
 ];
 
@@ -701,67 +708,61 @@ pub fn lint_exposure(
     out
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::builtin;
-
-    fn knobs(pairs: &[(&str, Step)]) -> BTreeMap<KnobId, Step> {
-        pairs.iter().map(|(k, s)| (KnobId::new(k), *s)).collect()
-    }
-
-    fn codes(f: &[Finding]) -> Vec<&'static str> {
-        f.iter().map(|f| f.code).collect()
-    }
-
-    #[test]
-    fn builtin_profiles_are_clean() {
-        for (name, p) in builtin::all() {
-            let f = lint_knobs(p.data_scope, &p.knobs);
-            assert!(!has_errors(&f), "{name}: {f:?}");
-        }
-    }
-
-    #[test]
-    fn triangle_fires_for_internal_profile() {
-        let k = knobs(&[("K2.2", Step::R1), ("K1.1", Step::R2), ("K4.1", Step::R2)]);
-        assert!(codes(&lint_knobs(DataScope::Internal, &k)).contains(&"L003"));
-    }
-
-    #[test]
-    fn any_two_legs_are_allowed() {
-        let sens_out = knobs(&[("K2.2", Step::R1), ("K4.1", Step::R2)]);
-        let sens_untrusted = knobs(&[("K2.2", Step::R1), ("K1.1", Step::R2)]);
-        let untrusted_out = knobs(&[("K1.1", Step::R2), ("K4.1", Step::R2)]);
-        for k in [sens_out, sens_untrusted, untrusted_out] {
-            assert!(!codes(&lint_knobs(DataScope::Internal, &k)).contains(&"L003"));
-        }
-    }
-
-    #[test]
-    fn write_scope_counts_as_an_outbound_channel() {
-        let k = knobs(&[("K5.3", Step::R1), ("K1.1", Step::R2), ("K5.2", Step::R1)]);
-        assert!(codes(&lint_knobs(DataScope::Internal, &k)).contains(&"L003"));
-    }
-
-    #[test]
-    fn lab_only_scope_clears_the_sensitive_leg() {
-        let k = knobs(&[("K2.2", Step::R2), ("K1.1", Step::R3), ("K4.1", Step::R3)]);
-        assert!(!codes(&lint_knobs(DataScope::LabOnly, &k)).contains(&"L003"));
-        assert!(codes(&lint_knobs(DataScope::Internal, &k)).contains(&"L003"));
-    }
-
-    #[test]
-    fn lab_only_knobs_are_refused_elsewhere() {
-        let k = knobs(&[("K6.3", Step::R1)]);
-        assert!(codes(&lint_knobs(DataScope::Internal, &k)).contains(&"L004"));
-        assert!(!has_errors(&lint_knobs(DataScope::LabOnly, &k)));
-    }
-
-    #[test]
-    fn unknown_and_over_max_knobs() {
-        let k = knobs(&[("K9.9", Step::R1), ("K4.4", Step::R3)]);
-        let c = codes(&lint_knobs(DataScope::Internal, &k));
-        assert!(c.contains(&"L001") && c.contains(&"L002"));
-    }
+/// The data scope a ceiling gives an audience: unset is `Internal` (ADR-0017, decision 2).
+fn effective_scope(a: &CeilingAudience) -> DataScope {
+    a.data_scope.unwrap_or(DataScope::Internal)
 }
+
+/// Audiences that two of `ceilings` classify differently, as an `L021` warning on each ceiling
+/// that takes part, paired with that ceiling's index in `ceilings`. Each entry is `(label, spec)`;
+/// the label names the ceiling in the other findings' messages.
+///
+/// Every ceiling is Security's signature, so notaio does not pick a winner: each policy is checked
+/// against its own ceiling (`L020`). But an audience that is lab in one place and internal in
+/// another is a mistake in one of them, and only a tool that sees several ceilings at once can
+/// say so (ADR-0017, Consequences). The controller reconciles one policy at a time and never
+/// reports this; `notaio lint` does, across the files it is given.
+pub fn lint_classifications(ceilings: &[(&str, &ExposureCeilingSpec)]) -> Vec<(usize, Finding)> {
+    // Audience name to every (ceiling, audience index, scope) that names it.
+    let mut by_name: BTreeMap<&str, Vec<(usize, usize, DataScope)>> = BTreeMap::new();
+    for (ci, (_, spec)) in ceilings.iter().enumerate() {
+        for (ai, a) in spec.audiences.iter().enumerate() {
+            by_name
+                .entry(a.name.as_str())
+                .or_default()
+                .push((ci, ai, effective_scope(a)));
+        }
+    }
+    let mut out = Vec::new();
+    for (name, uses) in by_name {
+        let Some(&(_, _, first)) = uses.first() else {
+            continue;
+        };
+        if uses.iter().all(|(_, _, s)| *s == first) {
+            continue;
+        }
+        for &(ci, ai, scope) in &uses {
+            let others: Vec<String> = uses
+                .iter()
+                .filter(|(oc, _, os)| *oc != ci && *os != scope)
+                .map(|(oc, _, os)| format!("{os:?} in {}", ceilings[*oc].0))
+                .collect();
+            out.push((
+                ci,
+                Finding::warn(
+                    "L021",
+                    format!("spec.audiences[{ai}].dataScope"),
+                    format!(
+                        "audience {name:?} is {scope:?} here but {}",
+                        others.join(", ")
+                    ),
+                ),
+            ));
+        }
+    }
+    out
+}
+
+#[cfg(test)]
+#[path = "lint_tests.rs"]
+mod lint_tests;

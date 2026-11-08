@@ -3,6 +3,8 @@
 - **Status:** Proposed
 - **Date:** 2026-11-08
 - **Deciders:** Erick Bourgeois
+- **Amended:** 2026-11-08 (decisions 3 and 4: lint code `L022`, `resources` optional in the
+  schema; one v4 with ADR-0016)
 - **Related:** ADR-0002 (the bundle contract; this is a `SCHEMA` change), ADR-0013 (the last schema
   change, and how consumers took it), ADR-0008 (the consumer's floor); threat model K2.4, section
   10 (profiles); `ROADMAPS.md` M4
@@ -49,11 +51,11 @@ Three things are already settled by how the other numeric knobs work:
 2. **A policy may ask for less.** `SandboxPolicy.spec.resources`, optional, with `vcpus`,
    `memoryMiB` and `diskGiB`. Omitted, it is the size for the policy's effective K2.4 step, as an
    omitted lease is K7.3's. Integers only (ADR-0005: the canonical form has no floats).
-3. **A new lint rule, `L021`, an error:** a requested value is zero or above the size for the
+3. **A new lint rule, `L022`, an error:** a requested value is zero or above the size for the
    effective K2.4 step. A separate code from `L009`, so a finding names the knob it comes from. A
    `KnobGrant` raising K2.4 raises the ceiling it is checked against, as for every knob.
-4. **The bundle carries the size: schema v4.** `BundleContent` gains `resources` (always present,
-   defaulted as in 2). That is a change to the canonical form, so `SCHEMA` becomes
+4. **The bundle carries the size: schema v4.** `BundleContent` gains `resources`, optional in the
+   schema (Amendment) and always set by notaio once this is built, defaulted as in 2. That is a change to the canonical form, so `SCHEMA` becomes
    `sandbox.firestoned.io/bundle/v4`, with the payload type to match, and ADR-0002 is amended.
 5. **Consumers first.** A v3 consumer refuses a v4 bundle (ADR-0013, decision 7), so for one
    release `sandboxpolicy-bundle` verifies both v3 and v4 while notaio still publishes v3; consumers
@@ -79,6 +81,25 @@ Three things are already settled by how the other numeric knobs work:
   the image, would need the model to say how K2.4 splits them.
 - **CALM step deferred:** notaio has no CALM model yet; `docs/architecture.md` drops K2.4 from its
   known gaps when this is built.
+
+## Amendment (2026-11-08): one schema change with ADR-0016
+
+ADR-0016 (the source in the bundle) and this ADR each change the bundle to `bundle/v4`, each with a
+consumers-first rollout of two notaio releases. Done separately, that is two migrations, and the
+second is `v5`. They become one:
+
+- **v4 carries both fields, both optional:** `content.resources` (this ADR, decision 4) and
+  `content.sources` (ADR-0016, decision 3). Absent means "not stated": no K2.4 statement, or no
+  source claim. A consumer treats an absent `resources` as K2.4 unchecked, as
+  today.
+- **The schema half is built once, by whichever ADR is built first,** with both fields in the
+  types and the conformance vectors: `sandboxpolicy-bundle` verifies v3 and v4, consumers take
+  it, then notaio emits v4. The other ADR then only starts filling its field: no schema change,
+  no second migration.
+- **The field shapes are fixed now,** so the schema half can be built ahead of either ADR's own
+  trigger: `resources` is `{ vcpus, memoryMiB, diskGiB }` (unsigned integers), `sources` as in
+  ADR-0016, decision 3. The sizes awaiting the model are data in `Ceilings`, not schema, so a
+  change to them later changes no type.
 
 ## Alternatives considered
 

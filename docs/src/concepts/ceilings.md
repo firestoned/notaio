@@ -60,6 +60,12 @@ only `LabOnly` audiences (`L020`); policies on other profiles may expose either.
 An audience without `dataScope` is `Internal`. Calling an audience lab loosens what a Lab policy may
 do with it, so it is the ceiling's approver, Security, who says so, never the policy's author.
 
+Each ceiling classifies its own audiences, so two ceilings can disagree about the same one: lab in
+one, internal (or unset) in the other. One of them is then wrong. `notaio lint` warns on both
+(`L021`) when it sees both, which on a policy repository is before Security signs either. It is a
+warning, not an error, because each policy is still checked against its own ceiling; the
+controller does not report it.
+
 Before upgrading to a notaio with `L020`, classify the audiences of every ceiling whose policy uses
 a `LabOnly` profile; `notaio lint` on the policy repository lists any that are missing. Otherwise
 those policies stop publishing on the first reconcile, and their sandboxes can mint nothing once the

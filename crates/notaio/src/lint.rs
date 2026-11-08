@@ -25,7 +25,7 @@ use std::path::{Path, PathBuf};
 use chrono::{DateTime, Duration, Utc};
 use sandboxpolicy_api::{ExposureCeiling, GrantPhase, KnobGrant, SandboxPolicy, SandboxProfile};
 use sandboxpolicy_core::ceilings::Ceilings;
-use sandboxpolicy_core::lint::{lint_knobs, Finding, Severity, RULES};
+use sandboxpolicy_core::lint::{lint_classifications, lint_knobs, Finding, Severity, RULES};
 use sandboxpolicy_core::{builtin, evaluate, EvalInput};
 use serde_json::{json, Value};
 
@@ -81,7 +81,7 @@ pub enum Level {
 /// One finding, attributed to a file and an object.
 #[derive(Debug, Clone)]
 pub struct Diagnostic {
-    /// A lint rule (`L001` to `L013`) or an input code (`I001` to `I007`).
+    /// A lint rule (`L001` to `L021`) or an input code (`I001` to `I009`).
     pub code: String,
     pub level: Level,
     pub path: PathBuf,
@@ -335,6 +335,21 @@ pub fn lint_sources_with(
         }
     }
 
+    // Across ceilings: an audience classified differently in two of them (ADR-0017, L021). Only a
+    // tool that sees several ceilings can tell; the controller checks one policy at a time.
+    let labelled: Vec<(String, &PathBuf, &ExposureCeiling)> = ceilings_by_policy
+        .iter()
+        .map(|((ns, name), (path, c))| (describe_ref(ns.as_deref(), name), path, c))
+        .collect();
+    let specs: Vec<(&str, &sandboxpolicy_api::ExposureCeilingSpec)> = labelled
+        .iter()
+        .map(|(label, _, c)| (label.as_str(), &c.spec))
+        .collect();
+    for (i, f) in lint_classifications(&specs) {
+        let (label, path, _) = &labelled[i];
+        report.push_finding(&f, path, &format!("ExposureCeiling {label}"));
+    }
+
     for (path, policy) in &policies {
         let key = (
             policy.metadata.namespace.clone(),
@@ -449,11 +464,16 @@ fn lint_policy(
     }
 }
 
-fn describe(kind: &str, ns: Option<&str>, name: &str) -> String {
+/// `<namespace>/<name>`, or `<name>` without a namespace.
+fn describe_ref(ns: Option<&str>, name: &str) -> String {
     match ns {
-        Some(ns) => format!("{kind} {ns}/{name}"),
-        None => format!("{kind} {name}"),
+        Some(ns) => format!("{ns}/{name}"),
+        None => name.to_string(),
     }
+}
+
+fn describe(kind: &str, ns: Option<&str>, name: &str) -> String {
+    format!("{kind} {}", describe_ref(ns, name))
 }
 
 fn grant_object(g: &KnobGrant) -> String {

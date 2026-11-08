@@ -2,6 +2,33 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-08 19:40] - L021: ceilings that disagree about an audience; lint tests moved
+
+**Author:** Erick Bourgeois
+
+### Added
+- `sandboxpolicy-core/src/lint.rs`: `lint_classifications`, `L021` (a warning): an audience two
+  ceilings classify differently, unset counting as `Internal` (ADR-0017 decision 2), reported on
+  each ceiling that takes part with the audience's index and the other ceilings named. RULES and
+  the module table have it; `make docs-reference` regenerated `lint-rules.md`.
+- `crates/notaio/src/lint.rs`: `lint_sources_with` runs it over every ceiling in the inputs;
+  `describe_ref` factored out of `describe`. The `Diagnostic.code` doc names the current ranges.
+- Tests first: four in `lint_tests.rs` (both warn, unset is Internal, agreement is clean, the
+  audience index), two in `tests/lint.rs` (end to end, a warning that does not fail the run);
+  `rules_table_matches_the_documented_codes` counts 21.
+
+### Changed
+- The inline `mod tests` of `sandboxpolicy-core/src/lint.rs` moved to `lint_tests.rs`, as
+  `rules/testing.md` asks; no test changed.
+- Docs: ADR-0017 (the follow-up is done), concepts/ceilings, threat model mapping (the Lab
+  audiences row), CHANGELOG Unreleased.
+
+### Impact
+- [ ] Breaking change
+- [ ] Requires cluster rollout
+- [ ] Config change only
+- [ ] Documentation only
+
 ## [2026-11-08 19:00] - ADR-0019 proposed: resource sizes for K2.4
 
 **Author:** Erick Bourgeois

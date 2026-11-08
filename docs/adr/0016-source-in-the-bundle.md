@@ -3,6 +3,7 @@
 - **Status:** Proposed
 - **Date:** 2026-11-06
 - **Deciders:** Erick Bourgeois
+- **Amended:** 2026-11-08 (decision 5: one v4 with ADR-0019)
 - **Related:** ADR-0015 (signed policy delivery), ADR-0002 and ADR-0013 (the bundle), ADR-0008
   (the consumer's floor); roadmap 03 ("later, separate decision"); roadmap 00 D6 (what a token
   carries)
@@ -45,9 +46,9 @@ Two facts constrain the design:
 4. **No GitOps API.** notaio does not read Flux's `Kustomization` or `OCIRepository` to discover a
    revision: that would tie the controller to one tool and widen its RBAC for metadata a pipeline
    can attach itself.
-5. **A schema bump, consumers first.** The bundle becomes `bundle/v4`. The crate learns to verify
-   both v3 and v4 in one release; consumers move to it; only then does notaio emit v4, and the
-   conformance vectors gain v4 cases. A consumer on the old crate meanwhile keeps receiving v3.
+5. **A schema bump, consumers first.** The bundle becomes `bundle/v4`, shared with ADR-0019
+   (Amendment). The crate learns to verify both v3 and v4 in one release; consumers move to it;
+   only then does notaio emit v4, and the conformance vectors gain v4 cases. A consumer on the old crate meanwhile keeps receiving v3.
 
 ## Consequences
 
@@ -60,6 +61,24 @@ Two facts constrain the design:
   informational to them. That cost is why this waits for a consumer that needs it: mediatore
   recording the policy's source in the tokens it mints (D6), or an audit that asks for it.
 - **CALM step deferred:** notaio has no CALM model yet.
+
+## Amendment (2026-11-08): one schema change with ADR-0019
+
+This ADR and ADR-0019 (resource sizes for K2.4) each change the bundle to `bundle/v4`, each with a
+consumers-first rollout of two notaio releases. Done separately, that is two migrations, and the
+second is `v5`. They become one:
+
+- **v4 carries both fields, both optional:** `content.resources` (ADR-0019, decision 4) and `content.sources` (ADR-0016, decision 3). Absent means "not stated": no K2.4
+  statement, or no source claim. A consumer treats an absent `resources` as K2.4 unchecked, as
+  today.
+- **The schema half is built once, by whichever ADR is built first,** with both fields in the
+  types and the conformance vectors: `sandboxpolicy-bundle` verifies v3 and v4, consumers take
+  it, then notaio emits v4. The other ADR then only starts filling its field: no schema change,
+  no second migration.
+- **The field shapes are fixed now,** so the schema half can be built ahead of either ADR's own
+  trigger: `resources` is `{ vcpus, memoryMiB, diskGiB }` (unsigned integers), `sources` as in
+  decision 3 here. The sizes awaiting the model are data in `Ceilings`, not schema, so a
+  change to them later changes no type.
 
 ## Alternatives considered
 
