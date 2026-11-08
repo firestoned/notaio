@@ -23,6 +23,7 @@
 //! | L017 | An audience endpoint or rule is malformed |
 //! | L018 | An endpoint is reachable two ways: in two audiences, or in an audience and direct egress |
 //! | L019 | A direct egress entry the gateway cannot enforce: method and path rules, or a wildcard host |
+//! | L020 | A policy on a `LabOnly` profile exposes an audience its ceiling does not classify `LabOnly` |
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -87,6 +88,10 @@ pub const RULES: &[(&str, &str)] = &[
     (
         "L019",
         "A direct egress entry the gateway cannot enforce: method and path rules, or a wildcard host",
+    ),
+    (
+        "L020",
+        "A policy on a LabOnly profile exposes an audience its ceiling does not classify LabOnly",
     ),
 ];
 
@@ -592,10 +597,13 @@ fn access_rank(a: Access) -> u8 {
 
 /// Is `exposure` covered by the approved `ceiling` (ADR-0007)? Every exposed audience must be in
 /// the ceiling with no more access and no longer a token, every egress host and tool must be in
-/// it, and the lease no longer. `None` is no ceiling at all (L015).
+/// it, and the lease no longer. `None` is no ceiling at all (L015). Under a `LabOnly` `scope`,
+/// every exposed audience must also be one the ceiling classifies `LabOnly` (ADR-0017, L020):
+/// `triangle` relies on a lab policy holding no sensitive data, and this is what makes it so.
 pub fn lint_exposure(
     exposure: &MaxExposure,
     ceiling: Option<&ExposureCeilingSpec>,
+    scope: DataScope,
 ) -> Vec<Finding> {
     let mut out = Vec::new();
     let Some(c) = ceiling else {
@@ -623,6 +631,14 @@ pub fn lint_exposure(
             ));
             continue;
         };
+        // Unclassified is Internal: a lab classification is Security's claim to make.
+        if scope == DataScope::LabOnly && approved.data_scope != Some(DataScope::LabOnly) {
+            out.push(Finding::err(
+                "L020",
+                path.clone(),
+                "the profile is LabOnly, and the ceiling does not classify this audience LabOnly",
+            ));
+        }
         if access_rank(a.access) > access_rank(approved.access) {
             out.push(Finding::err(
                 "L014",

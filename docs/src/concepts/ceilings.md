@@ -22,6 +22,7 @@ spec:
       access: Read           # Write would allow Read too
       maxTtlSeconds: 300
       endpoints: ["git.foo.io:443"]   # where its token may be used
+      dataScope: Internal    # LabOnly lets a Lab policy expose it; unset means Internal
   egressHosts: []            # host:port
   tools: []
   maxLeaseSeconds: 14400
@@ -42,10 +43,27 @@ included, and compares it with the ceiling:
 | No ceiling with the policy's name | `L015` | `NoApprovedCeiling` |
 | The ceiling has no `Security` approval | `L016` | `CeilingNotApproved` |
 | An audience, an audience endpoint, a host or a tool the ceiling does not list, more access or a longer token than it allows, or a longer lease | `L014` | `ExposureAboveCeiling` |
+| A policy on a `LabOnly` profile exposes an audience the ceiling does not classify `LabOnly` | `L020` | `ExposureAboveCeiling` |
 
 In each case nothing new is published, and `maxExposure` is still reported so the approvers can see
 exactly what they are being asked to approve. The same check runs in `notaio lint` on the policy
 repository's pull requests, so a change that would not publish fails review first.
+
+## Lab audiences
+
+The Lab profile may combine untrusted content with an open outbound channel because it holds no
+sensitive data ([knobs](knobs.md#rules-that-span-knobs)). Its audiences are where that could stop
+being true, so each ceiling audience says what data it serves: `dataScope: LabOnly` or `Internal`
+([ADR-0017](../adr/0017-audience-classification.md)). A policy on a `LabOnly` profile may expose
+only `LabOnly` audiences (`L020`); policies on other profiles may expose either.
+
+An audience without `dataScope` is `Internal`. Calling an audience lab loosens what a Lab policy may
+do with it, so it is the ceiling's approver, Security, who says so, never the policy's author.
+
+Before upgrading to a notaio with `L020`, classify the audiences of every ceiling whose policy uses
+a `LabOnly` profile; `notaio lint` on the policy repository lists any that are missing. Otherwise
+those policies stop publishing on the first reconcile, and their sandboxes can mint nothing once the
+last bundle expires.
 
 ## Why it is a separate object
 

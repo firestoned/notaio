@@ -152,6 +152,7 @@ The approved maximum exposure of the SandboxPolicy with the same name and namesp
 | `approvals[].role` | string: `Security`, `PlatformOwner`, `DataOwner`, `Compliance`, `ToolOwner`, `RiskOwner` | yes | Approver roles named in the knob register. |
 | `audiences` | array of object |  | The audiences the policy may expose. |
 | `audiences[].access` | string: `Read`, `Write` | yes | `Write` allows `Read`. |
+| `audiences[].dataScope` | string: `LabOnly`, `Internal` |  | What data the audience serves (ADR-0017): `LabOnly` lets a policy on a `LabOnly` profile expose it (lint L020). Unset means `Internal`: calling an audience lab is a claim Security makes on purpose. |
 | `audiences[].endpoints` | array of string |  | The endpoints, `host:port`, at which the audience may be reached (ADR-0013). |
 | `audiences[].maxTtlSeconds` | integer | yes | The longest token lifetime, in seconds. |
 | `audiences[].name` | string | yes | The audience. |

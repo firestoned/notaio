@@ -2,6 +2,37 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-07 19:00] - ADR-0017 implemented: audience classification and L020; honorLabels
+
+**Author:** Erick Bourgeois
+
+### Added
+- `crates/sandboxpolicy-api/src/ceiling.rs`: `CeilingAudience.data_scope: Option<DataScope>`
+  (additive, v1alpha2). `make manifests` regenerated the CRD and the reference.
+- `crates/sandboxpolicy-core/src/lint.rs`: `L020` in `lint_exposure`, which now takes the profile's
+  `DataScope`; `evaluate.rs` passes it. Unset is `Internal`.
+- Tests first (`tests/evaluate.rs`): a lab policy refused for an unset and an `Internal` audience
+  and published for a `LabOnly` one; only the unclassified audience reported; standard policies
+  unaffected; `RULES` is 20. `covering_ceiling` classifies lab policies' audiences `LabOnly`.
+
+### Changed
+- ADR-0017 Accepted with the strict reading (every audience of a Lab policy), decided in review.
+- Threat model full pass, stamped 2026-11-07 against ADR-0001 to ADR-0017: "Lab audiences only"
+  moved from Not covered to Implemented (L020); the L003 row notes L020; the distribution and
+  downgrade rows say what mediatore built in phase 1 (they still said "not built"); the dashboard
+  row points at `deploy/monitoring/`. `docs/air/mapping.yaml` ri-1, mi-4 (stale M2 gap) and mi-6;
+  `make air`. `docs/architecture.md` known gaps.
+- Concepts: ceilings (a Lab audiences section, the L020 row, upgrade advice), knobs (L003's
+  construction is now checked). `examples/exposureceiling-agent-default.yaml` sets `dataScope`.
+- Observe notaio: `honorLabels: true` on the PodMonitor (found on the test cluster: the policy
+  namespace label was replaced by the pod's).
+
+### Impact
+- [x] Breaking change (a LabOnly policy whose ceiling is not classified stops publishing)
+- [ ] Requires cluster rollout
+- [ ] Config change only
+- [ ] Documentation only
+
 ## [2026-11-07 17:30] - ADR-0017 proposed (audience classification); a Grafana dashboard
 
 **Author:** Erick Bourgeois

@@ -87,6 +87,8 @@ fn covering_ceiling(policy: &SandboxPolicy) -> ExposureCeiling {
                     access: Access::Write,
                     max_ttl_seconds: u32::MAX,
                     endpoints: a.endpoints.clone(),
+                    // A lab policy may expose lab audiences only (ADR-0017, L020).
+                    data_scope: (spec.profile_ref == "lab").then_some(DataScope::LabOnly),
                 })
                 .collect(),
             egress_hosts: spec.egress.iter().map(|e| e.endpoint.clone()).collect(),
@@ -469,7 +471,7 @@ fn rules_table_matches_the_documented_codes() {
             "{code} differs between RULES and the documented table"
         );
     }
-    assert_eq!(sandboxpolicy_core::lint::RULES.len(), 19);
+    assert_eq!(sandboxpolicy_core::lint::RULES.len(), 20);
 }
 
 fn ready_reason(o: &EvalOutput) -> Option<&str> {
@@ -777,4 +779,72 @@ fn l014_refuses_an_audience_endpoint_the_ceiling_does_not_list() {
         exposure.audiences[0].endpoints,
         vec!["internal-git.internal.example:443"]
     );
+}
+
+#[test]
+fn l020_refuses_a_lab_policy_an_audience_the_ceiling_does_not_call_lab() {
+    // ADR-0017: L003 never fires on a LabOnly profile because it holds no sensitive data by
+    // construction; L020 is that construction. Unclassified counts as Internal (fail closed).
+    let lab = profile("lab");
+    let po = policy("lab", vec![audience("github", Access::Read)]);
+    for scope in [None, Some(DataScope::Internal)] {
+        let mut c = covering_ceiling(&po);
+        c.spec.audiences[0].data_scope = scope;
+        let o = run_with_ceiling(&po, Some(&lab), &[], None, Some(&c));
+        assert!(has_code(&o, "L020"), "{scope:?}: {:?}", o.findings);
+        assert!(
+            o.bundle.is_none(),
+            "{scope:?}: a refused policy publishes nothing"
+        );
+        assert_eq!(ready_reason(&o), Some("ExposureAboveCeiling"), "{scope:?}");
+        assert!(
+            o.findings
+                .iter()
+                .filter(|f| f.code == "L020")
+                .all(|f| f.severity == Severity::Error),
+            "L020 is an error: {:?}",
+            o.findings
+        );
+    }
+    // Classified LabOnly by Security: published.
+    let o = run(&po, Some(&lab), &[], None);
+    assert!(!has_code(&o, "L020"), "{:?}", o.findings);
+    assert!(ready(&o), "{:?}", o.findings);
+}
+
+#[test]
+fn l020_reports_only_the_audiences_that_are_not_lab() {
+    let lab = profile("lab");
+    let po = policy(
+        "lab",
+        vec![
+            audience("toybox", Access::Read),
+            audience("github", Access::Read),
+        ],
+    );
+    let mut c = covering_ceiling(&po);
+    c.spec.audiences[1].data_scope = None;
+    let o = run_with_ceiling(&po, Some(&lab), &[], None, Some(&c));
+    let paths: Vec<_> = o
+        .findings
+        .iter()
+        .filter(|f| f.code == "L020")
+        .map(|f| f.path.as_str())
+        .collect();
+    assert_eq!(paths, ["audiences[github]"], "{:?}", o.findings);
+}
+
+#[test]
+fn l020_leaves_internal_profiles_free_to_use_any_audience() {
+    // The classification narrows LabOnly only: a standard policy may expose lab and internal
+    // audiences alike, classified or not.
+    let standard = profile("standard");
+    let po = policy("standard", vec![audience("github", Access::Read)]);
+    for scope in [None, Some(DataScope::Internal), Some(DataScope::LabOnly)] {
+        let mut c = covering_ceiling(&po);
+        c.spec.audiences[0].data_scope = scope;
+        let o = run_with_ceiling(&po, Some(&standard), &[], None, Some(&c));
+        assert!(!has_code(&o, "L020"), "{scope:?}: {:?}", o.findings);
+        assert!(ready(&o), "{scope:?}: {:?}", o.findings);
+    }
 }

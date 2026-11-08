@@ -127,9 +127,9 @@ notaio computes in the cluster.
 ## M4: tighten and extend
 
 - Tightening latency (ADR-0002, decision 3): version floor pushed to mediatore, shorter lifetime.
-- Audience classification, so "Lab audiences only" becomes enforceable. Proposed in
-  [ADR-0017](https://github.com/firestoned/notaio/blob/main/docs/adr/0017-audience-classification.md) (2026-11-07): a `dataScope` on each ceiling
-  audience, Security's to set, and lint `L020`; not built.
+- Audience classification, so "Lab audiences only" becomes enforceable. Done 2026-11-07
+  ([ADR-0017](https://github.com/firestoned/notaio/blob/main/docs/adr/0017-audience-classification.md)):
+  a `dataScope` on each ceiling audience, Security's to set, and lint `L020`.
 - K2.4 resource sizes once the model defines them.
 - Cedar: compile a Cedar policy set into the bundle when the declarative form runs out.
 - Knob dashboard over `KnobGrant`. Done 2026-11-07: a Grafana dashboard in `deploy/monitoring/`
