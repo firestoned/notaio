@@ -10,6 +10,12 @@ a release, the maintainer renames Unreleased to the version and date.
 
 ## Unreleased
 
+## [0.5.2] - 2026-11-08
+
+A lint warning for ceilings that disagree about an audience, for policy repositories. The
+controller, the CRDs and the bundle format are unchanged, so upgrading a cluster is optional;
+update the `notaio lint` pin in your policy repository's CI to get the warning.
+
 ### Added
 
 - `notaio lint` warns when two ExposureCeilings classify the same audience differently, one
@@ -320,6 +326,7 @@ operator needs to run it with two replicas and an OpenBao signer.
 - Its NetworkPolicy allows egress only to DNS, the API server and OpenBao, and ingress only to the
   health and metrics port from the monitoring namespace.
 
+[0.5.2]: https://github.com/firestoned/notaio/releases/tag/v0.5.2
 [0.5.1]: https://github.com/firestoned/notaio/releases/tag/v0.5.1
 [0.5.0]: https://github.com/firestoned/notaio/releases/tag/v0.5.0
 [0.4.0]: https://github.com/firestoned/notaio/releases/tag/v0.4.0
