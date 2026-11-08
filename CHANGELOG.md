@@ -10,6 +10,31 @@ a release, the maintainer renames Unreleased to the version and date.
 
 ## Unreleased
 
+## [0.4.0] - 2026-11-07
+
+notaio can tell lab audiences from internal ones, and keeps a Lab policy to lab audiences
+(`L020`), which can stop an unclassified Lab policy publishing: read Added before upgrading. It
+also ships a Grafana dashboard. Upgrading is applying the two manifests of this release; the CRD
+change is additive and the bundle format is unchanged, so consumers need nothing.
+
+### Added
+
+- Audience classification (ADR-0017): each ExposureCeiling audience may carry
+  `dataScope: LabOnly | Internal`, unset meaning `Internal`, and lint rule `L020` (an error) refuses
+  a policy on a `LabOnly` profile that exposes an audience its ceiling does not classify `LabOnly`.
+  **Before upgrading,** classify the audiences of every ceiling whose policy uses a `LabOnly`
+  profile (the built-in `lab`, or your own); `notaio lint` on the policy repository lists them.
+  Otherwise those policies stop publishing. The CRD change is additive, still `v1alpha2`.
+- A Grafana dashboard, `deploy/monitoring/` (`kubectl apply -k deploy/monitoring`, or import the
+  JSON): controller health, policies by `Ready` reason, bundle expiry and age, and every active
+  knob grant by time to expiry and by age. See Observe notaio, Dashboard.
+
+### Changed
+
+- Observe notaio: the PodMonitor sets `honorLabels: true`. Without it Prometheus replaced notaio's
+  `namespace` label (the policy's namespace) with `notaio-system`, so per-policy metrics and the
+  `NotaioBundleNearExpiry` alert named the wrong namespace.
+
 ### Fixed
 
 - A release's VEX attestation could be lost: the provenance and the VEX attestation were pushed by
@@ -30,15 +55,6 @@ release. Released without a release-prep commit too: the source at the `v0.3.6` 
 
 ### Added
 
-- Audience classification (ADR-0017): each ExposureCeiling audience may carry
-  `dataScope: LabOnly | Internal`, unset meaning `Internal`, and lint rule `L020` (an error) refuses
-  a policy on a `LabOnly` profile that exposes an audience its ceiling does not classify `LabOnly`.
-  **Before upgrading,** classify the audiences of every ceiling whose policy uses a `LabOnly`
-  profile (the built-in `lab`, or your own); `notaio lint` on the policy repository lists them.
-  Otherwise those policies stop publishing. The CRD change is additive, still `v1alpha2`.
-- A Grafana dashboard, `deploy/monitoring/` (`kubectl apply -k deploy/monitoring`, or import the
-  JSON): controller health, policies by `Ready` reason, bundle expiry and age, and every active
-  knob grant by time to expiry and by age. See Observe notaio, Dashboard.
 - Lint rule `L019`, a warning: a direct egress entry with method and path `rules`, or a wildcard
   host. mediatore's egress gateway admits an exact `host:port` and sees no path, so it does not
   serve such an entry (mediatore ADR-0030); the warning says so before the policy is merged.
@@ -46,9 +62,6 @@ release. Released without a release-prep commit too: the source at the `v0.3.6` 
 
 ### Changed
 
-- Observe notaio: the PodMonitor sets `honorLabels: true`. Without it Prometheus replaced notaio's
-  `namespace` label (the policy's namespace) with `notaio-system`, so per-policy metrics and the
-  `NotaioBundleNearExpiry` alert named the wrong namespace.
 - The documentation marks every page Implemented, Partly implemented or Planned, shown in the
   navigation. Pages that describe consumers enforcing a bundle open with what is built today
   (mediatore verifies in shadow) and what is planned (enforcing, the guest, the gateway).
@@ -262,6 +275,7 @@ operator needs to run it with two replicas and an OpenBao signer.
 - Its NetworkPolicy allows egress only to DNS, the API server and OpenBao, and ingress only to the
   health and metrics port from the monitoring namespace.
 
+[0.4.0]: https://github.com/firestoned/notaio/releases/tag/v0.4.0
 [0.3.6]: https://github.com/firestoned/notaio/releases/tag/v0.3.6
 [0.3.5]: https://github.com/firestoned/notaio/releases/tag/v0.3.5
 [0.3.4]: https://github.com/firestoned/notaio/releases/tag/v0.3.4
