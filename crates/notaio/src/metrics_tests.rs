@@ -182,3 +182,10 @@ fn counters_accumulate_across_scrapes() {
     has(&out, "notaio_fail_open_total{check=\"no-ceiling\"} 1");
     has(&out, "notaio_fail_open_total{check=\"already-expired\"} 0");
 }
+
+#[test]
+fn the_configured_lifetime_is_a_series() {
+    // ADR-0018, decision 5: alerts compare time left with the lifetime, not a fixed number.
+    let out = scrape(&[], &[], &Counters::default());
+    has(&out, "notaio_bundle_lifetime_seconds 3600");
+}

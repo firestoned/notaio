@@ -67,11 +67,13 @@ groups:
         annotations:
           summary: "notaio cannot sign: is OpenBao sealed or unreachable?"
       - alert: NotaioBundleNearExpiry
-        expr: notaio_bundle_expires_in_seconds < 600
-        for: 5m
+        expr: >
+          notaio_bundle_expires_in_seconds
+            < on (pod) group_left () (0.25 * notaio_bundle_lifetime_seconds)
+        for: 1m
         labels: { severity: warning }
         annotations:
-          summary: "Bundle for {{ $labels.namespace }}/{{ $labels.policy }} expires in under 10 minutes"
+          summary: "Bundle for {{ $labels.namespace }}/{{ $labels.policy }} has under a quarter of its lifetime left"
       - alert: NotaioPoliciesNotPublished
         expr: sum(notaio_policies{reason!="Published"}) > 0
         for: 30m
@@ -93,7 +95,9 @@ Lease's 15 seconds, so two minutes rules out a normal failover.
 
 `NotaioRelaxationPastExpiry` waits five minutes because the gauge is briefly non-zero between an
 expiry and the reconcile it schedules. A bundle normally refreshes at half its lifetime, so
-`NotaioBundleNearExpiry` firing means refreshes are failing.
+`NotaioBundleNearExpiry`, under a quarter left, means a refresh was missed, whatever the lifetime
+(`notaio_bundle_lifetime_seconds`, ADR-0018). With the default 15 minutes it fires about four
+minutes before the bundle expires; `NotaioSigningFailing` usually fires first.
 
 ## Dashboard
 

@@ -114,9 +114,10 @@ sequenceDiagram
 
 The bundle version moves only when the compiled content changes, so a consumer can treat "newer
 version" as "different rules". Its `notAfter` is never later than the earliest active grant expiry,
-so a relaxation ends on its own with nothing to revoke. A tightening, or a deleted policy, takes
-effect only as fast as the bundle lifetime for a consumer that does not re-fetch (ADR-0002 open
-decision 3).
+so a relaxation ends on its own with nothing to revoke. A tightening is a new version at once, which a
+watching consumer takes within seconds and its floor then holds (ADR-0003, ADR-0008). A policy that
+turns invalid publishes nothing new, so its last bundle stays valid until `notAfter`: at most one
+bundle lifetime, 15 minutes by default, bounded at 5 minutes to a day (ADR-0018).
 
 ### The life of a sandbox
 
@@ -299,7 +300,7 @@ and that the version is not below the highest it has accepted. Every failure is 
 - Distribution is decided (ADR-0003: ConfigMap, read by mediatore, relayed to guests). mediatore
   reads, verifies and floors every bundle in shadow; enforcing it, and the guest's half, are
   roadmap 00 phases 2 to 4.
-- A policy that becomes invalid leaves the previous bundle in place until it expires. The bundle
-  lifetime is therefore the upper bound on how long a tightening takes to land. Faster tightening is
-  open decision 3.
+- A policy that becomes invalid leaves the previous bundle in place until it expires: up to one
+  bundle lifetime, 15 minutes by default (ADR-0018). So does any consumer that does not watch,
+  until it is handed a newer bundle.
 - K2.4 (resource limits) is not checked: the model does not define the medium and large sizes.

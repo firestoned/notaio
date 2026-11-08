@@ -46,7 +46,10 @@ loosen a running sandbox.
    The development signer reads a seed from a Secret, which they can read. The production signer must
    be a `Signer` implementation backed by a KMS, HSM or TPM, with the public key distributed to
    consumers out of band.
-3. **Tightening latency.** With no revocation channel, a tightened or deleted policy takes up to one
+3. **Tightening latency.** *Resolved by [ADR-0018](0018-tightening-latency.md): the watch already
+   pushes a tightened policy and the consumer's floor holds it; the lifetime, now 15 minutes by
+   default and bounded, limits only a policy that turns invalid and consumers that do not watch.*
+   With no revocation channel, a tightened or deleted policy takes up to one
    bundle lifetime to stop being honoured by a consumer that does not re-fetch. Options: a shorter
    lifetime, a version floor pushed to mediatore, or both.
 4. **Canonicalisation.** *Resolved by [ADR-0005](0005-canonical-form-rfc-8785.md): RFC 8785,

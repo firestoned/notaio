@@ -40,7 +40,7 @@ JSON payload:
   ([ADR-0005](../adr/0005-canonical-form-rfc-8785.md)), so a consumer in any language can recompute
   it.
 - **`meta.version`** moves only when the digest moves, and never goes backwards.
-- **`meta.notAfter`** is `issuedAt` plus the bundle lifetime (an hour by default), clamped to the
+- **`meta.notAfter`** is `issuedAt` plus the bundle lifetime (15 minutes by default), clamped to the
   earliest expiry of any grant in it.
 
 ## How a consumer decides to trust it
@@ -115,8 +115,8 @@ already published stays in place, valid until its `notAfter`.
    canonical form. The version goes up only when the content's digest changes, and `notAfter` is
    one bundle lifetime away, or the earliest active grant's expiry if that is sooner.
 3. **Something changed.** An unchanged policy is not signed again until its bundle is within half
-   its lifetime of `notAfter`, so with the default hour a policy nobody touches is re-signed about
-   every 30 minutes, at the same version.
+   its lifetime of `notAfter`, so with the default 15 minutes a policy nobody touches is re-signed
+   about every 7.5 minutes, at the same version (ADR-0018).
 4. **The fail-open guard agrees.** A second, independent check of what the evaluator already
    guarantees: a ceiling exists, no lint finding is an error, no applied grant has expired, and
    `notAfter` is in the future. It never refuses in a correct build; `notaio_fail_open_total`

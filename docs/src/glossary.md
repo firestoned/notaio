@@ -135,8 +135,8 @@ starts a new incarnation at version 1; the floor orders incarnations by `issuedA
 **Leader.** The one controller replica holding the Lease `notaio`, which alone reconciles and signs
 (ADR-0011).
 
-**`notAfter`, lifetime, refresh.** A bundle is valid until `notAfter`: one bundle lifetime (an hour
-by default) after it is issued, never later than its earliest grant's expiry. The controller
+**`notAfter`, lifetime, refresh.** A bundle is valid until `notAfter`: one bundle lifetime (15 minutes
+by default, 5 minutes to a day) after it is issued, never later than its earliest grant's expiry. The controller
 re-signs it at half its lifetime.
 
 **Profile.** A named set of knob steps; four are built in. [SandboxProfile](concepts/profiles.md).

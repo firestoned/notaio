@@ -16,6 +16,7 @@ Served on `GET /metrics`, port 8080, in the OpenMetrics text format ([ADR-0010](
 | `notaio_relaxation_age_seconds` | gauge | `grant`, `namespace` | Age of each active relaxation. |
 | `notaio_relaxation_expires_in_seconds` | gauge | `grant`, `namespace` | Time until each active relaxation expires. |
 | `notaio_relaxations_past_expiry` | gauge |  | Active relaxations whose expiresAt has passed. Must be 0. |
+| `notaio_bundle_lifetime_seconds` | gauge |  | The configured bundle lifetime: alert on time left as a fraction of it (ADR-0018). |
 | `notaio_bundle_age_seconds` | gauge | `namespace`, `policy` | Age of each policy's published bundle. |
 | `notaio_bundle_expires_in_seconds` | gauge | `namespace`, `policy` | Time until each policy's published bundle passes notAfter. |
 | `notaio_leader` | gauge |  | 1 on the replica holding the leader Lease, 0 on the others. |
