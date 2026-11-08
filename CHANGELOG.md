@@ -10,6 +10,12 @@ a release, the maintainer renames Unreleased to the version and date.
 
 ## Unreleased
 
+## [0.5.1] - 2026-11-08
+
+A bundle is again re-signed when half its lifetime is left, as ADR-0018 says, rather than as late
+as a moment before it expires. Recommended for every installation, especially with the 15-minute
+default. Nothing else changes: the CRDs, the bundle format and the configuration are the same.
+
 ### Fixed
 
 - A bundle could be re-signed long after half its lifetime, as late as a moment before it expired:
@@ -308,6 +314,7 @@ operator needs to run it with two replicas and an OpenBao signer.
 - Its NetworkPolicy allows egress only to DNS, the API server and OpenBao, and ingress only to the
   health and metrics port from the monitoring namespace.
 
+[0.5.1]: https://github.com/firestoned/notaio/releases/tag/v0.5.1
 [0.5.0]: https://github.com/firestoned/notaio/releases/tag/v0.5.0
 [0.4.0]: https://github.com/firestoned/notaio/releases/tag/v0.4.0
 [0.3.6]: https://github.com/firestoned/notaio/releases/tag/v0.3.6
