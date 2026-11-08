@@ -127,6 +127,9 @@ notaio computes in the cluster.
 ## M4: tighten and extend
 
 - Tightening latency (ADR-0002, decision 3): version floor pushed to mediatore, shorter lifetime.
+  Proposed in [ADR-0018](https://github.com/firestoned/notaio/blob/main/docs/adr/0018-tightening-latency.md)
+  (2026-11-07): the watch already is the pushed floor; a 15-minute default lifetime, bounded and
+  checked at startup, with alerts relative to it. Not built.
 - Audience classification, so "Lab audiences only" becomes enforceable. Done 2026-11-07
   ([ADR-0017](https://github.com/firestoned/notaio/blob/main/docs/adr/0017-audience-classification.md)):
   a `dataScope` on each ceiling audience, Security's to set, and lint `L020`.

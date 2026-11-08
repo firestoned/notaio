@@ -2,6 +2,25 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-07 21:30] - ADR-0018 proposed: tightening latency
+
+**Author:** Erick Bourgeois
+
+### Added
+- `docs/adr/0018-tightening-latency.md` (Proposed), resolving ADR-0002 open decision 3: the
+  tightened path is already immediate for watching consumers (the watch is the pushed floor); the
+  lifetime bounds only a policy that turns invalid and non-watching consumers. Default 900 s,
+  bounded 300 s to 86400 s, a bad `NOTAIO_BUNDLE_LIFETIME_SECONDS` a startup error (today it
+  silently falls back, and accepts 0 or negative), `notaio_bundle_lifetime_seconds` and a
+  `NotaioBundleNearExpiry` relative to it (the fixed 600 s would always fire under a 20-minute
+  lifetime). Stub, index row, nav; ROADMAPS M4.
+
+### Impact
+- [ ] Breaking change
+- [ ] Requires cluster rollout
+- [ ] Config change only
+- [x] Documentation only
+
 ## [2026-11-07 20:30] - Release prep for v0.4.0
 
 **Author:** Erick Bourgeois
