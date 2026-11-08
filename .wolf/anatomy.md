@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-11-08T17:30:50.961Z
-> Files: 73 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-11-08T19:53:57.027Z
+> Files: 74 tracked | Anatomy hits: 0 | Misses: 0
 
 > Project structure index. Auto-maintained by OpenWolf hooks and daemon.
 > Run `openwolf scan` to generate, or wait for the first Claude Code session.
@@ -155,6 +155,7 @@
 - `0002-bundle-contract.md` — ADR-0002: The bundle contract (~758 tok)
 - `0017-audience-classification.md` — ADR-0017: Audience classification, so Lab policies reach lab audiences only (~1598 tok)
 - `0018-tightening-latency.md` — ADR-0018: Tightening latency: a shorter, bounded bundle lifetime (~1496 tok)
+- `0019-resource-sizes.md` — ADR-0019: Resource sizes for K2.4 (~1488 tok)
 
 ## docs/air/
 

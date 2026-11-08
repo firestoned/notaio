@@ -24,6 +24,7 @@ code that implements it, and every implemented ADR ends with a full pass over th
 | [ADR-0016](0016-source-in-the-bundle.md) | The source of a policy, recorded in its bundle (proposed) |
 | [ADR-0017](0017-audience-classification.md) | Audience classification, so Lab policies reach lab audiences only |
 | [ADR-0018](0018-tightening-latency.md) | Tightening latency: a shorter, bounded bundle lifetime |
+| [ADR-0019](0019-resource-sizes.md) | Resource sizes for K2.4 (proposed) |
 
 ADRs live in [`docs/adr/`](https://github.com/firestoned/notaio/tree/main/docs/adr) in the
 repository and are never renumbered.
