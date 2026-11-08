@@ -10,6 +10,14 @@ a release, the maintainer renames Unreleased to the version and date.
 
 ## Unreleased
 
+## [0.5.0] - 2026-11-08
+
+Bundles now last 15 minutes by default instead of an hour, so a policy that turns invalid stops
+being honoured four times sooner, and a lifetime the controller cannot use stops it at startup
+instead of being replaced silently. Read Changed before upgrading: both can change what an
+existing installation does. The CRDs and the bundle format are unchanged, so consumers need
+nothing.
+
 ### Changed
 
 - The bundle lifetime defaults to 15 minutes, not an hour (ADR-0018): a policy that turns invalid
@@ -291,6 +299,7 @@ operator needs to run it with two replicas and an OpenBao signer.
 - Its NetworkPolicy allows egress only to DNS, the API server and OpenBao, and ingress only to the
   health and metrics port from the monitoring namespace.
 
+[0.5.0]: https://github.com/firestoned/notaio/releases/tag/v0.5.0
 [0.4.0]: https://github.com/firestoned/notaio/releases/tag/v0.4.0
 [0.3.6]: https://github.com/firestoned/notaio/releases/tag/v0.3.6
 [0.3.5]: https://github.com/firestoned/notaio/releases/tag/v0.3.5

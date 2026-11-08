@@ -1,4 +1,31 @@
 {
   "version": 1,
-  "bugs": []
+  "bugs": [
+    {
+      "id": "bug-001",
+      "date": "2026-11-07",
+      "error_message": "NOTAIO_BUNDLE_LIFETIME_SECONDS=15m silently used 3600; 0 or negative accepted",
+      "file": "crates/notaio/src/main.rs",
+      "root_cause": "env value parsed with .ok().and_then(parse().ok()).unwrap_or(default): no error path, no bounds",
+      "fix": "cli::bundle_lifetime_seconds: 300..=86400, startup error naming the variable (ADR-0018)",
+      "tags": [
+        "config",
+        "fail-silent",
+        "lifetime"
+      ]
+    },
+    {
+      "id": "bug-002",
+      "date": "2026-11-07",
+      "error_message": "per-policy metrics and NotaioBundleNearExpiry named namespace notaio-system",
+      "file": "docs/src/guides/observability.md",
+      "root_cause": "PodMonitor without honorLabels: Prometheus overwrote notaio's namespace label with the target's and moved it to exported_namespace",
+      "fix": "honorLabels: true on the PodMonitor",
+      "tags": [
+        "prometheus",
+        "labels",
+        "monitoring"
+      ]
+    }
+  ]
 }
