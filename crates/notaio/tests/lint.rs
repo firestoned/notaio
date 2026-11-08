@@ -346,3 +346,62 @@ fn a_retired_api_version_is_refused_by_name() {
     assert_eq!(errors(&r), vec!["I009"], "{:#?}", r.diagnostics);
     assert!(r.has_errors());
 }
+
+#[test]
+fn l021_ceilings_that_disagree_about_an_audience_warn_on_each() {
+    // ADR-0017, Consequences: a classification is per ceiling, so two can disagree; notaio lint
+    // sees every ceiling in the repository and says so before Security signs either.
+    let lab = ceiling("agent-lab", 300).replace(
+        "      maxTtlSeconds: 300\n",
+        "      maxTtlSeconds: 300\n      dataScope: LabOnly\n",
+    );
+    let r = lint_sources(
+        &[
+            src("p1.yaml", &policy("agent-default", "hardened", "Read")),
+            src("c1.yaml", &ceiling("agent-default", 3600)),
+            src("p2.yaml", &policy("agent-lab", "hardened", "Read")),
+            src("c2.yaml", &lab),
+        ],
+        now(),
+    )
+    .unwrap();
+    let l021: Vec<_> = r.diagnostics.iter().filter(|d| d.code == "L021").collect();
+    assert_eq!(l021.len(), 2, "{:#?}", r.diagnostics);
+    assert!(l021.iter().all(|d| d.level == Level::Warning));
+    let objects: Vec<&str> = l021.iter().map(|d| d.object.as_str()).collect();
+    assert!(
+        objects.contains(&"ExposureCeiling sandboxes/agent-default"),
+        "{objects:?}"
+    );
+    assert!(
+        objects.contains(&"ExposureCeiling sandboxes/agent-lab"),
+        "{objects:?}"
+    );
+    let on_default = l021
+        .iter()
+        .find(|d| d.object.ends_with("agent-default"))
+        .unwrap();
+    assert_eq!(on_default.path, PathBuf::from("c1.yaml"));
+    assert!(
+        on_default.message.contains("sandboxes/agent-lab"),
+        "{}",
+        on_default.message
+    );
+    // A warning: the repository still passes.
+    assert!(!r.has_errors(), "{:#?}", r.diagnostics);
+}
+
+#[test]
+fn l021_agreeing_ceilings_are_clean() {
+    let r = lint_sources(
+        &[
+            src("p1.yaml", &policy("agent-default", "hardened", "Read")),
+            src("c1.yaml", &ceiling("agent-default", 3600)),
+            src("p2.yaml", &policy("agent-other", "hardened", "Read")),
+            src("c2.yaml", &ceiling("agent-other", 3600)),
+        ],
+        now(),
+    )
+    .unwrap();
+    assert!(!codes(&r).contains(&"L021"), "{:#?}", r.diagnostics);
+}

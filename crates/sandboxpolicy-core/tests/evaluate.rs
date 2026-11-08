@@ -471,7 +471,7 @@ fn rules_table_matches_the_documented_codes() {
             "{code} differs between RULES and the documented table"
         );
     }
-    assert_eq!(sandboxpolicy_core::lint::RULES.len(), 20);
+    assert_eq!(sandboxpolicy_core::lint::RULES.len(), 21);
 }
 
 fn ready_reason(o: &EvalOutput) -> Option<&str> {

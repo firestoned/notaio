@@ -70,8 +70,8 @@ Three facts shape where a classification can live:
   policy repository finds every case first.
 - The classification is per ceiling, so two ceilings can classify the same audience differently.
   Both are Security's signatures, which is the same trust the rest of the ceiling already carries;
-  notaio does not reconcile them. A lint warning across the ceilings `notaio lint` sees in one
-  repository is a possible follow-up.
+  notaio does not reconcile them. `notaio lint` warns when the ceilings it is given disagree
+  (`L021`, added 2026-11-08); the controller, which checks one policy at a time, does not.
 - Egress hosts and tools are not classified. K4.1 on Lab is bounded by the ceiling's
   `egressHosts`, which Security approves host by host; classifying them is not part of this
   decision.

@@ -10,6 +10,12 @@ a release, the maintainer renames Unreleased to the version and date.
 
 ## Unreleased
 
+### Added
+
+- `notaio lint` warns when two ExposureCeilings classify the same audience differently, one
+  `LabOnly` and the other `Internal` or unset (`L021`). One of them is wrong; the warning names
+  the other ceiling. It does not fail the run, and the controller does not report it.
+
 ## [0.5.1] - 2026-11-08
 
 A bundle is again re-signed when half its lifetime is left, as ADR-0018 says, rather than as late
