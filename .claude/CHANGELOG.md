@@ -2,6 +2,22 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-08 19:00] - ADR-0019 proposed: resource sizes for K2.4
+
+**Author:** Erick Bourgeois
+
+### Added
+- `docs/adr/0019-resource-sizes.md` (Proposed): sizes per K2.4 step in `Ceilings` (proposed
+  1/2/4 vCPUs, 2/4/8 GiB, 10/20/40 GiB, pending the model), optional `spec.resources`, lint
+  `L021`, bundle schema v4 with consumers first, enforcement by whatever claims the VM.
+- Site stub, ADR index row, mkdocs nav; ROADMAPS M4 K2.4 points at it.
+
+### Impact
+- [ ] Breaking change
+- [ ] Requires cluster rollout
+- [ ] Config change only
+- [x] Documentation only
+
 ## [2026-11-08 17:40] - Fix: the half-lifetime refresh could slip to notAfter
 
 **Author:** Erick Bourgeois

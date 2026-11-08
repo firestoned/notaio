@@ -1,0 +1,1 @@
+--8<-- "adr/0019-resource-sizes.md"

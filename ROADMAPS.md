@@ -133,7 +133,10 @@ notaio computes in the cluster.
 - Audience classification, so "Lab audiences only" becomes enforceable. Done 2026-11-07
   ([ADR-0017](https://github.com/firestoned/notaio/blob/main/docs/adr/0017-audience-classification.md)):
   a `dataScope` on each ceiling audience, Security's to set, and lint `L020`.
-- K2.4 resource sizes once the model defines them.
+- K2.4 resource sizes once the model defines them. Proposed 2026-11-08
+  ([ADR-0019](https://github.com/firestoned/notaio/blob/main/docs/adr/0019-resource-sizes.md)):
+  sizes per step in the ceilings, `spec.resources`, lint `L021`, bundle schema v4; waiting on the
+  model's numbers.
 - Cedar: compile a Cedar policy set into the bundle when the declarative form runs out.
 - Knob dashboard over `KnobGrant`. Done 2026-11-07: a Grafana dashboard in `deploy/monitoring/`
   (health, policies, bundles, and every active grant by expiry and age), in
