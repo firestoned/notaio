@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-11-07T21:55:48.086Z
-> Files: 70 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-11-08T02:08:01.333Z
+> Files: 71 tracked | Anatomy hits: 0 | Misses: 0
 
 > Project structure index. Auto-maintained by OpenWolf hooks and daemon.
 > Run `openwolf scan` to generate, or wait for the first Claude Code session.
@@ -149,6 +149,7 @@
 - `0001-separate-project.md` — ADR-0001: Sicario is a separate project (~483 tok)
 - `0002-bundle-contract.md` — ADR-0002: The bundle contract (~758 tok)
 - `0017-audience-classification.md` — ADR-0017: Audience classification, so Lab policies reach lab audiences only (~1598 tok)
+- `0018-tightening-latency.md` — ADR-0018: Tightening latency: a shorter, bounded bundle lifetime (~1496 tok)
 
 ## docs/air/
 
