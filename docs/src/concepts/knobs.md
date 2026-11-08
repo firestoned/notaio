@@ -57,7 +57,9 @@ grants included, every time:
     - *outbound channel*: `K4.1` at `R2` or above, or `K5.2` at `R1` or above (any write scope).
 
     A `LabOnly` profile holds no sensitive data by construction, so the first leg never applies
-    to it. That is what lets the Lab profile combine open fetching with open egress.
+    to it. That is what lets the Lab profile combine open fetching with open egress. The
+    construction is checked: a policy on a `LabOnly` profile may expose only audiences its
+    [ceiling](ceilings.md#lab-audiences) classifies `LabOnly` (`L020`).
 - **Lab-only knobs (`L004`).** `K6.3` (attestation strictness) and `K8.2` (policy change control)
   may be relaxed only on a `LabOnly` profile.
 

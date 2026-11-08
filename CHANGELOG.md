@@ -30,6 +30,12 @@ release. Released without a release-prep commit too: the source at the `v0.3.6` 
 
 ### Added
 
+- Audience classification (ADR-0017): each ExposureCeiling audience may carry
+  `dataScope: LabOnly | Internal`, unset meaning `Internal`, and lint rule `L020` (an error) refuses
+  a policy on a `LabOnly` profile that exposes an audience its ceiling does not classify `LabOnly`.
+  **Before upgrading,** classify the audiences of every ceiling whose policy uses a `LabOnly`
+  profile (the built-in `lab`, or your own); `notaio lint` on the policy repository lists them.
+  Otherwise those policies stop publishing. The CRD change is additive, still `v1alpha2`.
 - A Grafana dashboard, `deploy/monitoring/` (`kubectl apply -k deploy/monitoring`, or import the
   JSON): controller health, policies by `Ready` reason, bundle expiry and age, and every active
   knob grant by time to expiry and by age. See Observe notaio, Dashboard.
@@ -40,6 +46,9 @@ release. Released without a release-prep commit too: the source at the `v0.3.6` 
 
 ### Changed
 
+- Observe notaio: the PodMonitor sets `honorLabels: true`. Without it Prometheus replaced notaio's
+  `namespace` label (the policy's namespace) with `notaio-system`, so per-policy metrics and the
+  `NotaioBundleNearExpiry` alert named the wrong namespace.
 - The documentation marks every page Implemented, Partly implemented or Planned, shown in the
   navigation. Pages that describe consumers enforcing a bundle open with what is built today
   (mediatore verifies in shadow) and what is planned (enforcing, the guest, the gateway).

@@ -296,11 +296,10 @@ and that the version is not below the highest it has accepted. Every failure is 
 - The test OpenBao unseals itself with the `static` seal, whose key is in the cluster beside the
   storage it unwraps (ADR-0004, decision 6). A production signer needs a seal whose key is held
   elsewhere.
-- Distribution is decided (ADR-0003: ConfigMap, read by mediatore, relayed to guests), but the
-  mediatore side is not built yet (ROADMAP M3).
+- Distribution is decided (ADR-0003: ConfigMap, read by mediatore, relayed to guests). mediatore
+  reads, verifies and floors every bundle in shadow; enforcing it, and the guest's half, are
+  roadmap 00 phases 2 to 4.
 - A policy that becomes invalid leaves the previous bundle in place until it expires. The bundle
   lifetime is therefore the upper bound on how long a tightening takes to land. Faster tightening is
   open decision 3.
-- K5.2 and K5.3 "apply to lab audiences only" for Lab cannot be enforced without a classification of
-  audiences. `dataScope` covers the triangle, not this.
 - K2.4 (resource limits) is not checked: the model does not define the medium and large sizes.

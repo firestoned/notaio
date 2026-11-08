@@ -33,6 +33,7 @@ Checked by the controller and by `notaio lint`, from `crates/sandboxpolicy-core/
 | `L017` | An audience endpoint or rule is malformed |
 | `L018` | An endpoint is reachable two ways: in two audiences, or in an audience and direct egress |
 | `L019` | A direct egress entry the gateway cannot enforce: method and path rules, or a wildcard host |
+| `L020` | A policy on a LabOnly profile exposes an audience its ceiling does not classify LabOnly |
 
 ## Input rules
 

@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Erick Bourgeois, notaio
 // SPDX-License-Identifier: Apache-2.0
 use kube::CustomResource;
-use sandboxpolicy_types::Access;
+use sandboxpolicy_types::{Access, DataScope};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -20,6 +20,11 @@ pub struct CeilingAudience {
     /// The endpoints, `host:port`, at which the audience may be reached (ADR-0013).
     #[serde(default)]
     pub endpoints: Vec<String>,
+    /// What data the audience serves (ADR-0017): `LabOnly` lets a policy on a `LabOnly` profile
+    /// expose it (lint L020). Unset means `Internal`: calling an audience lab is a claim Security
+    /// makes on purpose.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub data_scope: Option<DataScope>,
 }
 
 /// The approved maximum exposure of the SandboxPolicy with the same name and namespace

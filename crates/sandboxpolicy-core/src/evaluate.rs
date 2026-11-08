@@ -372,7 +372,11 @@ pub fn evaluate(input: &EvalInput<'_>) -> EvalOutput {
     // A policy it does not cover publishes nothing new; its exposure is still reported, so the
     // approvers can see what they are being asked to approve.
     let exposed = exposure(&content);
-    let gate = lint::lint_exposure(&exposed, input.exposure_ceiling.map(|c| &c.spec));
+    let gate = lint::lint_exposure(
+        &exposed,
+        input.exposure_ceiling.map(|c| &c.spec),
+        profile.spec.data_scope,
+    );
     if has_errors(&gate) {
         let reason = if input.exposure_ceiling.is_none() {
             "NoApprovedCeiling"

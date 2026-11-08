@@ -712,6 +712,17 @@ spec:
                       - Read
                       - Write
                       type: string
+                    dataScope:
+                      description: |-
+                        What data the audience serves (ADR-0017): `LabOnly` lets a policy on a `LabOnly` profile
+                        expose it (lint L020). Unset means `Internal`: calling an audience lab is a claim Security
+                        makes on purpose.
+                      enum:
+                      - LabOnly
+                      - Internal
+                      - null
+                      nullable: true
+                      type: string
                     endpoints:
                       default: []
                       description: The endpoints, `host:port`, at which the audience may be reached (ADR-0013).

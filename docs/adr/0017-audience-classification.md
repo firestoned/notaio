@@ -1,13 +1,15 @@
 # ADR-0017: Audience classification, so Lab policies reach lab audiences only
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-07
+- **Proposed:** 2026-11-07
 - **Deciders:** Erick Bourgeois
 - **Related:** ADR-0007 (the ExposureCeiling and Security's approval); ADR-0015 (signed delivery:
   Security alone signs the ceilings); ADR-0013 (audiences in v1alpha2); threat model K5.2, K5.3,
   section 9 ("No toxic combinations"); `ROADMAPS.md` M4
 
-Proposed: the design is here for review before any code. Nothing below is built.
+Implemented: the field, `L020`, its tests in `crates/sandboxpolicy-core/tests/evaluate.rs`, and
+the threat model pass (2026-11-07).
 
 ## Context
 
@@ -90,9 +92,8 @@ Three facts shape where a classification can live:
 - **Classify in the bundle, for consumers.** Nothing a consumer does depends on it. Rejected
   (Context, third fact).
 
-## Open question for review
+## Review
 
-Decision 4 reads the model more strictly than its words. If the model means only the audiences and
-write scopes beyond Standard's steps, the model or this ADR should change to say so, and `L003`
-needs a different guard for Lab. This is the one point where the code would encode an
-interpretation, so it is called out rather than settled quietly.
+Decision 4 reads the model more strictly than its words, which could also mean only the audiences
+and write scopes beyond Standard's steps. Settled in review (2026-11-07): the strict reading, so
+`L003`'s assumption about Lab holds without a second guard.

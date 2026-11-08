@@ -1,6 +1,6 @@
 # Mapping to the AgentSandbox threat model
 
-Last full pass 2026-10-31, against ADR-0001 to ADR-0013.
+Last full pass 2026-11-07, against ADR-0001 to ADR-0017.
 
 What this project implements, what it only supports, and what it does not cover. Identifiers refer
 to the AgentSandbox Threat Model and Security Roadmap. When that document changes, update
@@ -13,11 +13,12 @@ to the AgentSandbox Threat Model and Security Roadmap. When that document change
 | Knob register (section 9), rule "one step at a time" | `registry.rs`, lint L011 |
 | Expiring relaxations, per-step lifetime caps | lint L012, bundle `notAfter` clamped to the earliest grant expiry |
 | Approver per knob | `registry.rs` approvers, lint L013 |
-| "No toxic combinations" | lint L003, with `dataScope` for Lab |
+| "No toxic combinations" | lint L003, with `dataScope` for Lab; L020 makes Lab's "no sensitive data" true of its audiences (ADR-0017) |
 | "Toxic-combination lint on every policy pull request" | `notaio lint` (`crates/notaio/src/lint.rs`, ADR-0006) runs the controller's own checks on the policy repository's files, with the same codes, and SARIF for inline review. Making it a required check is a setting of the policy repository. |
 | Lab-only knobs (K6.3 R1, K8.2 R1) | lint L004 |
 | "Wildcard audiences are never allowed" (K5.3) | lint L005 |
 | Read-only token scope by default (K5.2), token TTL ceilings (K5.1) | lint L006 |
+| Lab audiences only (K5.2, K5.3 for Lab) | each ExposureCeiling audience carries a `dataScope`, set by Security, unset meaning `Internal`; a policy on a `LabOnly` profile exposing an audience not classified `LabOnly` publishes nothing (lint L020 in `lint_exposure`, in `notaio lint` and the controller; ADR-0017) |
 | Egress default deny, no direct-IP egress (K4.1, T4.1) | lint L007 on direct egress; every audience endpoint is an exact name, never a wildcard or IP literal (L017), reached through the broker's proxy, so K4.1 R0 still means all calls are brokered; an endpoint is reachable one way only (L018). ADR-0013. |
 | Tool and MCP pinning (K1.3, T1.2) | lint L008 |
 | Lease and egress volume ceilings (K7.3, K4.3) | lint L009, `ceilings.rs` |
@@ -27,7 +28,7 @@ to the AgentSandbox Threat Model and Security Roadmap. When that document change
 | T8.2 signing key not held by administrators | The default deployment (`deploy/controller/`) signs with a non-exportable ed25519 OpenBao transit key (ADR-0004, `crates/notaio/src/openbao.rs`): notaio logs in with its ServiceAccount (projected token, audience `openbao`, TLS 1.3 against OpenBao's own CA) and may only request signatures; every request is in OpenBao's audit log. The controller refuses to start with both signers configured; the development seed is an opt-in patch for local experiments, used by no e2e suite. Accepted risk: a cluster administrator acting as notaio's ServiceAccount can request signatures, but cannot take the key. `e2e_openbao`. |
 | Hard floor "policy bundles are signed, unsigned ones are rejected" | producer never publishes unsigned (`crates/notaio/src/reconcile.rs`: no signer, no bundle), consumer verification fails closed. Content without a canonical form is never compiled into a bundle (`evaluate`, `Ready=False, NotCanonical`). When the signer fails (OpenBao sealed or unreachable), nothing new is published and the policy reports `Ready=False, SigningFailed`, keeping the previous bundle's version and digest (`e2e_openbao`). |
 | The integrity of notaio's own image, the component that signs policy | Built only by this repository's CI on native runners, keyless Cosign signature by digest, CycloneDX SBOM, build provenance (`actions/attest-build-provenance`); each release attaches its install manifest pinned to the image digest and signed (ADR-0009, `.github/workflows/build.yaml`). The release logic is tested on every pull request (`release-manifest-test`, `set-version-test`). |
-| Metric "relaxations past their expiry: 0" and the relaxation dashboard | `notaio_relaxations_past_expiry` (active grants past `expiresAt`, must be 0), and per active grant `notaio_relaxation_age_seconds` and `notaio_relaxation_expires_in_seconds`, served on `/metrics` (ADR-0010, `crates/notaio/src/metrics.rs`). `e2e_install` reads the deployed value. The dashboard itself belongs to the site's Prometheus. |
+| Metric "relaxations past their expiry: 0" and the relaxation dashboard | `notaio_relaxations_past_expiry` (active grants past `expiresAt`, must be 0), and per active grant `notaio_relaxation_age_seconds` and `notaio_relaxation_expires_in_seconds`, served on `/metrics` (ADR-0010, `crates/notaio/src/metrics.rs`). `e2e_install` reads the deployed value. A Grafana dashboard over them ships in `deploy/monitoring/`; the Prometheus and Grafana are the site's. |
 | A fail-open bug in the evaluator | a guard independent of `evaluate` refuses to sign a bundle without a ceiling, with an error finding, with an expired relaxation, or already past `notAfter`; `Ready=False, FailOpenRefused` and `notaio_fail_open_total`, which must be 0 (ADR-0010, `crates/notaio/src/guard.rs`). |
 | Known vulnerabilities in notaio's image | Grype scans every published image (ADR-0012), its SBOM covering every Rust crate (`cargo auditable`), findings in Code Scanning, the build failing on a fixable High or Critical. Findings that cannot affect notaio are suppressed only by OpenVEX statements in `.vex/`, each backed by a fact about the binary that `make vex-evidence` re-checks on every pull request; the VEX document is attested to the image and attached to each release. cargo-audit and cargo-deny cover the Rust dependencies on every change. |
 | Policy profiles as reviewed bundles of knobs (section 10) | `builtin.rs`, `deploy/profiles/builtin.yaml` |
@@ -38,13 +39,12 @@ to the AgentSandbox Threat Model and Security Roadmap. When that document change
 | --- | --- |
 | T8.2 silent edit of a policy | `deploy/admission/gitops-only.yaml` here (ExposureCeiling included), tested by `e2e_admission` on kind and k0s, plus review in the policy repository. The two-person review rule is a repository setting. The controller cannot edit policy objects either (`10-rbac.yaml`, `e2e_rbac`). Before admission, optionally, signed delivery (ADR-0015): Flux applies a policy only with CI's signature from the default branch, and a ceiling only with Security's own, whoever can push; residual risk, a CI-signed policy proves a build and not a review, bounded by its Security-signed ceiling. |
 | Profile eligibility by group (K7.2, T7.3) | Banlieue admission, using these objects as parameters |
-| Enforcement of egress, tools, leases, budgets, jail and guard settings | Gateway, mediatore, mediatore-guest, from the bundle. Distribution (ADR-0003): mediatore reads the bundle ConfigMap through the API and relays it unchanged to guests, which verify it themselves. Not built yet (ROADMAP M3). |
+| Enforcement of egress, tools, leases, budgets, jail and guard settings | Gateway, mediatore, mediatore-guest, from the bundle. Distribution (ADR-0003): mediatore reads the bundle ConfigMap through the API and relays it unchanged to guests, which verify it themselves. mediatore reads and verifies every bundle and reports each gap between its configuration and the bundle, enforcing nothing (roadmap 00 phase 1); its gateway can serve a bundle's direct egress behind a switch that defaults to shadow. Enforcement is roadmap 00 phases 2 to 4. |
 | Token minting per policy and audience (T5.3) | Mediatore |
-| Downgrade protection at each consumer (T5.4) | mediatore, mediatore-guest and the gateway call `sandboxpolicy_bundle::floor::accept` with a floor on their own storage (ADR-0008). Not adopted yet (ROADMAP M3). |
+| Downgrade protection at each consumer (T5.4) | mediatore, mediatore-guest and the gateway call `sandboxpolicy_bundle::floor::accept` with a floor on their own storage (ADR-0008). mediatore keeps one with `next_floor` over its store, moved by a compare and set (roadmap 00 phase 1); the guest does not yet (phase 3). |
 
 ## Not covered yet
 
 | Model item | Gap |
 | --- | --- |
-| Lab audiences only (K5.2, K5.3 for Lab) | Needs an audience classification |
 | Knob prerequisites proven by passing control tests | Grants record approvals, not test results |

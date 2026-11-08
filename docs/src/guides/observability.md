@@ -11,7 +11,9 @@ transitions ([ADR-0010](../adr/0010-health-metrics-and-events.md)). Nothing else
 
 The NetworkPolicy admits port 8080 only from the namespace named in its ingress rule, `monitoring`
 by default; change it to wherever Prometheus runs. There is no Service: scrape the pod directly.
-With the Prometheus Operator:
+With the Prometheus Operator (`honorLabels` keeps the `namespace` label notaio sets, the policy's
+namespace; without it Prometheus replaces it with `notaio-system` and moves the policy's to
+`exported_namespace`):
 
 ```yaml
 apiVersion: monitoring.coreos.com/v1
@@ -26,6 +28,8 @@ spec:
   podMetricsEndpoints:
     - port: http
       path: /metrics
+      # notaio's `namespace` label is the policy's namespace; keep it over the pod's own.
+      honorLabels: true
 ```
 
 With plain Prometheus, a `kubernetes_sd_configs` job of role `pod` in namespace `notaio-system`,

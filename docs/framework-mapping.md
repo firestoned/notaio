@@ -36,7 +36,7 @@ elsewhere" names where enforcement belongs, it does not claim those components d
 
 | ID | Title | Status | In this repo | Note | Gap | Enforced elsewhere |
 | --- | --- | --- | --- | --- | --- | --- |
-| AIR-RC-001 | Information Leaked To Hosted Model | partial | K4.1, K4.3, K4.4, K1.4<br>L007, L003<br>DataScope | Egress allowlist decides which model endpoints the sandbox can reach, volume caps and output export bound what leaves. Nothing classifies the data sent to a model. | No data classification of prompt content. Audience classification is ROADMAP M4. |  |
+| AIR-RC-001 | Information Leaked To Hosted Model | partial | K4.1, K4.3, K4.4, K1.4<br>L007, L003, L020<br>DataScope | Egress allowlist decides which model endpoints the sandbox can reach, volume caps and output export bound what leaves. Audiences are classified LabOnly or Internal on the ceiling, and a Lab policy reaches lab audiences only (L020, ADR-0017). Nothing classifies the data sent to a model. | No data classification of prompt content. |  |
 | AIR-SEC-002 | Information Leaked to Vector Store | out_of_scope | none | No vector store is part of the sandbox. |  |  |
 | AIR-OP-004 | Hallucination and Inaccurate Outputs | out_of_scope | none | Model output quality. |  |  |
 | AIR-OP-005 | Foundation Model Versioning | gap | K8.1 | K8.1 pins the image, and with it the agent CLI. The model an agent may call is not in the spec. | A model allowlist or pin could be a policy field rendered into managed settings. |  |
@@ -98,9 +98,9 @@ checked against the controls the framework expects for it.
 | AIR-DET-001 | AI Data Leakage Prevention and Detection | partial | K4.3, K4.4, K1.4<br>L009 | Volume caps bound exfiltration. TLS inspection is the only content inspection hook, and its loosest step is R1. | No data loss detection rules. |  |
 | AIR-PREV-002 | Data Filtering From External Knowledge Bases | out_of_scope | none | Knowledge base ingestion. |  |  |
 | AIR-PREV-003 | User/App/Model Firewalling/Filtering | declared | K4.1, K4.2, K4.4<br>L007 | Allowlist entries are validated here, filtering is done by the gateway. |  | gateway |
-| AIR-DET-004 | AI System Observability | partial | status conditions, KnobGrant status | Controller status shows version, digest, exposure and lint conditions. | No metrics endpoint or events until ROADMAP M2. Decision audit is mediatore's. |  |
+| AIR-DET-004 | AI System Observability | partial | status conditions, KnobGrant status | Controller status shows version, digest, exposure and lint conditions; metrics, Events (ADR-0010) and a Grafana dashboard (deploy/monitoring) show them over time. | Decision audit is mediatore's. |  |
 | AIR-PREV-005 | System Acceptance Testing | gap | none | Knob prerequisites are not proven by control tests. Grants record approvals, not test results. |  |  |
-| AIR-PREV-006 | Data Quality & Classification/Sensitivity | partial | DataScope | Two data scopes, LabOnly and Internal. | Audience classification is ROADMAP M4. |  |
+| AIR-PREV-006 | Data Quality & Classification/Sensitivity | partial | L020<br>DataScope | Two data scopes, LabOnly and Internal, on profiles and on each audience of an ExposureCeiling; a Lab policy may expose lab audiences only (L020, ADR-0017). | Two levels only; no finer sensitivity classification. |  |
 | AIR-PREV-007 | Legal and Contractual Frameworks for AI Systems | out_of_scope | none | Contracts and legal review. |  |  |
 | AIR-PREV-008 | Quality of Service (QoS) and DDoS Prevention for AI Systems | partial | K7.3<br>L009 | Lease concurrency and duration ceilings. |  | Rate limiting at the gateway. |
 | AIR-DET-009 | AI System Alerting and Denial of Wallet (DoW) / Spend Monitoring | partial | L009<br>Budgets | Budgets cap use. | No spend or token dimension, no alerting until ROADMAP M2. |  |
@@ -121,7 +121,7 @@ checked against the controls the framework expects for it.
 
 ## Open gaps
 
-- **AIR-RC-001** Information Leaked To Hosted Model: No data classification of prompt content. Audience classification is ROADMAP M4.
+- **AIR-RC-001** Information Leaked To Hosted Model: No data classification of prompt content.
 - **AIR-OP-005** Foundation Model Versioning: A model allowlist or pin could be a policy field rendered into managed settings.
 - **AIR-OP-007** Availability of Foundational Model: No token or spend budget, so Denial of Wallet is only bounded by time and call count.
 - **AIR-SEC-008** Tampering With the Foundational Model: Hosted model weights and provider tampering are outside this project.
@@ -133,9 +133,9 @@ checked against the controls the framework expects for it.
 - **AIR-SEC-027** Agent State Persistence Poisoning: Nothing in the spec says whether a workspace may persist between leases.
 - **AIR-SEC-029** Agent-Mediated Credential Discovery and Harvesting: No detection of credential discovery behaviour.
 - **AIR-DET-001** AI Data Leakage Prevention and Detection: No data loss detection rules.
-- **AIR-DET-004** AI System Observability: No metrics endpoint or events until ROADMAP M2. Decision audit is mediatore's.
+- **AIR-DET-004** AI System Observability: Decision audit is mediatore's.
 - **AIR-PREV-005** System Acceptance Testing: Knob prerequisites are not proven by control tests. Grants record approvals, not test results.
-- **AIR-PREV-006** Data Quality & Classification/Sensitivity: Audience classification is ROADMAP M4.
+- **AIR-PREV-006** Data Quality & Classification/Sensitivity: Two levels only; no finer sensitivity classification.
 - **AIR-DET-009** AI System Alerting and Denial of Wallet (DoW) / Spend Monitoring: No spend or token dimension, no alerting until ROADMAP M2.
 - **AIR-PREV-010** AI Model Version Pinning: See AIR-OP-005. A model pin is not a policy field.
 - **AIR-PREV-012** Role-Based Access Control for AI Data: Scoping stops at the audience and token. Access control inside the downstream data store is that system's.
