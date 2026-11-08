@@ -2,6 +2,22 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-08 20:30] - Release prep v0.5.2; ADR-0016 and ADR-0019 amended (one v4)
+
+**Author:** Erick Bourgeois
+
+### Changed
+- Cargo.toml and Cargo.lock at 0.5.2; CHANGELOG [0.5.2] (L021).
+- Recorded late: #89 also carried the amendments to ADR-0016 and ADR-0019. One bundle schema
+  change, v4, with `resources` and `sources` both optional, built once by whichever ADR is built
+  first; ADR-0019's lint code becomes `L022` (L021 is taken); ROADMAPS M4 says so.
+
+### Impact
+- [ ] Breaking change
+- [ ] Requires cluster rollout
+- [ ] Config change only
+- [x] Documentation only
+
 ## [2026-11-08 19:40] - L021: ceilings that disagree about an audience; lint tests moved
 
 **Author:** Erick Bourgeois
