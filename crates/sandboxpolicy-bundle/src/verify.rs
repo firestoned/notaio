@@ -3,8 +3,8 @@
 use std::collections::BTreeMap;
 
 use base64::{engine::general_purpose::STANDARD, Engine as _};
-use chrono::{DateTime, Duration, Utc};
 use ed25519_dalek::Verifier as _;
+use jiff::{SignedDuration, Timestamp};
 
 use crate::dsse::pae;
 use crate::{BundleError, BundlePayload, Envelope, PAYLOAD_TYPE, SCHEMA};
@@ -50,19 +50,19 @@ impl std::fmt::Debug for TrustedKeys {
 }
 
 pub struct VerifyOptions {
-    pub now: DateTime<Utc>,
+    pub now: Timestamp,
     /// Reject anything older than this version. Consumers persist the highest version they have
     /// accepted, which is what stops a downgrade to a looser bundle.
     pub min_version: Option<u64>,
-    pub max_clock_skew: Duration,
+    pub max_clock_skew: SignedDuration,
 }
 
 impl VerifyOptions {
-    pub fn at(now: DateTime<Utc>) -> Self {
+    pub fn at(now: Timestamp) -> Self {
         VerifyOptions {
             now,
             min_version: None,
-            max_clock_skew: Duration::seconds(60),
+            max_clock_skew: SignedDuration::from_secs(60),
         }
     }
 }
@@ -106,12 +106,10 @@ pub fn verify_bundle(
         return Err(BundleError::DigestMismatch);
     }
     if payload.meta.issued_at > opts.now + opts.max_clock_skew {
-        return Err(BundleError::NotYetValid(
-            payload.meta.issued_at.to_rfc3339(),
-        ));
+        return Err(BundleError::NotYetValid(payload.meta.issued_at.to_string()));
     }
     if payload.meta.not_after <= opts.now {
-        return Err(BundleError::Expired(payload.meta.not_after.to_rfc3339()));
+        return Err(BundleError::Expired(payload.meta.not_after.to_string()));
     }
     if let Some(min) = opts.min_version {
         if payload.meta.version < min {

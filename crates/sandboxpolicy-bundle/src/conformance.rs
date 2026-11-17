@@ -13,7 +13,7 @@
 //! The key is for these vectors only. Never trust it anywhere else.
 
 use base64::{engine::general_purpose::STANDARD, Engine as _};
-use chrono::{DateTime, Utc};
+use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
 
 use crate::floor::{accept, FloorEntry, MemoryFloor, VersionFloor};
@@ -61,7 +61,7 @@ pub struct Vector {
     pub name: String,
     pub description: String,
     /// The consumer's clock.
-    pub now: DateTime<Utc>,
+    pub now: Timestamp,
     /// The floor the consumer holds for the policy before this envelope; None for first sight.
     pub floor: Option<FloorEntry>,
     pub envelope: Envelope,

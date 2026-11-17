@@ -7,18 +7,22 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-use chrono::{DateTime, Duration, TimeZone, Utc};
+use jiff::{SignedDuration, Timestamp};
 use sandboxpolicy_bundle::floor::{
     accept, next_floor, FileFloor, FloorEntry, MemoryFloor, VersionFloor,
 };
 use sandboxpolicy_bundle::*;
 use sandboxpolicy_types::{Access, AudienceGrant, Budgets, KnobId, Lease, Step};
 
+/// A grant lifetime is counted in whole days; a timestamp only adds hours (jiff keeps calendar
+/// days for zoned time).
+const HOURS_PER_DAY: i64 = 24;
+
 const NS: &str = "sandboxes";
 const NAME: &str = "agent-default";
 
-fn t(hour: u32) -> DateTime<Utc> {
-    Utc.with_ymd_and_hms(2026, 10, 21, hour, 0, 0).unwrap()
+fn t(hour: u32) -> Timestamp {
+    format!("2026-10-21T{hour:02}:00:00Z").parse().unwrap()
 }
 
 fn signer() -> Ed25519Signer {
@@ -33,7 +37,7 @@ fn keys() -> TrustedKeys {
 }
 
 /// A signed bundle for incarnation `uid` at `version`, issued at `issued`, valid for a day.
-fn bundle(uid: &str, version: u64, issued: DateTime<Utc>) -> Envelope {
+fn bundle(uid: &str, version: u64, issued: Timestamp) -> Envelope {
     let mut knobs = BTreeMap::new();
     knobs.insert(KnobId::new("K4.1"), Step::R0);
     let content = BundleContent {
@@ -70,7 +74,7 @@ fn bundle(uid: &str, version: u64, issued: DateTime<Utc>) -> Envelope {
     let meta = BundleMeta {
         version,
         issued_at: issued,
-        not_after: issued + Duration::days(1),
+        not_after: issued + SignedDuration::from_hours(HOURS_PER_DAY),
     };
     sign_bundle(&BundlePayload::new(meta, content).unwrap(), &signer()).unwrap()
 }
@@ -208,16 +212,16 @@ fn the_write_is_atomic_and_leaves_no_temporary_file() {
     assert_eq!(reopened.get(NS, NAME).unwrap().version, 4);
 }
 
-fn verified(uid: &str, version: u64, issued: DateTime<Utc>) -> BundlePayload {
+fn verified(uid: &str, version: u64, issued: Timestamp) -> BundlePayload {
     verify_bundle(
         &bundle(uid, version, issued),
         &keys(),
-        &VerifyOptions::at(issued + Duration::minutes(1)),
+        &VerifyOptions::at(issued + SignedDuration::from_mins(1)),
     )
     .unwrap()
 }
 
-fn entry(uid: &str, version: u64, issued: DateTime<Utc>) -> FloorEntry {
+fn entry(uid: &str, version: u64, issued: Timestamp) -> FloorEntry {
     FloorEntry {
         uid: uid.into(),
         version,

@@ -1,6 +1,6 @@
 // Copyright (c) 2026 Erick Bourgeois, notaio
 // SPDX-License-Identifier: Apache-2.0
-use chrono::{DateTime, Utc};
+use jiff::Timestamp;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -19,7 +19,7 @@ pub struct Condition {
     /// A human-readable explanation, with lint codes when findings caused it.
     pub message: String,
     /// When the status last changed.
-    pub last_transition_time: DateTime<Utc>,
+    pub last_transition_time: Timestamp,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     /// The object generation this condition was computed from.
     pub observed_generation: Option<i64>,

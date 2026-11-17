@@ -1,14 +1,12 @@
 // Copyright (c) 2026 Erick Bourgeois, notaio
 // SPDX-License-Identifier: Apache-2.0
-use chrono::{Duration, TimeZone};
+use jiff::SignedDuration;
 use sandboxpolicy_core::lint::{Finding, Severity};
 
 use super::*;
 
-fn now() -> DateTime<Utc> {
-    Utc.with_ymd_and_hms(2026, 10, 23, 12, 0, 0)
-        .single()
-        .unwrap()
+fn now() -> Timestamp {
+    "2026-10-23T12:00:00Z".parse().unwrap()
 }
 
 fn finding(severity: Severity) -> Finding {
@@ -22,7 +20,7 @@ fn finding(severity: Severity) -> Finding {
 
 fn good() -> Evaluated<'static> {
     Evaluated {
-        not_after: now() + Duration::hours(1),
+        not_after: now() + SignedDuration::from_hours(1),
         has_ceiling: true,
         findings: &[],
         active_grant_expiries: &[],
@@ -37,7 +35,7 @@ fn a_sound_evaluation_passes() {
 #[test]
 fn warnings_and_live_grants_pass() {
     let findings = [finding(Severity::Warning)];
-    let grants = [("g".to_string(), now() + Duration::minutes(5))];
+    let grants = [("g".to_string(), now() + SignedDuration::from_mins(5))];
     let e = Evaluated {
         findings: &findings,
         active_grant_expiries: &grants,

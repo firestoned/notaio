@@ -1,6 +1,6 @@
 // Copyright (c) 2026 Erick Bourgeois, notaio
 // SPDX-License-Identifier: Apache-2.0
-use chrono::{DateTime, Utc};
+use jiff::Timestamp;
 use kube::CustomResource;
 use sandboxpolicy_types::{Access, AudienceGrant, Budgets, EgressRule, Lease, ToolRef};
 use schemars::JsonSchema;
@@ -106,7 +106,7 @@ pub struct SandboxPolicyStatus {
     pub profile_digest: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     /// When the published bundle stops being valid.
-    pub bundle_not_after: Option<DateTime<Utc>>,
+    pub bundle_not_after: Option<Timestamp>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max_exposure: Option<MaxExposure>,
     /// Names of the KnobGrants currently applied to this policy.
@@ -114,5 +114,5 @@ pub struct SandboxPolicyStatus {
     pub active_grants: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     /// The soonest expiry among the active grants.
-    pub next_grant_expiry: Option<DateTime<Utc>>,
+    pub next_grant_expiry: Option<Timestamp>,
 }

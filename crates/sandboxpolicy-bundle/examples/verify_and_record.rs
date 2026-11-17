@@ -16,7 +16,7 @@ use std::path::Path;
 use std::process::ExitCode;
 
 use base64::{engine::general_purpose::STANDARD, Engine as _};
-use chrono::Utc;
+use jiff::Timestamp;
 use sandboxpolicy_bundle::floor::{accept, FileFloor};
 use sandboxpolicy_bundle::{Envelope, TrustedKeys};
 
@@ -67,7 +67,7 @@ fn run(
     keys.insert(key_id, public).map_err(|e| e.to_string())?;
     let mut floor = FileFloor::open(Path::new(floor)).map_err(|e| e.to_string())?;
 
-    Ok(accept(&env, &keys, Utc::now(), &mut floor)
+    Ok(accept(&env, &keys, Timestamp::now(), &mut floor)
         .map(|p| {
             format!(
                 "{}/{} version {} (uid {}), valid until {}",
@@ -75,7 +75,7 @@ fn run(
                 p.content.policy.name,
                 p.meta.version,
                 p.content.policy.uid,
-                p.meta.not_after.to_rfc3339()
+                p.meta.not_after
             )
         })
         .map_err(|e| e.to_string()))

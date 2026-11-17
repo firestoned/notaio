@@ -2,6 +2,43 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-17 09:05] - chrono replaced by jiff across the workspace (#94)
+
+**Author:** Erick Bourgeois
+
+### Changed
+- Every crate manifest: `chrono` out, `jiff` 0.2 in (`default-features = false`, `std` and
+  `serde`); `schemars` on `jiff02` instead of `chrono04` in `sandboxpolicy-api` and
+  `sandboxpolicy-bundle`. `sandboxpolicy-types` had declared `chrono` and `chrono04` without using
+  either; both dropped. `jiff` was already in the tree through `k8s-openapi` 0.29, so the lock
+  loses `chrono` and gains nothing.
+- Public API: `chrono::DateTime<Utc>` is `jiff::Timestamp` and `chrono::Duration` is
+  `jiff::SignedDuration` on `BundleMeta`, `VerifyOptions`, `FloorEntry`, the conformance and
+  evaluation contexts, `KnobGrantSpec.expires_at`, the status fields and the CLI's `--now`.
+- `crates/notaio/src/leader.rs`, `metrics.rs`: the `MicroTime` and `Time` bridges are gone; the
+  wrapped `Timestamp` is the same type now.
+- `crates/sandboxpolicy-core/src/lint.rs`: a grant's day limit is added as hours
+  (`HOURS_PER_DAY`), since `jiff` reserves calendar days for zoned time.
+- Error and lint messages print a timestamp as `2026-11-15T16:46:49Z` rather than
+  `2026-11-15 16:46:49 UTC`.
+- `crates/sandboxpolicy-bundle/tests/fixtures/bundle-v0.5.2.json`, `tests/bundle.rs`: a bundle
+  signed by v0.5.2 with sub-second `issuedAt` and `notAfter`, as that release wrote them, still
+  verifies. Written first, green on v0.5.2, green after the swap.
+
+### Why
+Consolidation on the one time library the Kubernetes types already use, ahead of mediatore's own
+move (firestoned/notaio#94). No contract changes: the DSSE signature is checked over the raw
+payload bytes before the payload is parsed, `BundleContent` carries no timestamp, and both
+libraries read and write RFC 3339 with an offset, so bundles, Grants and statuses written by
+either build read under the other. `make manifests-check` shows no CRD drift (`format: date-time`
+on both). `make deny` passes; the dependency is not new to the tree.
+
+### Impact
+- [x] Breaking change (public API of the `sandboxpolicy-*` crates: a minor bump)
+- [ ] Requires cluster rollout
+- [ ] Config or examples change only
+- [ ] Documentation only
+
 ## [2026-11-08 20:30] - Release prep v0.5.2; ADR-0016 and ADR-0019 amended (one v4)
 
 **Author:** Erick Bourgeois

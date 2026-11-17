@@ -28,7 +28,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use chrono::{DateTime, Duration, Utc};
+use jiff::{SignedDuration, Timestamp};
 use sandboxpolicy_api::{
     CeilingAudience, ExposureCeilingSpec, KnobGrantSpec, MaxExposure, SandboxPolicySpec,
 };
@@ -36,6 +36,10 @@ use sandboxpolicy_types::{Access, DataScope, EndpointRule, KnobId, Role, Step};
 
 use crate::ceilings::Ceilings;
 use crate::registry::{self, LAB_ONLY_KNOBS};
+
+/// A grant lifetime is counted in whole days; a timestamp only adds hours (jiff keeps calendar
+/// days for zoned time).
+const HOURS_PER_DAY: i64 = 24;
 
 /// Every lint rule as `(code, meaning)`, in code order: the table above, as data, for tools that
 /// describe findings (`notaio lint --format sarif`).
@@ -531,7 +535,7 @@ pub fn lint_policy(
 pub fn lint_grant(
     profile_knobs: &BTreeMap<KnobId, Step>,
     spec: &KnobGrantSpec,
-    now: DateTime<Utc>,
+    now: Timestamp,
 ) -> Vec<Finding> {
     let mut out = Vec::new();
     let Some(def) = registry::knob(spec.knob.as_str()) else {
@@ -558,7 +562,7 @@ pub fn lint_grant(
     }
     if spec.step > Step::R0 {
         let max_days = registry::max_grant_lifetime_days(spec.step);
-        if spec.expires_at > now + Duration::days(max_days) {
+        if spec.expires_at > now + SignedDuration::from_hours(HOURS_PER_DAY * max_days) {
             out.push(Finding::err(
                 "L012",
                 "expiresAt",

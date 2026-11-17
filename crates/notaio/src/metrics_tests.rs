@@ -2,15 +2,12 @@
 // SPDX-License-Identifier: Apache-2.0
 use std::sync::Arc;
 
-use chrono::TimeZone;
 use serde_json::json;
 
 use super::*;
 
-fn now() -> DateTime<Utc> {
-    Utc.with_ymd_and_hms(2026, 10, 23, 12, 0, 0)
-        .single()
-        .unwrap()
+fn now() -> Timestamp {
+    "2026-10-23T12:00:00Z".parse().unwrap()
 }
 
 fn ready(reason: &str, ok: bool) -> serde_json::Value {
@@ -58,7 +55,7 @@ fn scrape(policies: &[Arc<SandboxPolicy>], grants: &[Arc<KnobGrant>], c: &Counte
             profiles: &[],
             grants,
             now: now(),
-            bundle_lifetime: Duration::hours(1),
+            bundle_lifetime: SignedDuration::from_hours(1),
         },
     )
 }

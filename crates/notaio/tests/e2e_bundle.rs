@@ -11,7 +11,7 @@
 
 mod common;
 
-use chrono::Utc;
+use jiff::Timestamp;
 use k8s_openapi::api::core::v1::ConfigMap;
 use kube::api::{DeleteParams, PostParams};
 use kube::{Api, ResourceExt};
@@ -107,7 +107,7 @@ async fn policy_compiles_to_a_signed_verifiable_bundle_that_never_goes_back() {
     assert_eq!(ev.type_.as_deref(), Some("Normal"));
     let env1 = published_envelope(&cms, &name, v1).await;
     let payload1: BundlePayload =
-        verify_bundle(&env1, &keys, &VerifyOptions::at(Utc::now())).expect("bundle verifies");
+        verify_bundle(&env1, &keys, &VerifyOptions::at(Timestamp::now())).expect("bundle verifies");
     assert_eq!(payload1.meta.version, v1);
     assert_eq!(Some(&payload1.content_digest), s1.bundle_digest.as_ref());
     assert_eq!(payload1.content.policy.name, name);
@@ -131,7 +131,7 @@ async fn policy_compiles_to_a_signed_verifiable_bundle_that_never_goes_back() {
         .insert(stranger.key_id(), stranger.verifying_key_bytes())
         .expect("key");
     assert!(
-        verify_bundle(&env1, &wrong, &VerifyOptions::at(Utc::now())).is_err(),
+        verify_bundle(&env1, &wrong, &VerifyOptions::at(Timestamp::now())).is_err(),
         "a bundle verified against a key that did not sign it"
     );
 
@@ -164,7 +164,7 @@ async fn policy_compiles_to_a_signed_verifiable_bundle_that_never_goes_back() {
     );
     let env2 = published_envelope(&cms, &name, v2).await;
     let payload2 =
-        verify_bundle(&env2, &keys, &VerifyOptions::at(Utc::now())).expect("bundle verifies");
+        verify_bundle(&env2, &keys, &VerifyOptions::at(Timestamp::now())).expect("bundle verifies");
     assert_ne!(payload2.content_digest, payload1.content_digest);
     // The grant expires in a week, so the bundle must not outlive it.
     let grant_expiry = s2.next_grant_expiry.expect("next grant expiry is reported");
@@ -178,16 +178,17 @@ async fn policy_compiles_to_a_signed_verifiable_bundle_that_never_goes_back() {
     let _ = std::fs::remove_file(&floor_path);
     {
         let mut floor = FileFloor::open(&floor_path).expect("open floor");
-        accept(&env1, &keys, Utc::now(), &mut floor).expect("v1 accepted first");
-        accept(&env2, &keys, Utc::now(), &mut floor).expect("v2 accepted after v1");
+        accept(&env1, &keys, Timestamp::now(), &mut floor).expect("v1 accepted first");
+        accept(&env2, &keys, Timestamp::now(), &mut floor).expect("v2 accepted after v1");
     }
     let mut restarted = FileFloor::open(&floor_path).expect("reopen floor");
     assert_eq!(
-        accept(&env1, &keys, Utc::now(), &mut restarted).unwrap_err(),
+        accept(&env1, &keys, Timestamp::now(), &mut restarted).unwrap_err(),
         BundleError::Downgrade { got: v1, min: v2 },
         "a restarted consumer at version {v2} accepted version {v1}"
     );
-    accept(&env2, &keys, Utc::now(), &mut restarted).expect("the current bundle passes the floor");
+    accept(&env2, &keys, Timestamp::now(), &mut restarted)
+        .expect("the current bundle passes the floor");
     let _ = std::fs::remove_file(&floor_path);
 
     // Cleanup. The bundle ConfigMap is owned by the policy and goes with it.

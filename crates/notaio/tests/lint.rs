@@ -7,12 +7,12 @@
 
 use std::path::PathBuf;
 
-use chrono::{DateTime, TimeZone, Utc};
+use jiff::Timestamp;
 use notaio::lint::{lint_sources, lint_sources_with, Level, Report, Source};
 use sandboxpolicy_core::ceilings::Ceilings;
 
-fn now() -> DateTime<Utc> {
-    Utc.with_ymd_and_hms(2026, 10, 20, 0, 0, 0).unwrap()
+fn now() -> Timestamp {
+    "2026-10-20T00:00:00Z".parse().unwrap()
 }
 
 fn src(name: &str, text: &str) -> Source {

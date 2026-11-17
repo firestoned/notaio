@@ -15,9 +15,9 @@ use std::process::ExitCode;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
-use chrono::Duration;
 use clap::Parser;
 use futures::StreamExt;
+use jiff::{SignedDuration, Timestamp};
 use kube::runtime::controller::Controller;
 use kube::runtime::events::{Recorder, Reporter};
 use kube::runtime::reflector::{self, ObjectRef, Store};
@@ -63,7 +63,7 @@ struct Observer {
     profiles: Store<SandboxProfile>,
     grants: Store<KnobGrant>,
     counters: Counters,
-    bundle_lifetime: Duration,
+    bundle_lifetime: SignedDuration,
     ready: AtomicBool,
 }
 
@@ -82,7 +82,7 @@ impl Observed for Observer {
                 policies: &self.policies.state(),
                 profiles: &self.profiles.state(),
                 grants: &self.grants.state(),
-                now: chrono::Utc::now(),
+                now: Timestamp::now(),
                 bundle_lifetime: self.bundle_lifetime,
             },
         )
@@ -114,7 +114,7 @@ where
 }
 
 fn run_lint(args: &LintArgs) -> ExitCode {
-    let now = args.now.unwrap_or_else(chrono::Utc::now);
+    let now = args.now.unwrap_or_else(Timestamp::now);
     let report = match notaio::lint::load(&args.paths)
         .and_then(|sources| notaio::lint::lint_sources(&sources, now))
     {
@@ -177,7 +177,7 @@ async fn run_controller() -> anyhow::Result<()> {
         client: client.clone(),
         signer,
         ceilings: Ceilings::default(),
-        bundle_lifetime: Duration::seconds(lifetime_secs),
+        bundle_lifetime: SignedDuration::from_secs(lifetime_secs),
         counters: counters.clone(),
         recorder: Recorder::new(client.clone(), reporter),
     });

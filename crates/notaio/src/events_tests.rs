@@ -1,15 +1,12 @@
 // Copyright (c) 2026 Erick Bourgeois, notaio
 // SPDX-License-Identifier: Apache-2.0
-use chrono::{TimeZone, Utc};
+use jiff::Timestamp;
 use sandboxpolicy_core::evaluate::condition;
 
 use super::*;
 
 fn cond(type_: &str, ok: bool, reason: &str, message: &str) -> Condition {
-    let now = Utc
-        .with_ymd_and_hms(2026, 10, 23, 12, 0, 0)
-        .single()
-        .unwrap();
+    let now: Timestamp = "2026-10-23T12:00:00Z".parse().unwrap();
     condition(&[], type_, ok, reason, message, now, Some(1))
 }
 

@@ -11,7 +11,7 @@
 
 mod common;
 
-use chrono::Utc;
+use jiff::Timestamp;
 use k8s_openapi::api::apps::v1::Deployment;
 use k8s_openapi::api::coordination::v1::Lease;
 use k8s_openapi::api::core::v1::ConfigMap;
@@ -123,7 +123,7 @@ async fn every_policy_is_published_and_its_bundle_verifies() {
             .unwrap_or_else(|e| panic!("{ns}/{name}: no bundle ConfigMap: {e}"));
         let env: Envelope =
             serde_json::from_str(&cm.data.unwrap_or_default()[BUNDLE_KEY]).expect("an envelope");
-        let payload = verify_bundle(&env, &keys, &VerifyOptions::at(Utc::now()))
+        let payload = verify_bundle(&env, &keys, &VerifyOptions::at(Timestamp::now()))
             .unwrap_or_else(|e| panic!("{ns}/{name}: the bundle does not verify: {e}"));
         assert_eq!(
             Some(payload.meta.version),

@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::time::Duration as StdDuration;
 
-use chrono::{Duration, Utc};
+use jiff::{SignedDuration, Timestamp};
 use k8s_openapi::api::core::v1::{ConfigMap, ObjectReference};
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 use kube::api::{Api, ListParams, Patch, PatchParams};
@@ -38,7 +38,7 @@ pub struct Ctx {
     pub signer: Option<SharedSigner>,
     pub ceilings: Ceilings,
     /// How long a compiled bundle stays valid. The upper bound on staleness.
-    pub bundle_lifetime: Duration,
+    pub bundle_lifetime: SignedDuration,
     pub counters: Counters,
     pub recorder: Recorder,
     /// True while this replica holds the leader Lease (ADR-0011).
@@ -77,7 +77,7 @@ fn not_ready(
     status: &SandboxPolicyStatus,
     reason: &str,
     message: &str,
-    now: chrono::DateTime<Utc>,
+    now: Timestamp,
     generation: Option<i64>,
 ) -> SandboxPolicyStatus {
     let failed = condition(
@@ -100,8 +100,8 @@ pub fn bundle_object_name(policy: &str) -> String {
     format!("{policy}-bundle")
 }
 
-fn std_dur(d: Duration) -> StdDuration {
-    d.to_std().unwrap_or(StdDuration::from_secs(30))
+fn std_dur(d: SignedDuration) -> StdDuration {
+    StdDuration::try_from(d).unwrap_or(StdDuration::from_secs(30))
 }
 
 /// Same status, ignoring the refreshable expiry timestamp.
@@ -121,7 +121,7 @@ pub async fn reconcile_policy(policy: Arc<SandboxPolicy>, ctx: Arc<Ctx>) -> Resu
     let ns = policy.namespace().ok_or(Error::NoNamespace)?;
     let name = policy.name_any();
     let client = &ctx.client;
-    let now = Utc::now();
+    let now = Timestamp::now();
 
     let profile = Api::<SandboxProfile>::all(client.clone())
         .get_opt(&policy.spec.profile_ref)
@@ -261,7 +261,7 @@ pub async fn reconcile_policy(policy: Arc<SandboxPolicy>, ctx: Arc<Ctx>) -> Resu
     if let (Some(bundle), Some(signer)) = (&out.bundle, &ctx.signer) {
         // Check the bundle again, independently of the evaluator, before it can be signed
         // (ADR-0010, decision 4). In a correct build this never refuses anything.
-        let active_grant_expiries: Vec<(String, chrono::DateTime<Utc>)> = out
+        let active_grant_expiries: Vec<(String, Timestamp)> = out
             .status
             .active_grants
             .iter()
@@ -374,7 +374,7 @@ async fn refuse(
     status: &SandboxPolicyStatus,
     reason: &str,
     message: &str,
-    now: chrono::DateTime<Utc>,
+    now: Timestamp,
 ) -> Result<(), Error> {
     let ns = policy.namespace().ok_or(Error::NoNamespace)?;
     let refused = not_ready(
@@ -417,7 +417,7 @@ pub async fn reconcile_profile(
     if !ctx.leading() {
         return Ok(Action::await_change());
     }
-    let now = Utc::now();
+    let now = Timestamp::now();
     let name = profile.name_any();
     let prev = profile.status.clone().unwrap_or_default();
     let findings = lint_knobs(profile.spec.data_scope, &profile.spec.knobs);

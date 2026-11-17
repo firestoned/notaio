@@ -2,15 +2,19 @@
 // Copyright (c) 2026 Erick Bourgeois, notaio
 // SPDX-License-Identifier: Apache-2.0
 
-use chrono::{DateTime, Duration, TimeZone, Utc};
+use jiff::{SignedDuration, Timestamp};
 use sandboxpolicy_api::*;
 use sandboxpolicy_core::ceilings::Ceilings;
 use sandboxpolicy_core::lint::Severity;
 use sandboxpolicy_core::{builtin, evaluate, registry, EvalInput, EvalOutput};
 use sandboxpolicy_types::*;
 
-fn now() -> DateTime<Utc> {
-    Utc.with_ymd_and_hms(2026, 9, 30, 12, 0, 0).unwrap()
+/// A grant lifetime is counted in whole days; a timestamp only adds hours (jiff keeps calendar
+/// days for zoned time).
+const HOURS_PER_DAY: i64 = 24;
+
+fn now() -> Timestamp {
+    "2026-09-30T12:00:00Z".parse().unwrap()
 }
 
 fn profile(name: &str) -> SandboxProfile {
@@ -60,7 +64,7 @@ fn grant(name: &str, knob: &str, step: Step, days: i64, roles: &[Role]) -> KnobG
             step,
             owner: "erick".into(),
             reason: "needed for the build toolchain".into(),
-            expires_at: now() + Duration::days(days),
+            expires_at: now() + SignedDuration::from_hours(HOURS_PER_DAY * days),
             approvals: roles
                 .iter()
                 .map(|r| Approval {
@@ -131,7 +135,7 @@ fn run_with_ceiling(
         prev_version: prev.map(|p| p.0),
         prev_digest: prev.map(|p| p.1),
         prev_conditions: &[],
-        bundle_lifetime: Duration::hours(1),
+        bundle_lifetime: SignedDuration::from_hours(1),
         ceilings: &ceilings,
     })
 }
@@ -171,7 +175,7 @@ fn hardened_read_only_policy_compiles() {
     assert_eq!(b.meta.version, 1);
     assert_eq!(b.content.audiences[0].ttl_seconds, Some(300)); // K5.1 R0 ceiling
     assert_eq!(b.content.knobs.len(), registry::REGISTRY.len());
-    assert_eq!(b.meta.not_after, now() + Duration::hours(1));
+    assert_eq!(b.meta.not_after, now() + SignedDuration::from_hours(1));
     let exp = o.status.max_exposure.unwrap();
     assert!(!exp.write_capable);
     assert_eq!(exp.audiences.len(), 1);
@@ -265,15 +269,15 @@ fn valid_grant_applies_and_clamps_bundle_validity() {
     let b = o.bundle.unwrap();
     assert_eq!(b.content.knobs[&KnobId::new("K2.3")], Step::R1);
     // The grant outlives the one hour bundle lifetime here, so validity stays at one hour.
-    assert_eq!(b.meta.not_after, now() + Duration::hours(1));
+    assert_eq!(b.meta.not_after, now() + SignedDuration::from_hours(1));
 
     // A grant that expires in 30 minutes clamps the bundle to that instant.
     let mut short = grant("pkg", "K2.3", Step::R1, 0, &[Role::PlatformOwner]);
-    short.spec.expires_at = now() + Duration::minutes(30);
+    short.spec.expires_at = now() + SignedDuration::from_mins(30);
     let o = run(&po, Some(&pr), &[short], None);
     assert_eq!(
         o.bundle.unwrap().meta.not_after,
-        now() + Duration::minutes(30)
+        now() + SignedDuration::from_mins(30)
     );
 }
 
@@ -317,7 +321,7 @@ fn expired_grant_is_reported_and_not_applied() {
     let pr = profile("hardened");
     let po = policy("hardened", vec![]);
     let mut g = grant("old", "K2.3", Step::R1, 10, &[Role::PlatformOwner]);
-    g.spec.expires_at = now() - Duration::minutes(1);
+    g.spec.expires_at = now() - SignedDuration::from_mins(1);
     let o = run(&po, Some(&pr), &[g], None);
     assert_eq!(o.grants[0].phase, GrantPhase::Expired);
     assert!(o.status.active_grants.is_empty());
@@ -425,7 +429,7 @@ fn content_without_a_canonical_form_fails_closed() {
         prev_version: None,
         prev_digest: None,
         prev_conditions: &[],
-        bundle_lifetime: Duration::hours(1),
+        bundle_lifetime: SignedDuration::from_hours(1),
         ceilings: &ceilings,
     });
     assert!(o.bundle.is_none(), "a bundle was compiled");
