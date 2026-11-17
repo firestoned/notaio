@@ -13,8 +13,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
 use std::sync::Arc;
 
-use chrono::{Duration, TimeZone, Utc};
 use clap::CommandFactory;
+use jiff::{SignedDuration, Timestamp};
 use kube::CustomResourceExt;
 use sandboxpolicy_api::{ExposureCeiling, KnobGrant, SandboxPolicy, SandboxProfile};
 use sandboxpolicy_core::builtin;
@@ -362,10 +362,7 @@ fn sample_snapshot() -> Option<Sample> {
 /// `(name as served, type, help, label names)` for every metric `/metrics` serves.
 fn metric_rows() -> Vec<(String, String, String, BTreeSet<String>)> {
     let (policies, grants) = sample_snapshot().unwrap_or_default();
-    let now = Utc
-        .with_ymd_and_hms(2026, 1, 1, 0, 30, 0)
-        .single()
-        .unwrap_or_default();
+    let now: Timestamp = "2026-01-01T00:30:00Z".parse().unwrap_or_default();
     let text = metrics::render(
         &Counters::default(),
         &Snapshot {
@@ -373,7 +370,7 @@ fn metric_rows() -> Vec<(String, String, String, BTreeSet<String>)> {
             profiles: &[],
             grants: &grants,
             now,
-            bundle_lifetime: Duration::hours(1),
+            bundle_lifetime: SignedDuration::from_hours(1),
         },
     );
     let mut rows: BTreeMap<String, (String, String, BTreeSet<String>)> = BTreeMap::new();

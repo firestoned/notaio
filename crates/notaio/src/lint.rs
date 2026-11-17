@@ -22,7 +22,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
-use chrono::{DateTime, Duration, Utc};
+use jiff::{SignedDuration, Timestamp};
 use sandboxpolicy_api::{ExposureCeiling, GrantPhase, KnobGrant, SandboxPolicy, SandboxProfile};
 use sandboxpolicy_core::ceilings::Ceilings;
 use sandboxpolicy_core::lint::{lint_classifications, lint_knobs, Finding, Severity, RULES};
@@ -196,7 +196,7 @@ fn collect(path: &Path, out: &mut Vec<PathBuf>) -> Result<(), InputError> {
 ///
 /// # Errors
 /// As [`lint_sources_with`].
-pub fn lint_sources(sources: &[Source], now: DateTime<Utc>) -> Result<Report, InputError> {
+pub fn lint_sources(sources: &[Source], now: Timestamp) -> Result<Report, InputError> {
     lint_sources_with(sources, now, &Ceilings::default())
 }
 
@@ -207,7 +207,7 @@ pub fn lint_sources(sources: &[Source], now: DateTime<Utc>) -> Result<Report, In
 /// diagnostics, never errors.
 pub fn lint_sources_with(
     sources: &[Source],
-    now: DateTime<Utc>,
+    now: Timestamp,
     ceilings: &Ceilings,
 ) -> Result<Report, InputError> {
     let mut report = Report::default();
@@ -378,7 +378,7 @@ fn lint_policy(
     path: &Path,
     policy: &SandboxPolicy,
     refs: &PolicyRefs<'_>,
-    now: DateTime<Utc>,
+    now: Timestamp,
     ceilings: &Ceilings,
 ) {
     let PolicyRefs {
@@ -420,7 +420,7 @@ fn lint_policy(
         prev_digest: None,
         prev_conditions: &[],
         // It affects only `notAfter`, which lint does not report: the controller's default.
-        bundle_lifetime: Duration::seconds(crate::cli::DEFAULT_BUNDLE_LIFETIME_SECONDS),
+        bundle_lifetime: SignedDuration::from_secs(crate::cli::DEFAULT_BUNDLE_LIFETIME_SECONDS),
         ceilings,
     });
 

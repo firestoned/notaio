@@ -14,7 +14,7 @@
 
 mod common;
 
-use chrono::Utc;
+use jiff::Timestamp;
 use k8s_openapi::api::apps::v1::Deployment;
 use k8s_openapi::api::core::v1::{ConfigMap, Pod};
 use kube::api::{DeleteParams, ListParams, Patch, PatchParams, PostParams};
@@ -146,7 +146,7 @@ async fn signs_through_openbao_and_fails_closed_without_it() {
         key_id.starts_with("notaio:v"),
         "key id names the key version"
     );
-    let payload = verify_bundle(&env, &trusted_keys(), &VerifyOptions::at(Utc::now()))
+    let payload = verify_bundle(&env, &trusted_keys(), &VerifyOptions::at(Timestamp::now()))
         .expect("the bundle verifies against OpenBao's public key");
     assert_eq!(payload.content.policy.name, signed);
 

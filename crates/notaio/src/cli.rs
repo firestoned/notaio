@@ -4,8 +4,8 @@
 
 use std::path::PathBuf;
 
-use chrono::{DateTime, Utc};
 use clap::{Parser, Subcommand, ValueEnum};
+use jiff::Timestamp;
 
 /// How long a bundle stays valid, in seconds. A consumer refuses a bundle past `notAfter`, so this
 /// bounds how long a policy that turns invalid stays honoured, and how long the signer may be down
@@ -80,7 +80,7 @@ pub struct LintArgs {
     pub format: Format,
     /// Evaluate grants at this instant (RFC 3339) instead of now.
     #[arg(long)]
-    pub now: Option<DateTime<Utc>>,
+    pub now: Option<Timestamp>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]

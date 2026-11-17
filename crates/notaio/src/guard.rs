@@ -7,23 +7,23 @@
 //! build none of them ever fails. If one does, nothing is published and
 //! `notaio_fail_open_total{check}` counts it.
 
-use chrono::{DateTime, Utc};
+use jiff::Timestamp;
 use sandboxpolicy_core::lint::{Finding, Severity};
 
 /// What the guard needs to know about an evaluation that produced a bundle.
 pub struct Evaluated<'a> {
     /// The bundle's `meta.notAfter`.
-    pub not_after: DateTime<Utc>,
+    pub not_after: Timestamp,
     /// Whether an `ExposureCeiling` for the policy existed (ADR-0007).
     pub has_ceiling: bool,
     pub findings: &'a [Finding],
     /// The expiry of every grant the bundle applies, by grant name.
-    pub active_grant_expiries: &'a [(String, DateTime<Utc>)],
+    pub active_grant_expiries: &'a [(String, Timestamp)],
 }
 
 /// The checks `e` fails, by their stable names in `crate::metrics::FAIL_OPEN_CHECKS`. Empty means
 /// the bundle may be signed.
-pub fn check(e: &Evaluated<'_>, now: DateTime<Utc>) -> Vec<&'static str> {
+pub fn check(e: &Evaluated<'_>, now: Timestamp) -> Vec<&'static str> {
     let mut failed = Vec::new();
     if !e.has_ceiling {
         failed.push("no-ceiling");

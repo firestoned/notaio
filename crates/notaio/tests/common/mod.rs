@@ -11,9 +11,13 @@
 use std::future::Future;
 use std::time::Duration;
 
-use chrono::Utc;
+use jiff::{SignedDuration, Timestamp};
 use kube::Client;
 use serde_json::{json, Value};
+
+/// A grant lifetime is counted in whole days; a timestamp only adds hours (jiff keeps calendar
+/// days for zoned time).
+const HOURS_PER_DAY: i64 = 24;
 
 /// How long any single wait may take before the suite fails. A cold controller on a fresh kind
 /// cluster reconciles in seconds; this leaves room for a slow CI runner, not for a missing feature.
@@ -90,7 +94,7 @@ fn required_env(name: &str) -> String {
 
 /// A name no earlier run on the same cluster has used.
 pub fn unique_name(prefix: &str) -> String {
-    format!("e2e-{prefix}-{}", Utc::now().timestamp_millis())
+    format!("e2e-{prefix}-{}", Timestamp::now().as_millisecond())
 }
 
 /// Polls `check` until it returns `Some`, or panics naming `what` after [`CONVERGE_TIMEOUT`].
@@ -160,7 +164,7 @@ pub fn hardened_policy(name: &str, namespace: &str) -> Value {
 /// `examples/knobgrant-package-install.yaml`, but never expired: a fixed date would turn this
 /// suite red on that day.
 pub fn package_install_grant(name: &str, namespace: &str, policy: &str) -> Value {
-    let expires = (Utc::now() + chrono::Duration::days(7)).to_rfc3339();
+    let expires = (Timestamp::now() + SignedDuration::from_hours(HOURS_PER_DAY * 7)).to_string();
     json!({
         "apiVersion": "sandbox.firestoned.io/v1alpha2",
         "kind": "KnobGrant",

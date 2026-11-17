@@ -12,7 +12,7 @@ use std::collections::BTreeMap;
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
 
-use chrono::{DateTime, Utc};
+use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
 
 use crate::{verify_bundle, BundleError, BundlePayload, Envelope, TrustedKeys, VerifyOptions};
@@ -29,7 +29,7 @@ pub struct FloorEntry {
     /// The highest version accepted for that incarnation.
     pub version: u64,
     /// `issuedAt` of the latest bundle accepted, to order incarnations.
-    pub issued_at: DateTime<Utc>,
+    pub issued_at: Timestamp,
 }
 
 /// Where a consumer keeps its floor.
@@ -226,7 +226,7 @@ pub fn next_floor(
 pub fn accept(
     env: &Envelope,
     keys: &TrustedKeys,
-    now: DateTime<Utc>,
+    now: Timestamp,
     floor: &mut dyn VersionFloor,
 ) -> Result<BundlePayload, BundleError> {
     let payload = verify_bundle(env, keys, &VerifyOptions::at(now))?;

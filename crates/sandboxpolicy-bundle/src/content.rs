@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 use std::collections::BTreeMap;
 
-use chrono::{DateTime, Utc};
+use jiff::Timestamp;
 use sandboxpolicy_types::{AudienceGrant, Budgets, EgressRule, KnobId, Lease, Step, ToolRef};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -79,10 +79,10 @@ fn hex_lower(bytes: &[u8]) -> String {
 pub struct BundleMeta {
     /// Monotonic. Bumps only when `contentDigest` changes.
     pub version: u64,
-    pub issued_at: DateTime<Utc>,
+    pub issued_at: Timestamp,
     /// The bundle is worthless after this instant. Bounded by the earliest active grant expiry, so a
     /// relaxation lapses without any revocation mechanism.
-    pub not_after: DateTime<Utc>,
+    pub not_after: Timestamp,
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]

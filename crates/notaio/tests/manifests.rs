@@ -4,7 +4,7 @@
 
 //! The checked-in YAML must parse into the typed objects and behave under the real evaluator.
 
-use chrono::{Duration, TimeZone, Utc};
+use jiff::{SignedDuration, Timestamp};
 use sandboxpolicy_api::{ExposureCeiling, GrantPhase, KnobGrant, SandboxPolicy, SandboxProfile};
 use sandboxpolicy_core::ceilings::Ceilings;
 use sandboxpolicy_core::{builtin, evaluate, EvalInput};
@@ -39,7 +39,7 @@ fn examples_are_valid_and_compile() {
     profile.metadata.generation = Some(1);
 
     let ceilings = Ceilings::default();
-    let now = Utc.with_ymd_and_hms(2026, 9, 30, 12, 0, 0).unwrap();
+    let now: Timestamp = "2026-09-30T12:00:00Z".parse().unwrap();
     let out = evaluate(&EvalInput {
         exposure_ceiling: Some(&ceiling),
         now,
@@ -49,7 +49,7 @@ fn examples_are_valid_and_compile() {
         prev_version: None,
         prev_digest: None,
         prev_conditions: &[],
-        bundle_lifetime: Duration::hours(1),
+        bundle_lifetime: SignedDuration::from_hours(1),
         ceilings: &ceilings,
     });
     assert!(out.bundle.is_some(), "{:?}", out.findings);

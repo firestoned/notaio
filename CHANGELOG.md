@@ -10,6 +10,15 @@ a release, the maintainer renames Unreleased to the version and date.
 
 ## Unreleased
 
+### Changed
+
+- The `sandboxpolicy-*` crates use `jiff` for time instead of `chrono`: `DateTime<Utc>` is
+  `jiff::Timestamp` and `Duration` is `jiff::SignedDuration` throughout the public API, so a
+  consumer bumps with the crates. Bundles, Grants and statuses are unchanged on the wire (RFC 3339
+  either way), bundles signed by earlier releases still verify (a v0.5.2 fixture proves it), and the
+  CRDs are byte for byte the same. Error and lint messages print a timestamp as
+  `2026-11-15T16:46:49Z` rather than `2026-11-15 16:46:49 UTC` (#94).
+
 ## [0.5.2] - 2026-11-08
 
 A lint warning for ceilings that disagree about an audience, for policy repositories. The

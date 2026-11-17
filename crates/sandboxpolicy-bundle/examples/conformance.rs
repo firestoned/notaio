@@ -17,7 +17,7 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 
 use base64::{engine::general_purpose::STANDARD, Engine as _};
-use chrono::{DateTime, Duration, TimeZone, Utc};
+use jiff::{SignedDuration, Timestamp};
 use sandboxpolicy_bundle::conformance::{Expect, PolicyCoordinates, Suite, TrustedKey, Vector};
 use sandboxpolicy_bundle::floor::FloorEntry;
 use sandboxpolicy_bundle::{
@@ -35,9 +35,9 @@ const NAMESPACE: &str = "conformance";
 const NAME: &str = "agent";
 const UID: &str = "00000000-0000-4000-8000-000000000001";
 
-fn at(h: u32, m: u32) -> DateTime<Utc> {
-    Utc.with_ymd_and_hms(2026, 1, 1, h, m, 0)
-        .single()
+fn at(h: u32, m: u32) -> Timestamp {
+    format!("2026-01-01T{h:02}:{m:02}:00Z")
+        .parse()
         .unwrap_or_default()
 }
 
@@ -84,12 +84,12 @@ fn content(uid: &str) -> BundleContent {
 }
 
 /// Version 3 of the policy's first incarnation, issued 11:00, valid until 13:00.
-fn payload(uid: &str, version: u64, issued_at: DateTime<Utc>) -> Result<BundlePayload, String> {
+fn payload(uid: &str, version: u64, issued_at: Timestamp) -> Result<BundlePayload, String> {
     BundlePayload::new(
         BundleMeta {
             version,
             issued_at,
-            not_after: issued_at + Duration::hours(2),
+            not_after: issued_at + SignedDuration::from_hours(2),
         },
         content(uid),
     )
@@ -100,7 +100,7 @@ fn sign(p: &BundlePayload, seed: [u8; 32]) -> Result<Envelope, String> {
     sign_bundle(p, &Ed25519Signer::from_seed(KEY_ID, seed)).map_err(|e| e.to_string())
 }
 
-fn entry(uid: &str, version: u64, issued_at: DateTime<Utc>) -> FloorEntry {
+fn entry(uid: &str, version: u64, issued_at: Timestamp) -> FloorEntry {
     FloorEntry {
         uid: uid.into(),
         version,
@@ -131,7 +131,7 @@ fn accepted(
 fn refused(
     name: &str,
     description: &str,
-    now: DateTime<Utc>,
+    now: Timestamp,
     floor: Option<FloorEntry>,
     env: Envelope,
     error: &str,

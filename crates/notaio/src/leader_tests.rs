@@ -1,20 +1,17 @@
 // Copyright (c) 2026 Erick Bourgeois, notaio
 // SPDX-License-Identifier: Apache-2.0
-use chrono::TimeZone;
 
 use super::*;
 
-fn now() -> DateTime<Utc> {
-    Utc.with_ymd_and_hms(2026, 10, 26, 12, 0, 0)
-        .single()
-        .unwrap()
+fn now() -> Timestamp {
+    "2026-10-26T12:00:00Z".parse().unwrap()
 }
 
 fn held_by(holder: Option<&str>, renewed_ago: Option<i64>) -> Held {
     Held {
         holder: holder.map(str::to_string),
-        renewed: renewed_ago.map(|s| now() - Duration::seconds(s)),
-        duration: Duration::seconds(LEASE_SECONDS),
+        renewed: renewed_ago.map(|s| now() - SignedDuration::from_secs(s)),
+        duration: SignedDuration::from_secs(LEASE_SECONDS),
     }
 }
 
@@ -76,13 +73,13 @@ fn a_released_or_never_renewed_lease_is_taken_over() {
 fn the_leader_gives_up_before_its_lease_can_expire() {
     // ADR-0011, decision 3: a follower can only take over after LEASE_SECONDS, and the leader stops
     // at RENEW_DEADLINE, so on agreeing clocks the two never overlap.
-    assert!(RENEW_DEADLINE < Duration::seconds(LEASE_SECONDS));
-    assert!(chrono::Duration::from_std(RENEW_EVERY).unwrap() * 2 <= RENEW_DEADLINE);
+    assert!(RENEW_DEADLINE < SignedDuration::from_secs(LEASE_SECONDS));
+    assert!(SignedDuration::try_from(RENEW_EVERY).unwrap() * 2 <= RENEW_DEADLINE);
 }
 
 #[test]
 fn a_lease_is_read_back_as_written() {
-    let t = Timestamp::from_millisecond(now().timestamp_millis()).unwrap();
+    let t = now();
     let lease = Lease {
         metadata: ObjectMeta::default(),
         spec: Some(LeaseSpec {
@@ -97,10 +94,13 @@ fn a_lease_is_read_back_as_written() {
         Held {
             holder: Some("notaio-abc".into()),
             renewed: Some(now()),
-            duration: Duration::seconds(15),
+            duration: SignedDuration::from_secs(15),
         }
     );
     // A Lease written by something else, with no duration, gets ours.
     let bare = Lease::default();
-    assert_eq!(held(&bare).duration, Duration::seconds(LEASE_SECONDS));
+    assert_eq!(
+        held(&bare).duration,
+        SignedDuration::from_secs(LEASE_SECONDS)
+    );
 }

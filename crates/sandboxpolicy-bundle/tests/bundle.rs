@@ -5,7 +5,7 @@
 use std::collections::BTreeMap;
 
 use base64::{engine::general_purpose::STANDARD, Engine as _};
-use chrono::{Duration, TimeZone, Utc};
+use jiff::{SignedDuration, Timestamp};
 use sandboxpolicy_bundle::*;
 use sandboxpolicy_types::{Access, AudienceGrant, Budgets, KnobId, Lease, Step};
 
@@ -46,8 +46,8 @@ fn content() -> BundleContent {
     }
 }
 
-fn now() -> chrono::DateTime<Utc> {
-    Utc.with_ymd_and_hms(2026, 9, 30, 12, 0, 0).unwrap()
+fn now() -> Timestamp {
+    "2026-09-30T12:00:00Z".parse().unwrap()
 }
 
 fn payload(version: u64) -> BundlePayload {
@@ -55,7 +55,7 @@ fn payload(version: u64) -> BundlePayload {
         BundleMeta {
             version,
             issued_at: now(),
-            not_after: now() + Duration::hours(1),
+            not_after: now() + SignedDuration::from_hours(1),
         },
         content(),
     )
@@ -85,7 +85,7 @@ fn round_trip_verifies() {
 fn digest_is_stable_and_ignores_validity_window() {
     let a = payload(1);
     let mut b = payload(9);
-    b.meta.not_after += Duration::hours(5);
+    b.meta.not_after += SignedDuration::from_hours(5);
     assert_eq!(a.content_digest, b.content_digest);
     assert!(a.content_digest.starts_with("sha256:"));
 }
@@ -160,7 +160,7 @@ fn right_keyid_wrong_key_is_rejected() {
 fn expired_bundle_is_rejected() {
     let s = signer();
     let env = sign_bundle(&payload(3), &s).unwrap();
-    let later = now() + Duration::hours(2);
+    let later = now() + SignedDuration::from_hours(2);
     assert!(matches!(
         verify_bundle(&env, &trusted(&s), &VerifyOptions::at(later)).unwrap_err(),
         BundleError::Expired(_)
@@ -171,7 +171,7 @@ fn expired_bundle_is_rejected() {
 fn future_bundle_is_rejected() {
     let s = signer();
     let env = sign_bundle(&payload(3), &s).unwrap();
-    let earlier = now() - Duration::hours(1);
+    let earlier = now() - SignedDuration::from_hours(1);
     assert!(matches!(
         verify_bundle(&env, &trusted(&s), &VerifyOptions::at(earlier)).unwrap_err(),
         BundleError::NotYetValid(_)
@@ -257,7 +257,7 @@ fn content_beyond_the_safe_integer_range_is_refused() {
     let meta = BundleMeta {
         version: 1,
         issued_at: now(),
-        not_after: now() + Duration::hours(1),
+        not_after: now() + SignedDuration::from_hours(1),
     };
     assert!(matches!(
         BundlePayload::new(meta, c),
@@ -290,4 +290,26 @@ fn split_signing_produces_the_same_envelope() {
     let env = envelope(&input.payload, s.key_id(), &sig);
     assert_eq!(env, sign_bundle(&p, &s).unwrap());
     verify_bundle(&env, &trusted(&s), &VerifyOptions::at(now())).unwrap();
+}
+
+/// A bundle signed by notaio v0.5.2, its timestamps carrying the fractional seconds that release
+/// wrote (`issuedAt` to the nanosecond, `notAfter` to the millisecond), keeps verifying: the
+/// signature covers the payload bytes as they are, and the parser accepts what the earlier
+/// serializer produced. Generated once with that release's signer under the test key.
+#[test]
+fn a_bundle_signed_by_an_earlier_release_still_verifies() {
+    let env: Envelope = serde_json::from_str(include_str!("fixtures/bundle-v0.5.2.json")).unwrap();
+    let s = signer();
+    let at = now() + SignedDuration::from_mins(1);
+    let out = verify_bundle(&env, &trusted(&s), &VerifyOptions::at(at)).unwrap();
+    assert_eq!(out.meta.version, 3);
+    assert_eq!(
+        out.meta.issued_at,
+        now() + SignedDuration::from_nanos(123_456_789)
+    );
+    assert_eq!(
+        out.meta.not_after,
+        now() + SignedDuration::from_hours(1) + SignedDuration::from_millis(500)
+    );
+    assert_eq!(out.content.digest().unwrap(), out.content_digest);
 }

@@ -8,7 +8,7 @@
 
 use std::collections::BTreeMap;
 
-use chrono::{DateTime, Duration, Utc};
+use jiff::{SignedDuration, Timestamp};
 use prometheus_client::encoding::text::encode;
 use prometheus_client::metrics::counter::Counter;
 use prometheus_client::metrics::family::Family;
@@ -54,9 +54,9 @@ pub struct Snapshot<'a> {
     pub policies: &'a [std::sync::Arc<SandboxPolicy>],
     pub profiles: &'a [std::sync::Arc<SandboxProfile>],
     pub grants: &'a [std::sync::Arc<KnobGrant>],
-    pub now: DateTime<Utc>,
+    pub now: Timestamp,
     /// The configured bundle lifetime, so a bundle's age follows from its `notAfter`.
-    pub bundle_lifetime: Duration,
+    pub bundle_lifetime: SignedDuration,
 }
 
 fn find<'c>(conditions: &'c [Condition], type_: &str) -> Option<&'c Condition> {
@@ -74,9 +74,8 @@ fn label(pairs: &[(&str, &str)]) -> Labels {
         .collect()
 }
 
-fn seconds(d: Duration) -> f64 {
-    // Millisecond precision is plenty for ages and expiries, and keeps the cast exact.
-    d.num_milliseconds() as f64 / 1000.0
+fn seconds(d: SignedDuration) -> f64 {
+    d.as_secs_f64()
 }
 
 fn phase_name(p: GrantPhase) -> &'static str {
@@ -174,17 +173,13 @@ pub fn render(counters: &Counters, snap: &Snapshot<'_>) -> String {
         let ns = g.metadata.namespace.as_deref().unwrap_or_default();
         let name = g.metadata.name.as_deref().unwrap_or_default();
         let key = label(&[("namespace", ns), ("grant", name)]);
-        if let Some(created) = g
-            .metadata
-            .creation_timestamp
-            .as_ref()
-            .and_then(|t| DateTime::<Utc>::from_timestamp_millis(t.0.as_millisecond()))
-        {
-            age.get_or_create(&key).set(seconds(now - created));
+        if let Some(created) = g.metadata.creation_timestamp.as_ref().map(|t| t.0) {
+            age.get_or_create(&key)
+                .set(seconds(now.duration_since(created)));
         }
         expires_in
             .get_or_create(&key)
-            .set(seconds(g.spec.expires_at - now));
+            .set(seconds(g.spec.expires_at.duration_since(now)));
         if g.spec.expires_at <= now {
             past_expiry.inc();
         }
@@ -220,15 +215,15 @@ pub fn render(counters: &Counters, snap: &Snapshot<'_>) -> String {
         let ns = p.metadata.namespace.as_deref().unwrap_or_default();
         let name = p.metadata.name.as_deref().unwrap_or_default();
         let key = label(&[("namespace", ns), ("policy", name)]);
-        bundle_age
-            .get_or_create(&key)
-            .set(seconds(now - (not_after - snap.bundle_lifetime)));
+        bundle_age.get_or_create(&key).set(seconds(
+            now.duration_since(not_after - snap.bundle_lifetime),
+        ));
         bundle_expires_in
             .get_or_create(&key)
-            .set(seconds(not_after - now));
+            .set(seconds(not_after.duration_since(now)));
     }
     let lifetime: Gauge = Gauge::default();
-    lifetime.set(snap.bundle_lifetime.num_seconds());
+    lifetime.set(snap.bundle_lifetime.as_secs());
     registry.register(
         "notaio_bundle_lifetime_seconds",
         "The configured bundle lifetime: alert on time left as a fraction of it (ADR-0018)",

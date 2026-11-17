@@ -10,11 +10,10 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
-use chrono::{DateTime, Duration, Utc};
+use jiff::{SignedDuration, Timestamp};
 use k8s_openapi::api::coordination::v1::{Lease, LeaseSpec};
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::MicroTime;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
-use k8s_openapi::jiff::Timestamp;
 use kube::api::{Api, PostParams};
 use kube::Client;
 
@@ -25,7 +24,7 @@ pub const LEASE_SECONDS: i64 = 15;
 /// How often the leader renews.
 pub const RENEW_EVERY: std::time::Duration = std::time::Duration::from_secs(5);
 /// A leader that has not renewed for this long gives up, before its Lease can expire.
-pub const RENEW_DEADLINE: Duration = Duration::seconds(10);
+pub const RENEW_DEADLINE: SignedDuration = SignedDuration::from_secs(10);
 /// How often a follower checks whether the Lease is free.
 pub const RETRY_EVERY: std::time::Duration = std::time::Duration::from_secs(2);
 
@@ -33,8 +32,8 @@ pub const RETRY_EVERY: std::time::Duration = std::time::Duration::from_secs(2);
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Held {
     pub holder: Option<String>,
-    pub renewed: Option<DateTime<Utc>>,
-    pub duration: Duration,
+    pub renewed: Option<Timestamp>,
+    pub duration: SignedDuration,
 }
 
 /// What a replica does next.
@@ -51,7 +50,7 @@ pub enum Step {
 }
 
 /// The next step for replica `me`, given the current Lease (None when there is none).
-pub fn decide(current: Option<&Held>, me: &str, now: DateTime<Utc>) -> Step {
+pub fn decide(current: Option<&Held>, me: &str, now: Timestamp) -> Step {
     let Some(h) = current else {
         return Step::Create;
     };
@@ -72,23 +71,13 @@ pub fn decide(current: Option<&Held>, me: &str, now: DateTime<Utc>) -> Step {
     }
 }
 
-fn to_chrono(t: &MicroTime) -> Option<DateTime<Utc>> {
-    DateTime::from_timestamp_millis(t.0.as_millisecond())
-}
-
-fn to_micro(t: DateTime<Utc>) -> Option<MicroTime> {
-    Timestamp::from_millisecond(t.timestamp_millis())
-        .ok()
-        .map(MicroTime)
-}
-
 /// The fields of `lease` that `decide` reads.
 pub fn held(lease: &Lease) -> Held {
     let spec = lease.spec.clone().unwrap_or_default();
     Held {
         holder: spec.holder_identity,
-        renewed: spec.renew_time.as_ref().and_then(to_chrono),
-        duration: Duration::seconds(i64::from(
+        renewed: spec.renew_time.as_ref().map(|t| t.0),
+        duration: SignedDuration::from_secs(i64::from(
             spec.lease_duration_seconds.unwrap_or(LEASE_SECONDS as i32),
         )),
     }
@@ -139,18 +128,18 @@ impl Elector {
     /// Keeps the Lease renewed. Returns only when it is lost, with the reason; the caller then
     /// stops leading (ADR-0011, decision 4).
     pub async fn hold(&self) -> String {
-        let mut last = Utc::now();
+        let mut last = Timestamp::now();
         loop {
             tokio::time::sleep(RENEW_EVERY).await;
             match self.try_once().await {
-                Ok(true) => last = Utc::now(),
+                Ok(true) => last = Timestamp::now(),
                 Ok(false) => {
                     self.leading.store(false, Ordering::Release);
                     return "another replica holds the Lease".to_string();
                 }
                 Err(e) => {
                     tracing::warn!(error = %e, "Lease renewal failed");
-                    if Utc::now() - last >= RENEW_DEADLINE {
+                    if Timestamp::now().duration_since(last) >= RENEW_DEADLINE {
                         self.leading.store(false, Ordering::Release);
                         return format!("could not renew the Lease for {RENEW_DEADLINE}: {e}");
                     }
@@ -184,10 +173,10 @@ impl Elector {
 
     /// One round of `decide` and its write. True when this replica holds the Lease after it.
     async fn try_once(&self) -> Result<bool, kube::Error> {
-        let now = Utc::now();
+        let now = Timestamp::now();
         let current = self.api.get_opt(LEASE_NAME).await?;
         let step = decide(current.as_ref().map(held).as_ref(), &self.me, now);
-        let stamp = to_micro(now);
+        let stamp = Some(MicroTime(now));
         let result = match (step, current) {
             (Step::Wait { .. }, _) => return Ok(false),
             (Step::Create, _) => {

@@ -7,7 +7,7 @@
 
 use std::collections::BTreeMap;
 
-use chrono::{DateTime, Duration, Utc};
+use jiff::{SignedDuration, Timestamp};
 use sandboxpolicy_api::{
     Condition, ExposedAudience, ExposureCeiling, GrantPhase, KnobGrant, MaxExposure, SandboxPolicy,
     SandboxPolicySpec, SandboxPolicyStatus, SandboxProfile, SandboxProfileSpec,
@@ -23,7 +23,7 @@ use crate::lint::{self, has_errors, step_of, summarize, Finding};
 use crate::registry::REGISTRY;
 
 pub struct EvalInput<'a> {
-    pub now: DateTime<Utc>,
+    pub now: Timestamp,
     pub policy: &'a SandboxPolicy,
     /// `None` when the referenced profile does not exist.
     pub profile: Option<&'a SandboxProfile>,
@@ -37,7 +37,7 @@ pub struct EvalInput<'a> {
     pub prev_digest: Option<&'a str>,
     pub prev_conditions: &'a [Condition],
     /// How long a compiled bundle stays valid. This is the upper bound on staleness.
-    pub bundle_lifetime: Duration,
+    pub bundle_lifetime: SignedDuration,
     pub ceilings: &'a Ceilings,
 }
 
@@ -57,7 +57,7 @@ pub struct EvalOutput {
     /// Present only when the policy is valid. Never signed here.
     pub bundle: Option<BundlePayload>,
     pub findings: Vec<Finding>,
-    pub requeue_after: Duration,
+    pub requeue_after: SignedDuration,
 }
 
 /// `sha256:<hex>` of a profile spec. Maps are ordered, so the bytes are stable.
@@ -79,7 +79,7 @@ pub fn condition(
     ok: bool,
     reason: &str,
     message: &str,
-    now: DateTime<Utc>,
+    now: Timestamp,
     generation: Option<i64>,
 ) -> Condition {
     let status = if ok { "True" } else { "False" };
@@ -195,7 +195,7 @@ pub fn evaluate(input: &EvalInput<'_>) -> EvalOutput {
         bundle_digest: input.prev_digest.map(str::to_string),
         ..Default::default()
     };
-    let retry = Duration::seconds(60);
+    let retry = SignedDuration::from_secs(60);
 
     let mut my_grants: Vec<&KnobGrant> = input
         .grants
@@ -276,14 +276,14 @@ pub fn evaluate(input: &EvalInput<'_>) -> EvalOutput {
     let mut granted: BTreeMap<KnobId, String> = BTreeMap::new();
     let mut grants = Vec::new();
     let mut active = Vec::new();
-    let mut earliest: Option<DateTime<Utc>> = None;
+    let mut earliest: Option<Timestamp> = None;
     for g in my_grants {
         let name = grant_name(g);
         if g.spec.expires_at <= now {
             grants.push(GrantResult {
                 name,
                 phase: GrantPhase::Expired,
-                message: format!("expired at {}", g.spec.expires_at.to_rfc3339()),
+                message: format!("expired at {}", g.spec.expires_at),
                 findings: vec![],
             });
             continue;
@@ -329,9 +329,9 @@ pub fn evaluate(input: &EvalInput<'_>) -> EvalOutput {
     let mut findings = lint::lint_policy(&effective, &input.policy.spec, input.ceilings);
     let mut requeue = input.bundle_lifetime / 2;
     if let Some(e) = earliest {
-        requeue = requeue.min(e - now + Duration::seconds(1));
+        requeue = requeue.min(e.duration_since(now) + SignedDuration::from_secs(1));
     }
-    let requeue = requeue.max(Duration::seconds(10));
+    let requeue = requeue.max(SignedDuration::from_secs(10));
     if has_errors(&findings) {
         let msg = summarize(&findings);
         status.conditions = vec![
@@ -461,7 +461,7 @@ fn not_canonical(
     mut status: SandboxPolicyStatus,
     grants: Vec<GrantResult>,
     findings: Vec<Finding>,
-    requeue: Duration,
+    requeue: SignedDuration,
     conditions: Vec<Condition>,
 ) -> EvalOutput {
     status.bundle_version = None;

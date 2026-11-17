@@ -1,6 +1,6 @@
 // Copyright (c) 2026 Erick Bourgeois, notaio
 // SPDX-License-Identifier: Apache-2.0
-use chrono::{DateTime, Utc};
+use jiff::Timestamp;
 use kube::CustomResource;
 use sandboxpolicy_types::{KnobId, Role, Step};
 use schemars::JsonSchema;
@@ -46,7 +46,7 @@ pub struct KnobGrantSpec {
     /// Why it is needed, for whoever reviews the relaxation dashboard.
     pub reason: String,
     /// When it ends. At most 90, 30 or 7 days away for R1, R2 or R3 (lint L012).
-    pub expires_at: DateTime<Utc>,
+    pub expires_at: Timestamp,
     /// One approval from every role the knob register names for this knob (lint L013).
     #[serde(default)]
     pub approvals: Vec<Approval>,
