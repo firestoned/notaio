@@ -4,7 +4,7 @@ status: implemented
 
 # Install notaio
 
-This installs a release into a cluster: the four CRDs, the controller, its RBAC and
+This installs a release into a cluster: the five CRDs, the controller, its RBAC and
 NetworkPolicy, and the built-in profiles. It takes about fifteen minutes once OpenBao is ready.
 
 ## Before you start
@@ -142,7 +142,7 @@ curl -fsSLO "$RAW/deploy/admission/gitops-only.yaml"
 kubectl apply -f gitops-only.yaml
 ```
 
-From then on only that identity can create, change or delete the four kinds, cluster-admin
+From then on only that identity can create, change or delete the five kinds, cluster-admin
 included. notaio's own writes go to the status subresource, which the policy does not match.
 
 ## 6. Check it

@@ -40,7 +40,7 @@ flowchart LR
 
 Three ideas run through every page:
 
-- **Policy is data, reviewed like code.** The four kinds arrive only through review and a GitOps
+- **Policy is data, reviewed like code.** The five kinds arrive only through review and a GitOps
   reconciler (`deploy/admission/gitops-only.yaml`). notaio itself can read them and write their
   status, nothing else.
 - **Everything narrows.** A profile sets the loosest each knob may be; a policy can only narrow

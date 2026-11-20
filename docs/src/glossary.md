@@ -78,7 +78,7 @@ What notaio implements, supports or leaves: [Threat Model Mapping](security/thre
 | `M0` to `M5` | a roadmap milestone | [Roadmap](roadmap.md) |
 | roadmap `00` | a detailed plan for a milestone | `.github/community/` in the repository |
 | `notaio:v1` | a signing key id: key name and version | [The Bundle](concepts/bundle.md#who-signs) |
-| `v1alpha2` | the API version of the four kinds | [CRD API](reference/crds.md) |
+| `v1alpha2` | the API version of the five kinds | [CRD API](reference/crds.md) |
 | `bundle/v3` | the bundle schema | [The Bundle](concepts/bundle.md) |
 
 ## Terms

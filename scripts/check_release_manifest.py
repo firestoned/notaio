@@ -31,8 +31,8 @@ FORBIDDEN = {
     "ValidatingAdmissionPolicy",
     "ValidatingAdmissionPolicyBinding",
 }
-# notaio-<version>-crds.yaml: the four CRDs and nothing else.
-EXPECTED_CRDS = {"CustomResourceDefinition": 4}
+# notaio-<version>-crds.yaml: the five CRDs and nothing else.
+EXPECTED_CRDS = {"CustomResourceDefinition": 5}
 CONTROLLER_NAMESPACE = "notaio-system"
 
 
