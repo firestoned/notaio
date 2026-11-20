@@ -63,9 +63,9 @@ Sandboxes take no inbound connections and have no route to any Kubernetes API se
 
 | Component | Runs | Relationship to notaio | Today |
 | --- | --- | --- | --- |
-| **notaio** | management cluster; policy repository CI | The only producer of bundles. `notaio controller` watches the four kinds, writes their status and the bundle, and nothing else. `notaio lint` runs the same checks on the policy repository's files in every pull request ([ADR-0006](adr/0006-notaio-lint-cli.md)). | implemented; e2e on kind and k0s |
-| Policy repository | Git | Where the four kinds are authored and reviewed; ceilings sit under a path its CODEOWNERS gives to the security approvers. A `KnobGrant`'s approvals reference the reviewed change. | by convention |
-| GitOps reconciler | management cluster | The only identity allowed to create, change or delete the four kinds (`deploy/admission/gitops-only.yaml`). notaio itself cannot (`deploy/controller/10-rbac.yaml`). | implemented; `e2e_admission`, `e2e_rbac` |
+| **notaio** | management cluster; policy repository CI | The only producer of bundles. `notaio controller` watches the five kinds, writes their status and the bundle, and nothing else. `notaio lint` runs the same checks on the policy repository's files in every pull request ([ADR-0006](adr/0006-notaio-lint-cli.md)). | implemented; e2e on kind and k0s |
+| Policy repository | Git | Where the five kinds are authored and reviewed; ceilings sit under a path its CODEOWNERS gives to the security approvers. A `KnobGrant`'s approvals reference the reviewed change. | by convention |
+| GitOps reconciler | management cluster | The only identity allowed to create, change or delete the five kinds (`deploy/admission/gitops-only.yaml`). notaio itself cannot (`deploy/controller/10-rbac.yaml`). | implemented; `e2e_admission`, `e2e_rbac` |
 | [banlieue](https://github.com/firestoned/banlieue) | management cluster | Creates one VM per identity, outside any cluster, and hands it out through a claim. Consumes the CRD types (`sandboxpolicy-api`): its admission checks claim eligibility with these objects as parameters, and the claim records the policy version. No policy logic lives in banlieue. | M3 |
 | [mediatore](https://github.com/firestoned/mediatore) | management cluster | Binds a person's login to an attested VM and mints short-lived, one-audience tokens. Verifies the bundle, evaluates it at every mint, stamps the bundle version into the token and refuses a stale one. Never watches policy objects. | M3 |
 | [mediatore-guest](https://github.com/firestoned/mediatore/tree/main/crates/mediatore-guest) | root, inside every sandbox VM | Renders the jail, the nftables ruleset and the agent's settings from the verified bundle. Depends on `sandboxpolicy-bundle` only, which has no Kubernetes dependency, so a root process in a hostile VM inherits no cluster client. Never evaluates policy for itself. | M3 |
@@ -78,9 +78,12 @@ change, which is why they sit in small crates with their own ADR.
 
 | Contract | Written by | Read by | Defined in | State |
 | --- | --- | --- | --- | --- |
-| `SandboxProfile`, `SandboxPolicy`, `KnobGrant`, `ExposureCeiling` (`sandbox.firestoned.io/v1alpha2`) | GitOps reconciler (spec), notaio (status only) | notaio; banlieue admission (M3) | `crates/sandboxpolicy-api`, `deploy/crds/` | v1alpha1 |
+| `SandboxProfile`, `SandboxPolicy`, `KnobGrant`, `ExposureCeiling`, `SandboxAudience` (`sandbox.firestoned.io/v1alpha2`) | GitOps reconciler (spec), notaio (status only) | notaio; banlieue admission (M3) | `crates/sandboxpolicy-api`, `deploy/crds/` | v1alpha2 |
 | Signed bundle: a DSSE envelope over the compiled content, canonicalised with RFC 8785 | notaio, and only notaio | mediatore, mediatore-guest, gateway | `crates/sandboxpolicy-bundle`, [ADR-0002](adr/0002-bundle-contract.md), [ADR-0005](adr/0005-canonical-form-rfc-8785.md) | implemented; schema v2, frozen |
 | Bundle location | notaio | mediatore through the API; guests through mediatore's relay | ConfigMap `<policy>-bundle` beside the policy, with version and digest annotations ([ADR-0003](adr/0003-bundle-distribution.md)) | published today; the relay is M3 |
+| Signed audience bundle: one `SandboxAudience`'s definition, its own DSSE payload type and schema `audience-bundle/v1`, so it never verifies as a policy bundle | notaio, and only notaio, when the platform audience namespace is set | mediatore | `crates/sandboxpolicy-bundle/src/audience.rs`, [ADR-0020](adr/0020-sandbox-audience.md) | implemented; mediatore adopts it in its ADR-0055 |
+| Audience bundle location | notaio | mediatore through the API | ConfigMap `<audience>-audience` beside the audience, key `audience.dsse.json`, the same annotations, owned by the `SandboxAudience` | implemented |
+| Platform audience namespace: which namespace holds platform audiences; every other holds team audiences | the operator, on both sides | notaio (`NOTAIO_AUDIENCE_PLATFORM_NAMESPACE`), each consumer | [ADR-0020](adr/0020-sandbox-audience.md), decision 2 | implemented; no default |
 | Consumer version floor: the highest version accepted per policy, keyed by namespace and name, with the incarnation's `uid` | each consumer, on its own disk | that consumer | `crates/sandboxpolicy-bundle/src/floor.rs`, [ADR-0008](adr/0008-consumer-version-floor.md) | implemented; consumers adopt it in M3 |
 | Signing key and its public half | OpenBao transit, non-exportable; notaio may only request signatures | every consumer, configured out of band, key id `<name>:v<N>` | [ADR-0004](adr/0004-signing-key-custody.md), `deploy/signer/` | implemented, and the default |
 | Policy status: `Ready`, version, digest, `maxExposure`, active grants | notaio | operators, reviewers, dashboards | `crates/sandboxpolicy-api` | implemented |
@@ -162,7 +165,7 @@ sequenceDiagram
 - **notaio trusts only the API server.** It takes no inbound connection that can influence what it
   signs: its one listener serves health and metrics, reads nothing from a request but its path, and
   admits only the monitoring namespace ([ADR-0010](adr/0010-health-metrics-and-events.md)). It
-  holds no hypervisor credentials, and no agent traffic reaches it. Its RBAC is read on the four
+  holds no hypervisor credentials, and no agent traffic reaches it. Its RBAC is read on the five
   kinds, status writes, Events, its own leader Lease, and bundle writes in named namespaces.
 - **Duties are split on purpose.** banlieue holds the keys to the VMs, mediatore holds the power to
   mint tokens, and notaio holds the power to sign policy. The threat model requires that whoever
@@ -174,7 +177,7 @@ sequenceDiagram
   policy and never talks to a Kubernetes API server, so a compromised guest can at worst break its
   own sandbox, which the controls outside the guest (host and gateway) still contain.
 
-## The four kinds
+## The five kinds
 
 **SandboxProfile** (cluster scoped). A named set of knob steps, `R0` to `R3`, plus a `dataScope`.
 `dataScope: LabOnly` records that the profile holds no sensitive data, which is what lets Lab combine
@@ -197,6 +200,17 @@ hosts, its tools and its longest lease, plus an approval from the `Security` rol
 cover, publishes nothing new. Widening a policy therefore takes two approvals: the policy change
 and the ceiling change. The controller only reads ceilings.
 
+**SandboxAudience** (namespaced). The definition of one audience: how the consumer obtains the
+credential (`backend`), where it places it (`placement`), its format and headers, a reference to
+its source (never the material), its endpoints, the widest rules any grant may have and the longest
+token ([ADR-0020](adr/0020-sandbox-audience.md)). The namespace decides what it is: in the platform
+audience namespace it is a platform audience, usable wherever a signed grant reaches; anywhere else
+it is a team audience, usable and grantable only in its own namespace, with a `secret` or `none`
+backend and a Secret in its own namespace as its source. It grants nothing: a policy grants it, and
+the policy's ceiling must approve its endpoints and lifetime. Each valid one is signed into its own
+bundle. Off until `NOTAIO_AUDIENCE_PLATFORM_NAMESPACE` is set; while it is unset, policies are
+checked exactly as before.
+
 ## Evaluation
 
 `sandboxpolicy_core::evaluate` is a pure function of the policy, its profile, its grants and `now`.
@@ -217,6 +231,15 @@ and the ceiling change. The controller only reads ceilings.
 7. The exposure, grants included, must be covered by the policy's ExposureCeiling (L014 to
    L016). If it is not, or there is none, no bundle is compiled, `Ready` is `False` with the
    reason, and `maxExposure` is still reported so the approvers can see what to approve.
+8. With audiences on (ADR-0020), step 3 also resolves each granted audience to its definition (a
+   platform audience, else a team audience in the policy's namespace; L027) and checks the grant
+   sits inside it (L028), and step 7 also checks the definition's endpoints and lifetime against
+   the ceiling (L014).
+
+A `SandboxAudience` is evaluated on its own by `sandboxpolicy_core::evaluate_audience`, against
+every other audience: L017 on its endpoints and rules, L022 to L026, and the L029 warning. A name
+or endpoint collision (L024, L025) refuses the newcomer: an audience whose published bundle is its
+current content keeps publishing, and the one that changed or arrived is refused.
 
 The lint rules and their codes are documented at the top of
 `crates/sandboxpolicy-core/src/lint.rs`.
@@ -236,10 +259,15 @@ an error finding and 2 on unreadable input.
 
 ## The controller
 
-`notaio controller`: two reconcilers in one process. The profile reconciler lints and records a digest. The policy
-reconciler gathers the profile and grants, calls `evaluate`, updates grant statuses, signs and
-publishes the bundle to a ConfigMap named `<policy>-bundle` in the policy's namespace, and patches
-status.
+`notaio controller`: two reconcilers in one process, three with audiences on. The profile
+reconciler lints and records a digest. The policy reconciler gathers the profile and grants, calls
+`evaluate`, updates grant statuses, signs and publishes the bundle to a ConfigMap named
+`<policy>-bundle` in the policy's namespace, and patches status. The audience reconciler (only when
+`NOTAIO_AUDIENCE_PLATFORM_NAMESPACE` is set) calls `evaluate_audience`, signs with the same key and
+publishes `<audience>-audience` in the audience's namespace, owned by the audience so deleting it
+deletes the bundle. Both read every audience from one cache, filled before either starts, so a
+half-filled cache can never make a defined audience look undefined. A change to an audience
+re-evaluates the policies that grant it and the audiences it collides with.
 
 - **Idempotent.** It writes only when something other than the refresh timestamp changed, so its own
   status writes do not cause a reconcile loop.
@@ -270,16 +298,21 @@ status.
   lists every Rust crate. A finding is suppressed only by an OpenVEX statement in `.vex/` backed
   by a fact about the binary, re-checked on every pull request; a fixable High or Critical fails
   the build ([ADR-0012](adr/0012-image-scanning-and-vex.md)).
-- **Least privilege.** Read on the four kinds, `patch` on their status, `create/patch` on
+- **Least privilege.** Read on the five kinds, `patch` on their status, `create/patch` on
   `events.k8s.io` Events, `get/update` on its own Lease, `get/create/patch` on ConfigMaps in named
   namespaces only. It cannot create, edit or delete a policy object, and it holds no hypervisor
-  credentials. Its only inbound port is health and metrics.
+  credentials. It never reads the Secrets or ConfigMaps an audience references. Its only inbound
+  port is health and metrics.
 
 ## The bundle
 
 Defined in `sandboxpolicy-bundle`, described in [ADR-0002](adr/0002-bundle-contract.md). A consumer
 verifies the DSSE signature, the payload type, the schema, the content digest, the validity window
 and that the version is not below the highest it has accepted. Every failure is a refusal.
+
+An audience bundle is checked the same way (`verify_audience_bundle`, `floor::accept_audience`),
+under its own payload type and schema, with its own floor per audience namespace and name
+([ADR-0020](adr/0020-sandbox-audience.md)).
 
 ## What this project does not do
 

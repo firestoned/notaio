@@ -26,3 +26,26 @@ Bundle schema `sandbox.firestoned.io/bundle/v3`. Trusted key, for these vectors 
 | `refused-old-schema` | none | refused: `Schema` | Validly signed, but schema v2: refused, never read as v3. |
 | `refused-payload-type` | none | refused: `PayloadType` | The envelope's payload type is v2: refused before anything else is read. |
 | `refused-malformed` | none | refused: `Malformed` | The payload is not base64: refused. |
+| `refused-audience-envelope` | none | refused: `PayloadType` | A valid audience bundle (ADR-0020), signed by the trusted key: refused by its payload type, never read as a policy. |
+
+## Audience bundles
+
+In `audience-vectors.json`, with `audience-bundle-v1.schema.json`, through `conformance::audience_suite` and `run_audience` ([ADR-0020](../adr/0020-sandbox-audience.md)). Bundle schema `sandbox.firestoned.io/audience-bundle/v1`, the same trusted key. Every vector concerns the audience `conformance/artifactory`, its floor kept under the name `audience/artifactory`. A vector with a minimum version is verified with it before the floor.
+
+| Vector | Floor before | Verdict | What it checks |
+| --- | --- | --- | --- |
+| `accepted-first-sight` | none | accepted, v3 | No floor yet: a valid audience bundle is accepted and becomes the floor. |
+| `accepted-same-version` | v3 of `0011` | accepted, v3 | The floor's own version again (a re-delivery): accepted, the floor unchanged. |
+| `accepted-newer-version` | v2 of `0011` | accepted, v3 | A higher version of the same incarnation: accepted, the floor moves up. |
+| `accepted-new-incarnation` | v9 of `0012` | accepted, v3 | A recreated audience (new uid) issued after the floor's bundle: accepted, the floor moves to it. |
+| `refused-downgrade` | v4 of `0011` | refused: `Downgrade` | A lower version of the incarnation the floor holds: refused. |
+| `refused-stale-incarnation` | v1 of `0012` | refused: `StaleIncarnation` | Another incarnation, issued no later than the floor's bundle: a replay from before a recreation, refused. |
+| `refused-policy-envelope` | none | refused: `PayloadType` | A valid policy bundle, signed by the trusted key: refused by its payload type, never read as an audience. |
+| `refused-forged-signature` | none | refused: `NoValidSignature` | One bit of the signature flipped: refused. |
+| `refused-untrusted-key` | none | refused: `NoValidSignature` | Signed by a key nobody trusts, under the trusted key's id: refused. |
+| `refused-digest-mismatch` | none | refused: `DigestMismatch` | Validly signed, but contentDigest is not the digest of the content: refused. |
+| `refused-policy-schema` | none | refused: `Schema` | Validly signed under the audience payload type, but the policy bundle's schema: refused. |
+| `refused-expired` | none | refused: `Expired` | The consumer's clock at notAfter exactly: refused. |
+| `refused-not-yet-valid` | none | refused: `NotYetValid` | Issued five minutes after the consumer's clock, beyond the 60 seconds of skew: refused. |
+| `refused-below-min-version` | none | refused: `Downgrade` | Version 3 against a consumer demanding at least 4, with no floor: refused. |
+| `refused-malformed` | none | refused: `Malformed` | The payload is not base64: refused. |

@@ -25,6 +25,17 @@
 //! | L019 | A direct egress entry the gateway cannot enforce: method and path rules, or a wildcard host |
 //! | L020 | A policy on a `LabOnly` profile exposes an audience its ceiling does not classify `LabOnly` |
 //! | L021 | Two ceilings classify the same audience differently (a warning, from `notaio lint`) |
+//! | L022 | A team audience with a backend other than `secret` or `none` |
+//! | L023 | A team audience with an `openbao` source |
+//! | L024 | A team audience and a platform audience with the same name (on the newcomer) |
+//! | L025 | An endpoint held by two audiences visible from one namespace (on the newcomer) |
+//! | L026 | A header name that is not a lowercase token, or one of the reserved names |
+//! | L027 | A policy grants an audience no definition is visible for, or a team audience from another namespace |
+//! | L028 | A grant's endpoints, rules or token lifetime wider than its audience's definition |
+//! | L029 | A team audience placed in the proxy (a warning, it publishes) |
+//!
+//! L022 to L029 and the definition half of L014 are ADR-0020's, and apply only once the platform
+//! audience namespace is configured (`crate::audience`).
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -104,6 +115,35 @@ pub const RULES: &[(&str, &str)] = &[
         "L021",
         "Two ceilings classify the same audience differently",
     ),
+    (
+        "L022",
+        "A team audience with a backend other than `secret` or `none`",
+    ),
+    ("L023", "A team audience with an `openbao` source"),
+    (
+        "L024",
+        "A team audience and a platform audience with the same name",
+    ),
+    (
+        "L025",
+        "An endpoint held by two audiences visible from one namespace",
+    ),
+    (
+        "L026",
+        "A header name that is not a lowercase token, or one of the reserved names",
+    ),
+    (
+        "L027",
+        "A policy grants an audience no definition is visible for, or a team audience from another namespace",
+    ),
+    (
+        "L028",
+        "A grant's endpoints, rules or token lifetime wider than its audience's definition",
+    ),
+    (
+        "L029",
+        "A team audience placed in the proxy",
+    ),
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -121,7 +161,11 @@ pub struct Finding {
 }
 
 impl Finding {
-    fn err(code: &'static str, path: impl Into<String>, message: impl Into<String>) -> Self {
+    pub(crate) fn err(
+        code: &'static str,
+        path: impl Into<String>,
+        message: impl Into<String>,
+    ) -> Self {
         Finding {
             code,
             severity: Severity::Error,
@@ -129,7 +173,11 @@ impl Finding {
             message: message.into(),
         }
     }
-    fn warn(code: &'static str, path: impl Into<String>, message: impl Into<String>) -> Self {
+    pub(crate) fn warn(
+        code: &'static str,
+        path: impl Into<String>,
+        message: impl Into<String>,
+    ) -> Self {
         Finding {
             severity: Severity::Warning,
             ..Finding::err(code, path, message)
@@ -241,9 +289,23 @@ fn endpoint_is_ip(host: &str) -> bool {
     is_ip_literal(host.trim_start_matches('[').trim_end_matches(']'))
 }
 
+/// Why `e` is not an audience endpoint the proxy can route exactly, if it is not (L017).
+pub(crate) fn endpoint_problem(e: &str) -> Option<&'static str> {
+    match split_endpoint(e) {
+        None => Some("endpoint must be host:port, with a port from 1 to 65535"),
+        Some((host, _)) if host.contains('*') => {
+            Some("an audience endpoint is an exact name, never a wildcard")
+        }
+        Some((host, _)) if endpoint_is_ip(host) => {
+            Some("an audience endpoint is a name, never an IP literal")
+        }
+        Some(_) => None,
+    }
+}
+
 /// Why `r` is not a rule mediatore's broker accepts, if it is not: the method is `*` or ASCII
 /// letters, and the path starts with `/`.
-fn rule_problem(r: &EndpointRule) -> Option<&'static str> {
+pub(crate) fn rule_problem(r: &EndpointRule) -> Option<&'static str> {
     let method_ok = r.method == "*"
         || (!r.method.is_empty() && r.method.bytes().all(|b| b.is_ascii_alphabetic()));
     if !method_ok {
@@ -404,23 +466,8 @@ pub fn lint_policy(
     for a in &spec.audiences {
         let path = format!("audiences[{}]", a.name);
         for e in &a.endpoints {
-            match split_endpoint(e) {
-                None => out.push(Finding::err(
-                    "L017",
-                    format!("{path}.endpoints[{e}]"),
-                    "endpoint must be host:port, with a port from 1 to 65535",
-                )),
-                Some((host, _)) if host.contains('*') => out.push(Finding::err(
-                    "L017",
-                    format!("{path}.endpoints[{e}]"),
-                    "an audience endpoint is an exact name, never a wildcard",
-                )),
-                Some((host, _)) if endpoint_is_ip(host) => out.push(Finding::err(
-                    "L017",
-                    format!("{path}.endpoints[{e}]"),
-                    "an audience endpoint is a name, never an IP literal",
-                )),
-                Some(_) => {}
+            if let Some(why) = endpoint_problem(e) {
+                out.push(Finding::err("L017", format!("{path}.endpoints[{e}]"), why));
             }
         }
         for (j, r) in a.rules.iter().enumerate() {

@@ -51,6 +51,7 @@ fn examples_are_valid_and_compile() {
         prev_conditions: &[],
         bundle_lifetime: SignedDuration::from_hours(1),
         ceilings: &ceilings,
+        audiences: None,
     });
     assert!(out.bundle.is_some(), "{:?}", out.findings);
     assert_eq!(
@@ -122,7 +123,7 @@ fn collect_formats(v: &serde_json::Value, path: &str, out: &mut Vec<(String, Str
 #[test]
 fn crds_use_only_formats_kubernetes_recognises() {
     let crds: Vec<serde_json::Value> = docs(&read("deploy/crds/sandbox.firestoned.io.yaml"));
-    assert_eq!(crds.len(), 4);
+    assert_eq!(crds.len(), 5);
     let mut formats = Vec::new();
     for crd in &crds {
         collect_formats(crd, crd["metadata"]["name"].as_str().unwrap(), &mut formats);

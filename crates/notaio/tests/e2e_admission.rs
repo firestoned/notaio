@@ -14,7 +14,7 @@ mod common;
 use k8s_openapi::api::rbac::v1::{ClusterRole, ClusterRoleBinding};
 use kube::api::{DeleteParams, PostParams};
 use kube::{Api, Client, Config};
-use sandboxpolicy_api::{ExposureCeiling, SandboxPolicy};
+use sandboxpolicy_api::{ExposureCeiling, SandboxAudience, SandboxPolicy};
 use serde_json::json;
 
 use common::*;
@@ -92,6 +92,26 @@ async fn direct_edits_are_denied_even_for_cluster_admin() {
         .await
         .expect_err("cluster-admin created an ExposureCeiling directly");
     assert!(err.to_string().contains(DENIAL), "unexpected denial: {err}");
+
+    // Audience definitions too (ADR-0020, decision 12): a definition nobody reviewed could point a
+    // credential at an endpoint of its author's choosing.
+    let audiences: Api<SandboxAudience> = Api::namespaced(admin.clone(), &ns);
+    let audience: SandboxAudience = serde_json::from_value(json!({
+        "apiVersion": "sandbox.firestoned.io/v1alpha2",
+        "kind": "SandboxAudience",
+        "metadata": { "name": unique_name("direct"), "namespace": ns },
+        "spec": {
+            "credential": { "backend": "none", "placement": "gateway" },
+            "endpoints": ["git.foo.io:443"],
+            "maxTtlSeconds": 300
+        }
+    }))
+    .expect("fixture");
+    let err = audiences
+        .create(&PostParams::default(), &audience)
+        .await
+        .expect_err("cluster-admin created a SandboxAudience directly");
+    assert!(err.to_string().contains(DENIAL), "unexpected denial: {err}");
 }
 
 #[tokio::test]
@@ -106,7 +126,7 @@ async fn gitops_reconciler_is_admitted_and_controller_still_writes_status() {
         "metadata": { "name": GITOPS_RBAC },
         "rules": [{
             "apiGroups": ["sandbox.firestoned.io"],
-            "resources": ["sandboxprofiles", "sandboxpolicies", "knobgrants", "exposureceilings"],
+            "resources": ["sandboxprofiles", "sandboxpolicies", "knobgrants", "exposureceilings", "sandboxaudiences"],
             "verbs": ["get", "list", "watch", "create", "update", "patch", "delete"]
         }]
     }))

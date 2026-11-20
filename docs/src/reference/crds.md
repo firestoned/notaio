@@ -6,7 +6,7 @@ status: implemented
 
 # CRD API
 
-The four kinds in `sandbox.firestoned.io`, field by field, from the schemas `crdgen` writes to `deploy/crds/`. What each kind is for is in [Concepts](../concepts/index.md).
+The five kinds in `sandbox.firestoned.io`, field by field, from the schemas `crdgen` writes to `deploy/crds/`. What each kind is for is in [Concepts](../concepts/index.md).
 
 ## SandboxProfile
 
@@ -159,3 +159,59 @@ The approved maximum exposure of the SandboxPolicy with the same name and namesp
 | `egressHosts` | array of string |  | `host:port`, as in `status.maxExposure.egressHosts`. |
 | `maxLeaseSeconds` | integer | yes | The longest lease, in seconds. |
 | `tools` | array of string |  | Tool names. |
+
+## SandboxAudience
+
+`sandbox.firestoned.io/v1alpha2`, namespaced, short name `sbaudience`.
+
+The definition of one audience (ADR-0020). In the platform audience namespace it is a platform audience, usable wherever a signed grant reaches; in any other namespace it is a team audience, usable and grantable only there. It holds references to credential material, never the material, and grants nothing: `SandboxPolicy` grants, and `ExposureCeiling` bounds. The controller compiles each valid one into its own signed bundle, and never writes the object.
+
+### `spec`
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `caRef` | object |  | A CA bundle for an upstream on a private PKI. |
+| `caRef.key` | string | yes | The key holding the PEM bundle. |
+| `caRef.name` | string | yes | The ConfigMap's name. |
+| `credential` | object | yes | The credential. |
+| `credential.backend` | string: `sts`, `secret`, `delegated`, `entra-obo`, `none` | yes | How the credential is obtained. |
+| `credential.extraHeaders` | array of object |  | Further headers set with fixed values. |
+| `credential.extraHeaders[].name` | string | yes | The header name, a lowercase token (L026). |
+| `credential.extraHeaders[].value` | string | yes | The value, as sent. |
+| `credential.format` | string: `bearer`, `basic` |  | What it is. Defaults to `bearer`. |
+| `credential.header` | string |  | The header the credential is placed in, a lowercase token. Unset means `authorization`. |
+| `credential.placement` | string: `gateway`, `proxy` | yes | Where it is placed. Required: a misspelling must never fall back to a default. |
+| `credential.refresh` | object |  | Refresh settings for the `delegated` backend. |
+| `credential.refresh.clientId` | string | yes | The OAuth client id. |
+| `credential.refresh.scope` | string |  | The scope to request. |
+| `credential.refresh.tokenEndpoint` | string | yes | The token endpoint, an `https://` URL. |
+| `credential.source` | object |  | Where it comes from, for the `secret` backend. |
+| `credential.source.openbao` | object |  | The platform's OpenBao. |
+| `credential.source.openbao.key` | string | yes | The key in the secret. |
+| `credential.source.openbao.mount` | string | yes | The KV mount. |
+| `credential.source.openbao.path` | string | yes | The path under the mount. |
+| `credential.source.secretRef` | object |  | A Secret in the audience's namespace. |
+| `credential.source.secretRef.name` | string | yes | The Secret's name. |
+| `credential.source.secretRef.tokenKey` | string | yes | The key holding the token or password. |
+| `credential.source.secretRef.usernameKey` | string |  | The key holding the username, for `format: basic`. |
+| `endpoints` | array of string | yes | Where the audience is reached, `host:port`, exact names only (L017). Every one must be in the ceiling of each policy that grants the audience (L014). |
+| `maxTtlSeconds` | integer | yes | The longest token lifetime any grant may have (L028), and no more than the ceiling's (L014). |
+| `rules` | array of object |  | The widest any grant may be (L028). None means every method and path. |
+| `rules[].method` | string | yes | An HTTP method, or `*`. |
+| `rules[].path` | string | yes | A path glob starting with `/`. |
+
+### `status`
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `bundleDigest` | string |  | `sha256:<hex>` of the canonical bundle content. |
+| `bundleNotAfter` | string |  | When the published bundle stops being valid. |
+| `bundleVersion` | integer |  | Monotonic version of the definition. Bumps only when the content changes. |
+| `conditions` | array of object |  | `Ready` and `Valid`. |
+| `conditions[].lastTransitionTime` | string | yes | When the status last changed. |
+| `conditions[].message` | string | yes | A human-readable explanation, with lint codes when findings caused it. |
+| `conditions[].observedGeneration` | integer |  | The object generation this condition was computed from. |
+| `conditions[].reason` | string | yes | The reason for the status, in CamelCase, such as `Published` or `SigningFailed`. |
+| `conditions[].status` | string | yes | `True`, `False` or `Unknown`. |
+| `conditions[].type` | string | yes | The condition: `Ready`, `Valid`, `ProfileResolved` or `Applied`, by kind. |
+| `observedGeneration` | integer |  | The generation the status was computed from. |

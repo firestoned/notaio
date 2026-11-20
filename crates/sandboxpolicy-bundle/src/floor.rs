@@ -15,7 +15,10 @@ use std::path::{Path, PathBuf};
 use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
 
-use crate::{verify_bundle, BundleError, BundlePayload, Envelope, TrustedKeys, VerifyOptions};
+use crate::{
+    verify_audience_bundle, verify_bundle, AudienceBundlePayload, BundleError, BundleMeta,
+    BundlePayload, Envelope, TrustedKeys, VerifyOptions,
+};
 
 /// Schema of the file a [`FileFloor`] writes.
 const FILE_SCHEMA: &str = "sandbox.firestoned.io/floor/v1";
@@ -180,15 +183,34 @@ pub fn next_floor(
     held: Option<&FloorEntry>,
     payload: &BundlePayload,
 ) -> Result<FloorEntry, BundleError> {
-    let policy = &payload.content.policy;
-    let meta = &payload.meta;
+    next_floor_for(held, &payload.content.policy.uid, &payload.meta)
+}
+
+/// [`next_floor`] for an audience bundle (ADR-0020, decision 9): the same rule, on the audience's
+/// incarnation. `payload` must come from [`verify_audience_bundle`].
+///
+/// # Errors
+/// As [`next_floor`].
+pub fn next_audience_floor(
+    held: Option<&FloorEntry>,
+    payload: &AudienceBundlePayload,
+) -> Result<FloorEntry, BundleError> {
+    next_floor_for(held, &payload.content.audience.uid, &payload.meta)
+}
+
+/// The floor rule on an incarnation `uid` and a bundle's `meta`, whatever the bundle kind.
+fn next_floor_for(
+    held: Option<&FloorEntry>,
+    uid: &str,
+    meta: &BundleMeta,
+) -> Result<FloorEntry, BundleError> {
     match held {
         None => Ok(FloorEntry {
-            uid: policy.uid.clone(),
+            uid: uid.to_string(),
             version: meta.version,
             issued_at: meta.issued_at,
         }),
-        Some(held) if held.uid == policy.uid => {
+        Some(held) if held.uid == uid => {
             if meta.version < held.version {
                 return Err(BundleError::Downgrade {
                     got: meta.version,
@@ -204,11 +226,11 @@ pub fn next_floor(
         Some(held) => {
             if meta.issued_at <= held.issued_at {
                 return Err(BundleError::StaleIncarnation {
-                    uid: policy.uid.clone(),
+                    uid: uid.to_string(),
                 });
             }
             Ok(FloorEntry {
-                uid: policy.uid.clone(),
+                uid: uid.to_string(),
                 version: meta.version,
                 issued_at: meta.issued_at,
             })
@@ -236,5 +258,34 @@ pub fn accept(
         &payload,
     )?;
     floor.set(&policy.namespace, &policy.name, next)?;
+    Ok(payload)
+}
+
+/// The floor name of an audience. A Kubernetes name never holds `/`, so an audience's entry can
+/// never be a policy's, even when a consumer keeps both kinds in one store.
+pub fn audience_floor_name(name: &str) -> String {
+    format!("{AUDIENCE_FLOOR_PREFIX}{name}")
+}
+
+/// Prefix of an audience's name in a floor (see [`audience_floor_name`]).
+const AUDIENCE_FLOOR_PREFIX: &str = "audience/";
+
+/// [`accept`] for an audience bundle: verifies `env`, checks it against the audience's floor
+/// (per namespace and name, ADR-0008), records the new floor durably, and only then returns the
+/// payload.
+///
+/// # Errors
+/// As [`accept`], with [`verify_audience_bundle`] in place of [`verify_bundle`].
+pub fn accept_audience(
+    env: &Envelope,
+    keys: &TrustedKeys,
+    now: Timestamp,
+    floor: &mut dyn VersionFloor,
+) -> Result<AudienceBundlePayload, BundleError> {
+    let payload = verify_audience_bundle(env, keys, &VerifyOptions::at(now))?;
+    let audience = &payload.content.audience;
+    let name = audience_floor_name(&audience.name);
+    let next = next_audience_floor(floor.get(&audience.namespace, &name).as_ref(), &payload)?;
+    floor.set(&audience.namespace, &name, next)?;
     Ok(payload)
 }

@@ -16,7 +16,9 @@ use std::sync::Arc;
 use clap::CommandFactory;
 use jiff::{SignedDuration, Timestamp};
 use kube::CustomResourceExt;
-use sandboxpolicy_api::{ExposureCeiling, KnobGrant, SandboxPolicy, SandboxProfile};
+use sandboxpolicy_api::{
+    ExposureCeiling, KnobGrant, SandboxAudience, SandboxPolicy, SandboxProfile,
+};
 use sandboxpolicy_core::builtin;
 use sandboxpolicy_core::ceilings::Ceilings;
 use sandboxpolicy_core::registry::{self, LAB_ONLY_KNOBS, REGISTRY};
@@ -313,7 +315,7 @@ fn crd_section(crd: &Value) -> String {
 fn crds() -> String {
     let mut out = page(
         "CRD API",
-        "The four kinds in `sandbox.firestoned.io`, field by field, from the schemas `crdgen` writes \
+        "The five kinds in `sandbox.firestoned.io`, field by field, from the schemas `crdgen` writes \
 to `deploy/crds/`. What each kind is for is in [Concepts](../concepts/index.md).",
     );
     for crd in [
@@ -321,6 +323,7 @@ to `deploy/crds/`. What each kind is for is in [Concepts](../concepts/index.md).
         serde_json::to_value(SandboxPolicy::crd()),
         serde_json::to_value(KnobGrant::crd()),
         serde_json::to_value(ExposureCeiling::crd()),
+        serde_json::to_value(SandboxAudience::crd()),
     ]
     .into_iter()
     .flatten()
@@ -477,6 +480,11 @@ cannot be read. Its codes are in [Lint Rules](lint-rules.md).\n",
 pub fn environment_variables() -> Vec<(&'static str, String, &'static str)> {
     vec![
         (
+            cli::ENV_AUDIENCE_PLATFORM_NAMESPACE,
+            "unset".to_string(),
+            "The platform audience namespace (ADR-0020). Unset, SandboxAudience is not reconciled and policies are checked as before; set, audience bundles are published and every audience rule (L022 to L029, the definition half of L014) applies. Must match the consumer's own setting. A value that is not a namespace name stops the controller.",
+        ),
+        (
             cli::ENV_BUNDLE_LIFETIME,
             cli::DEFAULT_BUNDLE_LIFETIME_SECONDS.to_string(),
             "How long a bundle is valid, in seconds, 300 to 86400 (anything else stops the controller). Bounds how long a policy that turns invalid stays honoured, and how long the signer may be down before bundles expire (ADR-0018).",
@@ -596,10 +604,33 @@ policy `{}/{}`; its floor is the consumer's floor for that policy before the env
         suite.policy.namespace,
         suite.policy.name
     );
+    vector_table(&mut out, &suite.vectors);
+
+    // The audience bundle vectors (ADR-0020), the same shape about one audience.
+    let Ok(audience) = sandboxpolicy_bundle::conformance::audience_suite() else {
+        return out;
+    };
+    let _ = writeln!(
+        out,
+        "\n## Audience bundles\n\nIn `audience-vectors.json`, with `audience-bundle-v1.schema.json`, through \
+`conformance::audience_suite` and `run_audience` ([ADR-0020](../adr/0020-sandbox-audience.md)). Bundle \
+schema `{}`, the same trusted key. Every vector concerns the audience `{}/{}`, its floor kept under \
+the name `audience/{}`. A vector with a minimum version is verified with it before the floor.\n",
+        audience.bundle_schema,
+        audience.audience.namespace,
+        audience.audience.name,
+        audience.audience.name
+    );
+    vector_table(&mut out, &audience.vectors);
+    out
+}
+
+/// One table row per vector: its name, the floor before, the verdict and what it checks.
+fn vector_table(out: &mut String, vectors: &[sandboxpolicy_bundle::conformance::Vector]) {
     out.push_str(
         "| Vector | Floor before | Verdict | What it checks |\n| --- | --- | --- | --- |\n",
     );
-    for v in &suite.vectors {
+    for v in vectors {
         let floor = v.floor.as_ref().map_or("none".to_string(), |f| {
             format!(
                 "v{} of `{}`",
@@ -622,7 +653,6 @@ policy `{}/{}`; its floor is the consumer's floor for that policy before the env
             cell(&v.description)
         );
     }
-    out
 }
 
 #[cfg(test)]

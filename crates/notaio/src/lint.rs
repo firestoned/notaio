@@ -8,7 +8,7 @@
 //!
 //! | Code | Meaning |
 //! | ---- | ------- |
-//! | I001 | An object in the `sandbox.firestoned.io` group is not a valid SandboxProfile, SandboxPolicy, KnobGrant or ExposureCeiling |
+//! | I001 | An object in the `sandbox.firestoned.io` group is not a valid SandboxProfile, SandboxPolicy, KnobGrant, ExposureCeiling or SandboxAudience |
 //! | I002 | The same object (kind, namespace, name) appears more than once in the inputs |
 //! | I003 | A policy references a profile that is neither in the inputs nor built in |
 //! | I004 | A grant references a policy that is not in the inputs |
@@ -17,16 +17,26 @@
 //! | I007 | A policy's profile does not lint clean; the profile's own findings are reported against it |
 //! | I008 | An ExposureCeiling names a policy that is not in the inputs (ADR-0007) |
 //! | I009 | An object uses an API version notaio no longer serves: write it as `v1alpha2` (ADR-0013) |
+//! | I010 | A SandboxAudience has no namespace: the namespace decides whether it is a platform or a team audience (ADR-0020) |
+//! | I011 | SandboxAudience objects in the inputs, but no platform audience namespace: their rules were not checked (a warning) |
+//!
+//! With `--platform-audience-namespace`, every SandboxAudience is linted (L017, L022 to L029)
+//! and every policy's grants are checked against the definitions (L027, L028, and the definition
+//! half of L014), as the controller does once `NOTAIO_AUDIENCE_PLATFORM_NAMESPACE` is set
+//! (ADR-0020). Without it, policies are checked as before.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
 use jiff::{SignedDuration, Timestamp};
-use sandboxpolicy_api::{ExposureCeiling, GrantPhase, KnobGrant, SandboxPolicy, SandboxProfile};
+use sandboxpolicy_api::{
+    ExposureCeiling, GrantPhase, KnobGrant, SandboxAudience, SandboxPolicy, SandboxProfile,
+};
+use sandboxpolicy_core::audience::lint_audience;
 use sandboxpolicy_core::ceilings::Ceilings;
 use sandboxpolicy_core::lint::{lint_classifications, lint_knobs, Finding, Severity, RULES};
-use sandboxpolicy_core::{builtin, evaluate, EvalInput};
+use sandboxpolicy_core::{builtin, evaluate, AudienceCatalog, EvalInput};
 use serde_json::{json, Value};
 
 /// The API group whose objects are checked. Everything else in the inputs is ignored.
@@ -36,7 +46,7 @@ const GROUP_PREFIX: &str = "sandbox.firestoned.io/";
 pub const INPUT_RULES: &[(&str, &str)] = &[
     (
         "I001",
-        "An object in the sandbox.firestoned.io group is not a valid SandboxProfile, SandboxPolicy, KnobGrant or ExposureCeiling",
+        "An object in the sandbox.firestoned.io group is not a valid SandboxProfile, SandboxPolicy, KnobGrant, ExposureCeiling or SandboxAudience",
     ),
     (
         "I002",
@@ -64,6 +74,14 @@ pub const INPUT_RULES: &[(&str, &str)] = &[
         "I009",
         "An object uses an API version notaio no longer serves: write it as v1alpha2 (ADR-0013)",
     ),
+    (
+        "I010",
+        "A SandboxAudience has no namespace: the namespace decides whether it is a platform or a team audience (ADR-0020)",
+    ),
+    (
+        "I011",
+        "SandboxAudience objects in the inputs, but no platform audience namespace: their rules were not checked",
+    ),
 ];
 
 /// One input file.
@@ -81,7 +99,7 @@ pub enum Level {
 /// One finding, attributed to a file and an object.
 #[derive(Debug, Clone)]
 pub struct Diagnostic {
-    /// A lint rule (`L001` to `L021`) or an input code (`I001` to `I009`).
+    /// A lint rule (`L001` to `L029`) or an input code (`I001` to `I011`).
     pub code: String,
     pub level: Level,
     pub path: PathBuf,
@@ -115,6 +133,20 @@ impl Report {
             field: field.to_string(),
             message,
         });
+    }
+
+    fn push_warning(
+        &mut self,
+        code: &str,
+        path: &Path,
+        object: &str,
+        field: &str,
+        message: String,
+    ) {
+        self.push(code, path, object, field, message);
+        if let Some(d) = self.diagnostics.last_mut() {
+            d.level = Level::Warning;
+        }
     }
 
     fn push_finding(&mut self, f: &Finding, path: &Path, object: &str) {
@@ -200,16 +232,31 @@ pub fn lint_sources(sources: &[Source], now: Timestamp) -> Result<Report, InputE
     lint_sources_with(sources, now, &Ceilings::default())
 }
 
-/// Lints `sources` at `now` under `ceilings`.
+/// Lints `sources` at `now` under `ceilings`, without audience definitions.
 ///
 /// # Errors
-/// `InputError` for a source that is not YAML. Problems with the objects themselves are
-/// diagnostics, never errors.
+/// As [`lint_sources_for`].
 pub fn lint_sources_with(
     sources: &[Source],
     now: Timestamp,
     ceilings: &Ceilings,
 ) -> Result<Report, InputError> {
+    lint_sources_for(sources, now, ceilings, None)
+}
+
+/// Lints `sources` at `now` under `ceilings`. With `platform_audience_namespace`, audience
+/// definitions are checked too, as the controller does once it is configured (ADR-0020).
+///
+/// # Errors
+/// `InputError` for a source that is not YAML. Problems with the objects themselves are
+/// diagnostics, never errors.
+pub fn lint_sources_for(
+    sources: &[Source],
+    now: Timestamp,
+    ceilings: &Ceilings,
+    platform_audience_namespace: Option<&str>,
+) -> Result<Report, InputError> {
+    let mut audiences: Vec<(PathBuf, SandboxAudience)> = Vec::new();
     let mut report = Report::default();
     let mut seen = BTreeSet::new();
     let mut profiles: BTreeMap<String, (PathBuf, SandboxProfile)> = BTreeMap::new();
@@ -286,6 +333,17 @@ pub fn lint_sources_with(
                     }
                     Err(e) => report.push("I001", &source.path, &object, "", invalid(e)),
                 },
+                "SandboxAudience" => match serde_json::from_value::<SandboxAudience>(doc) {
+                    Ok(_) if ns.is_none() => report.push(
+                        "I010",
+                        &source.path,
+                        &object,
+                        "metadata.namespace",
+                        "a SandboxAudience needs a namespace: it decides platform or team".into(),
+                    ),
+                    Ok(a) => audiences.push((source.path.clone(), a)),
+                    Err(e) => report.push("I001", &source.path, &object, "", invalid(e)),
+                },
                 other => report.push(
                     "I001",
                     &source.path,
@@ -350,6 +408,38 @@ pub fn lint_sources_with(
         report.push_finding(&f, path, &format!("ExposureCeiling {label}"));
     }
 
+    // Audience definitions (ADR-0020), only once the platform namespace says which are which.
+    let defined: Vec<SandboxAudience> = audiences.iter().map(|(_, a)| a.clone()).collect();
+    let catalog = platform_audience_namespace.map(|ns| AudienceCatalog::new(ns, &defined));
+    match &catalog {
+        Some(catalog) => {
+            for (path, a) in &audiences {
+                let object = describe(
+                    "SandboxAudience",
+                    a.metadata.namespace.as_deref(),
+                    a.metadata.name.as_deref().unwrap_or_default(),
+                );
+                for f in lint_audience(a, catalog) {
+                    report.push_finding(&f, path, &object);
+                }
+            }
+        }
+        None => {
+            if let Some((path, _)) = audiences.first() {
+                report.push_warning(
+                    "I011",
+                    path,
+                    "SandboxAudience",
+                    "",
+                    format!(
+                        "{} SandboxAudience object(s) in the inputs, not checked: pass --platform-audience-namespace",
+                        audiences.len()
+                    ),
+                );
+            }
+        }
+    }
+
     for (path, policy) in &policies {
         let key = (
             policy.metadata.namespace.clone(),
@@ -361,7 +451,15 @@ pub fn lint_sources_with(
             grants: &grants,
             exposure_ceiling,
         };
-        lint_policy(&mut report, path, policy, &refs, now, ceilings);
+        lint_policy(
+            &mut report,
+            path,
+            policy,
+            &refs,
+            now,
+            ceilings,
+            catalog.as_ref(),
+        );
     }
     Ok(report)
 }
@@ -380,6 +478,7 @@ fn lint_policy(
     refs: &PolicyRefs<'_>,
     now: Timestamp,
     ceilings: &Ceilings,
+    audiences: Option<&AudienceCatalog<'_>>,
 ) {
     let PolicyRefs {
         profiles,
@@ -422,6 +521,7 @@ fn lint_policy(
         // It affects only `notAfter`, which lint does not report: the controller's default.
         bundle_lifetime: SignedDuration::from_secs(crate::cli::DEFAULT_BUNDLE_LIFETIME_SECONDS),
         ceilings,
+        audiences,
     });
 
     let condition = |t: &str| out.status.conditions.iter().find(|c| c.type_ == t);

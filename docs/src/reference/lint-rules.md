@@ -35,6 +35,14 @@ Checked by the controller and by `notaio lint`, from `crates/sandboxpolicy-core/
 | `L019` | A direct egress entry the gateway cannot enforce: method and path rules, or a wildcard host |
 | `L020` | A policy on a LabOnly profile exposes an audience its ceiling does not classify LabOnly |
 | `L021` | Two ceilings classify the same audience differently |
+| `L022` | A team audience with a backend other than `secret` or `none` |
+| `L023` | A team audience with an `openbao` source |
+| `L024` | A team audience and a platform audience with the same name |
+| `L025` | An endpoint held by two audiences visible from one namespace |
+| `L026` | A header name that is not a lowercase token, or one of the reserved names |
+| `L027` | A policy grants an audience no definition is visible for, or a team audience from another namespace |
+| `L028` | A grant's endpoints, rules or token lifetime wider than its audience's definition |
+| `L029` | A team audience placed in the proxy |
 
 ## Input rules
 
@@ -42,7 +50,7 @@ About the set of files given to `notaio lint`, from `crates/notaio/src/lint.rs`.
 
 | Code | Rule |
 | --- | --- |
-| `I001` | An object in the sandbox.firestoned.io group is not a valid SandboxProfile, SandboxPolicy, KnobGrant or ExposureCeiling |
+| `I001` | An object in the sandbox.firestoned.io group is not a valid SandboxProfile, SandboxPolicy, KnobGrant, ExposureCeiling or SandboxAudience |
 | `I002` | The same object (kind, namespace, name) appears more than once in the inputs |
 | `I003` | A policy references a profile that is neither in the inputs nor built in |
 | `I004` | A grant references a policy that is not in the inputs |
@@ -51,3 +59,5 @@ About the set of files given to `notaio lint`, from `crates/notaio/src/lint.rs`.
 | `I007` | A policy's profile does not lint clean; the profile's own findings are reported against it |
 | `I008` | An ExposureCeiling names a policy that is not in the inputs (ADR-0007) |
 | `I009` | An object uses an API version notaio no longer serves: write it as v1alpha2 (ADR-0013) |
+| `I010` | A SandboxAudience has no namespace: the namespace decides whether it is a platform or a team audience (ADR-0020) |
+| `I011` | SandboxAudience objects in the inputs, but no platform audience namespace: their rules were not checked |

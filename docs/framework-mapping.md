@@ -58,7 +58,7 @@ elsewhere" names where enforcement belongs, it does not claim those components d
 | AIR-SEC-026 | MCP Server Supply Chain Compromise | partial | K1.3<br>L008 | MCP servers must be pinned by manifest digest. | No vetting workflow or evidence of review is recorded. |  |
 | AIR-SEC-027 | Agent State Persistence Poisoning | partial | K6.1, K1.2 | Tenancy tier and project instruction loading. One VM per lease that is destroyed afterwards is a banlieue and mediatore rule. | Nothing in the spec says whether a workspace may persist between leases. |  |
 | AIR-OP-028 | Multi-Agent Trust Boundary Violations | partial | K6.1, K5.6 | One identity and one VM per subject, carried as settings. |  | banlieue, mediatore |
-| AIR-SEC-029 | Agent-Mediated Credential Discovery and Harvesting | partial | K3.1, K5.1, K5.2, K5.3, K5.4<br>L005, L006 | Short, read-only, audience-bound tokens and credential delivery mode. | No detection of credential discovery behaviour. | mediatore-guest delivers credentials. |
+| AIR-SEC-029 | Agent-Mediated Credential Discovery and Harvesting | partial | K3.1, K5.1, K5.2, K5.3, K5.4<br>L005, L006, L022, L023, L026, L027, L028<br>signed audience definitions | Short, read-only, audience-bound tokens and credential delivery mode. Each audience's definition (backend, placement, credential source by reference) is signed (ADR-0020); a team audience cannot mint with the platform's keys or read its OpenBao, and a grant never exceeds its definition. | No detection of credential discovery behaviour. | mediatore-guest delivers credentials. |
 
 ### Which framework mitigations address each risk
 
@@ -117,7 +117,7 @@ checked against the controls the framework expects for it.
 | AIR-PREV-020 | MCP Server Security Governance | partial | K1.3, K4.1<br>L008 | Pre-approved servers pinned by digest, with egress through the gateway. That resembles the framework's pre-approved tier, it has not been checked against that tier's requirements. | No vetting, onboarding or incident response content. |  |
 | AIR-DET-021 | Agent Decision Audit and Explainability | partial | K8.3<br>signed bundle version | The policy version is stamped into tokens so decisions can be traced to a policy. | K8.3 steps are not mapped to the framework's retention tiers, and reasoning capture is undefined. | Audit events come from mediatore and the guest hook. |
 | AIR-PREV-022 | Multi-Agent Isolation and Segmentation | partial | K6.1, K5.6 | Tenancy tier and identity type are carried. |  | banlieue VM per identity, mediatore attestation. |
-| AIR-PREV-023 | Agentic System Credential Protection Framework | partial | K3.1, K5.1, K5.2, K5.3, K5.4<br>L005, L006 | Just-in-time, short-lived, scoped credentials are policy. Delivery and environment isolation are downstream. | No behavioural detection. | mediatore-guest |
+| AIR-PREV-023 | Agentic System Credential Protection Framework | partial | K3.1, K5.1, K5.2, K5.3, K5.4<br>L005, L006, L022, L023, L028 | Just-in-time, short-lived, scoped credentials are policy, and so is each credential's definition, signed (ADR-0020). Delivery and environment isolation are downstream. | No behavioural detection. | mediatore-guest |
 
 ## Open gaps
 

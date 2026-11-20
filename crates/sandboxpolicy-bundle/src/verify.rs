@@ -7,7 +7,7 @@ use ed25519_dalek::Verifier as _;
 use jiff::{SignedDuration, Timestamp};
 
 use crate::dsse::pae;
-use crate::{BundleError, BundlePayload, Envelope, PAYLOAD_TYPE, SCHEMA};
+use crate::{BundleError, BundleMeta, BundlePayload, Envelope, PAYLOAD_TYPE, SCHEMA};
 
 /// The set of public keys a consumer trusts, by key id.
 #[derive(Default)]
@@ -79,8 +79,28 @@ pub fn verify_bundle(
     let bytes = STANDARD
         .decode(&env.payload)
         .map_err(|e| BundleError::Malformed(e.to_string()))?;
-    let message = pae(&env.payload_type, &bytes);
+    check_signature(env, &bytes, keys)?;
 
+    let payload: BundlePayload =
+        serde_json::from_slice(&bytes).map_err(|e| BundleError::Malformed(e.to_string()))?;
+    if payload.schema != SCHEMA {
+        return Err(BundleError::Schema(payload.schema));
+    }
+    if payload.content.digest()? != payload.content_digest {
+        return Err(BundleError::DigestMismatch);
+    }
+    check_window(&payload.meta, opts)?;
+    Ok(payload)
+}
+
+/// At least one signature over the DSSE encoding of `bytes`, under the envelope's payload type,
+/// from a trusted key.
+pub(crate) fn check_signature(
+    env: &Envelope,
+    bytes: &[u8],
+    keys: &TrustedKeys,
+) -> Result<(), BundleError> {
+    let message = pae(&env.payload_type, bytes);
     let verified = env.signatures.iter().any(|s| {
         let Some(key) = keys.0.get(&s.keyid) else {
             return false;
@@ -96,28 +116,24 @@ pub fn verify_bundle(
     if !verified {
         return Err(BundleError::NoValidSignature);
     }
+    Ok(())
+}
 
-    let payload: BundlePayload =
-        serde_json::from_slice(&bytes).map_err(|e| BundleError::Malformed(e.to_string()))?;
-    if payload.schema != SCHEMA {
-        return Err(BundleError::Schema(payload.schema));
+/// The validity window and the minimum version, shared by every bundle kind.
+pub(crate) fn check_window(meta: &BundleMeta, opts: &VerifyOptions) -> Result<(), BundleError> {
+    if meta.issued_at > opts.now + opts.max_clock_skew {
+        return Err(BundleError::NotYetValid(meta.issued_at.to_string()));
     }
-    if payload.content.digest()? != payload.content_digest {
-        return Err(BundleError::DigestMismatch);
-    }
-    if payload.meta.issued_at > opts.now + opts.max_clock_skew {
-        return Err(BundleError::NotYetValid(payload.meta.issued_at.to_string()));
-    }
-    if payload.meta.not_after <= opts.now {
-        return Err(BundleError::Expired(payload.meta.not_after.to_string()));
+    if meta.not_after <= opts.now {
+        return Err(BundleError::Expired(meta.not_after.to_string()));
     }
     if let Some(min) = opts.min_version {
-        if payload.meta.version < min {
+        if meta.version < min {
             return Err(BundleError::Downgrade {
-                got: payload.meta.version,
+                got: meta.version,
                 min,
             });
         }
     }
-    Ok(payload)
+    Ok(())
 }

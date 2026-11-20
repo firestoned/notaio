@@ -405,3 +405,129 @@ fn l021_agreeing_ceilings_are_clean() {
     .unwrap();
     assert!(!codes(&r).contains(&"L021"), "{:#?}", r.diagnostics);
 }
+
+// ADR-0020: SandboxAudience, checked when the platform audience namespace is given.
+
+const PLATFORM_NS: &str = "sandbox-platform";
+
+fn sandbox_audience(name: &str, ns: &str, backend: &str, endpoint: &str) -> String {
+    format!(
+        r#"apiVersion: sandbox.firestoned.io/v1alpha2
+kind: SandboxAudience
+metadata:
+  name: {name}
+  namespace: {ns}
+spec:
+  credential:
+    backend: {backend}
+    placement: gateway
+  endpoints: ["{endpoint}"]
+  maxTtlSeconds: 3600
+"#
+    )
+}
+
+fn lint_with_platform(text: &str) -> Report {
+    notaio::lint::lint_sources_for(
+        &[src("all.yaml", text)],
+        now(),
+        &Ceilings::default(),
+        Some(PLATFORM_NS),
+    )
+    .unwrap()
+}
+
+/// The policy fixture grants `internal-git` and the ceiling approves it with no endpoints, so a
+/// definition with no endpoint outside the ceiling is what makes the pair clean.
+fn ceiling_with_endpoint(policy: &str, endpoint: &str) -> String {
+    ceiling(policy, 3600).replace(
+        "      maxTtlSeconds: 3600\n",
+        &format!("      maxTtlSeconds: 3600\n      endpoints: [\"{endpoint}\"]\n"),
+    )
+}
+
+#[test]
+fn a_defined_audience_with_its_policy_is_clean() {
+    let text = format!(
+        "{}---\n{}---\n{}",
+        policy("agent-default", "hardened", "Read"),
+        ceiling_with_endpoint("agent-default", "git.example.com:443"),
+        sandbox_audience("internal-git", "sandboxes", "secret", "git.example.com:443"),
+    );
+    let r = lint_with_platform(&text);
+    assert!(r.diagnostics.is_empty(), "{:?}", r.diagnostics);
+}
+
+#[test]
+fn l027_a_policy_granting_an_undefined_audience_fails() {
+    let text = format!(
+        "{}---\n{}",
+        policy("agent-default", "hardened", "Read"),
+        ceiling("agent-default", 3600),
+    );
+    assert!(errors(&lint_with_platform(&text)).contains(&"L027"));
+}
+
+#[test]
+fn l022_is_reported_against_the_audience() {
+    let text = sandbox_audience("mint", "team-a", "sts", "x.example.com:443");
+    let r = lint_with_platform(&text);
+    assert_eq!(errors(&r), ["L022"]);
+    assert_eq!(r.diagnostics[0].object, "SandboxAudience team-a/mint");
+}
+
+#[test]
+fn l014_a_definition_endpoint_outside_the_ceiling_fails() {
+    let text = format!(
+        "{}---\n{}---\n{}",
+        policy("agent-default", "hardened", "Read"),
+        ceiling_with_endpoint("agent-default", "git.example.com:443"),
+        sandbox_audience(
+            "internal-git",
+            "sandboxes",
+            "secret",
+            "elsewhere.example.com:443"
+        ),
+    );
+    assert!(errors(&lint_with_platform(&text)).contains(&"L014"));
+}
+
+/// `notaio lint` sees no status, so it refuses both sides of a collision at pull request time.
+#[test]
+fn l025_a_collision_is_reported_on_both() {
+    let text = format!(
+        "{}---\n{}",
+        sandbox_audience("one", "team-a", "secret", "af.example.com:443"),
+        sandbox_audience("two", "team-a", "secret", "af.example.com:443"),
+    );
+    assert_eq!(errors(&lint_with_platform(&text)), ["L025", "L025"]);
+}
+
+#[test]
+fn i010_an_audience_without_a_namespace_fails() {
+    let text = sandbox_audience("x", "team-a", "secret", "x.example.com:443")
+        .replace("  namespace: team-a\n", "");
+    assert_eq!(codes(&lint_with_platform(&text)), ["I010"]);
+}
+
+/// Without the platform namespace the rules cannot be applied, and lint says so rather than
+/// reporting the audiences clean (rule 2 of the testing standards).
+#[test]
+fn i011_audiences_without_the_platform_namespace_warn_and_policies_are_unchanged() {
+    let text = format!(
+        "{}---\n{}---\n{}",
+        policy("agent-default", "hardened", "Read"),
+        ceiling("agent-default", 3600),
+        sandbox_audience("mint", "team-a", "sts", "x.example.com:443"),
+    );
+    let r = lint_sources(&[src("all.yaml", &text)], now()).unwrap();
+    assert_eq!(codes(&r), ["I011"]);
+    assert_eq!(r.diagnostics[0].level, Level::Warning);
+    assert!(!r.has_errors());
+}
+
+#[test]
+fn an_invalid_sandbox_audience_is_i001() {
+    let text = sandbox_audience("x", "team-a", "telepathy", "x.example.com:443");
+    assert_eq!(codes(&lint_with_platform(&text)), ["I001"]);
+}

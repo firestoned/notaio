@@ -33,3 +33,28 @@ fn a_value_that_does_not_parse_or_is_out_of_bounds_is_an_error_naming_the_variab
         assert!(err.contains(ENV_BUNDLE_LIFETIME), "{raw}: {err}");
     }
 }
+
+#[test]
+fn an_unset_or_empty_platform_audience_namespace_leaves_audiences_off() {
+    // ADR-0020, decision 2: opt-in.
+    assert_eq!(audience_platform_namespace(None).unwrap(), None);
+    assert_eq!(audience_platform_namespace(Some("")).unwrap(), None);
+    assert_eq!(audience_platform_namespace(Some("  ")).unwrap(), None);
+}
+
+#[test]
+fn a_platform_audience_namespace_is_a_namespace_name() {
+    assert_eq!(
+        audience_platform_namespace(Some("sandbox-platform")).unwrap(),
+        Some("sandbox-platform".to_string())
+    );
+    for raw in ["Sandbox", "-x", "x-", "a/b", "a.b", &"a".repeat(64)] {
+        let err = audience_platform_namespace(Some(raw))
+            .expect_err(raw)
+            .to_string();
+        assert!(
+            err.contains(ENV_AUDIENCE_PLATFORM_NAMESPACE),
+            "{raw}: {err}"
+        );
+    }
+}

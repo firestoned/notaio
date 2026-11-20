@@ -770,3 +770,280 @@ spec:
         type: object
     served: true
     storage: true
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: sandboxaudiences.sandbox.firestoned.io
+spec:
+  group: sandbox.firestoned.io
+  names:
+    kind: SandboxAudience
+    plural: sandboxaudiences
+    shortNames:
+    - sbaudience
+    singular: sandboxaudience
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.credential.backend
+      name: Backend
+      type: string
+    - jsonPath: .spec.credential.placement
+      name: Placement
+      type: string
+    - jsonPath: .status.bundleVersion
+      name: Version
+      type: integer
+    - jsonPath: .status.conditions[?(@.type=="Ready")].status
+      name: Ready
+      type: string
+    name: v1alpha2
+    schema:
+      openAPIV3Schema:
+        description: Auto-generated derived type for SandboxAudienceSpec via `CustomResource`
+        properties:
+          spec:
+            description: |-
+              The definition of one audience (ADR-0020). In the platform audience namespace it is a platform
+              audience, usable wherever a signed grant reaches; in any other namespace it is a team audience,
+              usable and grantable only there. It holds references to credential material, never the
+              material, and grants nothing: `SandboxPolicy` grants, and `ExposureCeiling` bounds. The
+              controller compiles each valid one into its own signed bundle, and never writes the object.
+            properties:
+              caRef:
+                description: A CA bundle for an upstream on a private PKI.
+                nullable: true
+                properties:
+                  key:
+                    description: The key holding the PEM bundle.
+                    type: string
+                  name:
+                    description: The ConfigMap's name.
+                    type: string
+                required:
+                - key
+                - name
+                type: object
+              credential:
+                description: The credential.
+                properties:
+                  backend:
+                    description: How the credential is obtained.
+                    enum:
+                    - sts
+                    - secret
+                    - delegated
+                    - entra-obo
+                    - none
+                    type: string
+                  extraHeaders:
+                    default: []
+                    description: Further headers set with fixed values.
+                    items:
+                      description: One header set on the upstream request with a fixed value.
+                      properties:
+                        name:
+                          description: The header name, a lowercase token (L026).
+                          type: string
+                        value:
+                          description: The value, as sent.
+                          type: string
+                      required:
+                      - name
+                      - value
+                      type: object
+                    type: array
+                  format:
+                    default: bearer
+                    description: What it is. Defaults to `bearer`.
+                    enum:
+                    - bearer
+                    - basic
+                    type: string
+                  header:
+                    description: >-
+                      The header the credential is placed in, a lowercase token. Unset means
+                      `authorization`.
+                    nullable: true
+                    type: string
+                  placement:
+                    description: "Where it is placed. Required: a misspelling must never fall back to a default."
+                    enum:
+                    - gateway
+                    - proxy
+                    type: string
+                  refresh:
+                    description: Refresh settings for the `delegated` backend.
+                    nullable: true
+                    properties:
+                      clientId:
+                        description: The OAuth client id.
+                        type: string
+                      scope:
+                        description: The scope to request.
+                        nullable: true
+                        type: string
+                      tokenEndpoint:
+                        description: The token endpoint, an `https://` URL.
+                        type: string
+                    required:
+                    - clientId
+                    - tokenEndpoint
+                    type: object
+                  source:
+                    description: Where it comes from, for the `secret` backend.
+                    nullable: true
+                    oneOf:
+                    - required:
+                      - openbao
+                    - required:
+                      - secretRef
+                    properties:
+                      openbao:
+                        description: The platform's OpenBao.
+                        properties:
+                          key:
+                            description: The key in the secret.
+                            type: string
+                          mount:
+                            description: The KV mount.
+                            type: string
+                          path:
+                            description: The path under the mount.
+                            type: string
+                        required:
+                        - key
+                        - mount
+                        - path
+                        type: object
+                      secretRef:
+                        description: A Secret in the audience's namespace.
+                        properties:
+                          name:
+                            description: The Secret's name.
+                            type: string
+                          tokenKey:
+                            description: The key holding the token or password.
+                            type: string
+                          usernameKey:
+                            description: "The key holding the username, for `format: basic`."
+                            nullable: true
+                            type: string
+                        required:
+                        - name
+                        - tokenKey
+                        type: object
+                    type: object
+                required:
+                - backend
+                - placement
+                type: object
+              endpoints:
+                description: |-
+                  Where the audience is reached, `host:port`, exact names only (L017). Every one must be in
+                  the ceiling of each policy that grants the audience (L014).
+                items:
+                  type: string
+                type: array
+              maxTtlSeconds:
+                description: >-
+                  The longest token lifetime any grant may have (L028), and no more than the
+                  ceiling's (L014).
+                format: int64
+                minimum: 0.0
+                type: integer
+              rules:
+                default: []
+                description: The widest any grant may be (L028). None means every method and path.
+                items:
+                  description: |-
+                    One HTTP rule for an endpoint (ADR-0013): a method, or `*` for any, and a path glob in which `*`
+                    matches one segment and `**` zero or more, matched against the path without the query. The
+                    shape mediatore's egress proxy uses (its ADR-0025).
+                  properties:
+                    method:
+                      description: An HTTP method, or `*`.
+                      type: string
+                    path:
+                      description: A path glob starting with `/`.
+                      type: string
+                  required:
+                  - method
+                  - path
+                  type: object
+                type: array
+            required:
+            - credential
+            - endpoints
+            - maxTtlSeconds
+            type: object
+          status:
+            nullable: true
+            properties:
+              bundleDigest:
+                description: "`sha256:<hex>` of the canonical bundle content."
+                nullable: true
+                type: string
+              bundleNotAfter:
+                description: When the published bundle stops being valid.
+                format: date-time
+                nullable: true
+                type: string
+              bundleVersion:
+                description: Monotonic version of the definition. Bumps only when the content changes.
+                format: int64
+                minimum: 0.0
+                nullable: true
+                type: integer
+              conditions:
+                default: []
+                description: "`Ready` and `Valid`."
+                items:
+                  description: |-
+                    A minimal condition type. Kept local so the CRD schema does not depend on the time
+                    representation used by `k8s-openapi`.
+                  properties:
+                    lastTransitionTime:
+                      description: When the status last changed.
+                      format: date-time
+                      type: string
+                    message:
+                      description: A human-readable explanation, with lint codes when findings caused it.
+                      type: string
+                    observedGeneration:
+                      description: The object generation this condition was computed from.
+                      format: int64
+                      nullable: true
+                      type: integer
+                    reason:
+                      description: The reason for the status, in CamelCase, such as `Published` or `SigningFailed`.
+                      type: string
+                    status:
+                      description: "`True`, `False` or `Unknown`."
+                      type: string
+                    type:
+                      description: "The condition: `Ready`, `Valid`, `ProfileResolved` or `Applied`, by kind."
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              observedGeneration:
+                description: The generation the status was computed from.
+                format: int64
+                nullable: true
+                type: integer
+            type: object
+        required:
+        - spec
+        title: SandboxAudience
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

@@ -137,6 +137,7 @@ fn run_with_ceiling(
         prev_conditions: &[],
         bundle_lifetime: SignedDuration::from_hours(1),
         ceilings: &ceilings,
+        audiences: None,
     })
 }
 
@@ -431,6 +432,7 @@ fn content_without_a_canonical_form_fails_closed() {
         prev_conditions: &[],
         bundle_lifetime: SignedDuration::from_hours(1),
         ceilings: &ceilings,
+        audiences: None,
     });
     assert!(o.bundle.is_none(), "a bundle was compiled");
     assert!(!ready(&o));
@@ -475,7 +477,7 @@ fn rules_table_matches_the_documented_codes() {
             "{code} differs between RULES and the documented table"
         );
     }
-    assert_eq!(sandboxpolicy_core::lint::RULES.len(), 21);
+    assert_eq!(sandboxpolicy_core::lint::RULES.len(), 29);
 }
 
 fn ready_reason(o: &EvalOutput) -> Option<&str> {
@@ -851,4 +853,124 @@ fn l020_leaves_internal_profiles_free_to_use_any_audience() {
         assert!(!has_code(&o, "L020"), "{scope:?}: {:?}", o.findings);
         assert!(ready(&o), "{scope:?}: {:?}", o.findings);
     }
+}
+
+// ADR-0020: the policy against its audiences' definitions, once a catalog is given.
+
+const PLATFORM_NS: &str = "sandbox-platform";
+
+fn definition_of(name: &str, ns: &str, endpoint: &str) -> SandboxAudience {
+    let mut a = SandboxAudience::new(
+        name,
+        SandboxAudienceSpec {
+            definition: AudienceDefinition {
+                credential: AudienceCredential {
+                    backend: Backend::Secret,
+                    placement: Placement::Gateway,
+                    format: CredentialFormat::Bearer,
+                    source: Some(CredentialSource::SecretRef(SecretRef {
+                        name: "svc".into(),
+                        token_key: "token".into(),
+                        username_key: None,
+                    })),
+                    header: None,
+                    extra_headers: vec![],
+                    refresh: None,
+                },
+                endpoints: vec![endpoint.into()],
+                rules: vec![],
+                max_ttl_seconds: 900,
+                ca_ref: None,
+            },
+        },
+    );
+    a.metadata.namespace = Some(ns.into());
+    a
+}
+
+fn run_with_audiences(policy: &SandboxPolicy, audiences: &[SandboxAudience]) -> EvalOutput {
+    let ceilings = Ceilings::default();
+    let ceiling = covering_ceiling(policy);
+    let profile = profile("hardened");
+    let catalog = sandboxpolicy_core::AudienceCatalog::new(PLATFORM_NS, audiences);
+    evaluate(&EvalInput {
+        now: now(),
+        policy,
+        profile: Some(&profile),
+        exposure_ceiling: Some(&ceiling),
+        grants: &[],
+        prev_version: None,
+        prev_digest: None,
+        prev_conditions: &[],
+        bundle_lifetime: SignedDuration::from_hours(1),
+        ceilings: &ceilings,
+        audiences: Some(&catalog),
+    })
+}
+
+#[test]
+fn without_a_catalog_an_undefined_audience_still_publishes() {
+    let po = policy("hardened", vec![audience("internal-git", Access::Read)]);
+    assert!(run(&po, Some(&profile("hardened")), &[], None)
+        .bundle
+        .is_some());
+}
+
+#[test]
+fn with_a_catalog_an_undefined_audience_is_l027_and_publishes_nothing() {
+    let po = policy("hardened", vec![audience("internal-git", Access::Read)]);
+    let o = run_with_audiences(&po, &[]);
+    assert!(o.bundle.is_none());
+    assert!(o.findings.iter().any(|f| f.code == "L027"));
+}
+
+#[test]
+fn a_defined_team_audience_in_the_policys_namespace_publishes() {
+    let po = policy("hardened", vec![audience("internal-git", Access::Read)]);
+    let defs = [definition_of(
+        "internal-git",
+        "sandboxes",
+        "internal-git.internal.example:443",
+    )];
+    let o = run_with_audiences(&po, &defs);
+    assert!(o.bundle.is_some(), "{:?}", o.findings);
+}
+
+/// The default token lifetime counts: the hardened profile's K5.1 default sits under 900 s here,
+/// so a definition at 60 s refuses a grant that left its lifetime out.
+#[test]
+fn the_default_token_lifetime_is_checked_against_the_definition() {
+    let po = policy("hardened", vec![audience("internal-git", Access::Read)]);
+    let mut d = definition_of(
+        "internal-git",
+        "sandboxes",
+        "internal-git.internal.example:443",
+    );
+    d.spec.definition.max_ttl_seconds = 1;
+    let o = run_with_audiences(&po, &[d]);
+    assert!(o.bundle.is_none());
+    assert!(o
+        .findings
+        .iter()
+        .any(|f| f.code == "L028" && f.path.ends_with("ttlSeconds")));
+}
+
+#[test]
+fn a_definition_endpoint_outside_the_ceiling_is_l014_and_publishes_nothing() {
+    let po = policy("hardened", vec![audience("internal-git", Access::Read)]);
+    let mut d = definition_of(
+        "internal-git",
+        "sandboxes",
+        "internal-git.internal.example:443",
+    );
+    d.spec
+        .definition
+        .endpoints
+        .push("unapproved.example.com:443".into());
+    let o = run_with_audiences(&po, &[d]);
+    assert!(o.bundle.is_none());
+    assert!(o
+        .findings
+        .iter()
+        .any(|f| f.code == "L014" && f.path.contains("definition")));
 }

@@ -133,8 +133,13 @@ risks:
   ri-29:
     status: partial
     knobs: [K3.1, K5.1, K5.2, K5.3, K5.4]
-    lint: [L005, L006]
-    note: Short, read-only, audience-bound tokens and credential delivery mode.
+    lint: [L005, L006, L022, L023, L026, L027, L028]
+    other: [signed audience definitions]
+    note: >
+      Short, read-only, audience-bound tokens and credential delivery mode. Each audience's
+      definition (backend, placement, credential source by reference) is signed (ADR-0020); a team
+      audience cannot mint with the platform's keys or read its OpenBao, and a grant never exceeds
+      its definition.
     where: mediatore-guest delivers credentials.
     gap: No detection of credential discovery behaviour.
 
@@ -260,7 +265,9 @@ mitigations:
   mi-23:
     status: partial
     knobs: [K3.1, K5.1, K5.2, K5.3, K5.4]
-    lint: [L005, L006]
-    note: Just-in-time, short-lived, scoped credentials are policy. Delivery and environment isolation are downstream.
+    lint: [L005, L006, L022, L023, L028]
+    note: >
+      Just-in-time, short-lived, scoped credentials are policy, and so is each credential's
+      definition, signed (ADR-0020). Delivery and environment isolation are downstream.
     where: mediatore-guest
     gap: No behavioural detection.

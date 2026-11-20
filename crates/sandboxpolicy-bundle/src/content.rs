@@ -63,10 +63,15 @@ impl BundleContent {
     /// # Errors
     /// As [`BundleContent::canonical_bytes`].
     pub fn digest(&self) -> Result<String, BundleError> {
-        let mut h = Sha256::new();
-        h.update(self.canonical_bytes()?);
-        Ok(format!("sha256:{}", hex_lower(&h.finalize())))
+        Ok(sha256_digest(&self.canonical_bytes()?))
     }
+}
+
+/// `sha256:<hex>` of `bytes`, the digest form every bundle kind uses.
+pub(crate) fn sha256_digest(bytes: &[u8]) -> String {
+    let mut h = Sha256::new();
+    h.update(bytes);
+    format!("sha256:{}", hex_lower(&h.finalize()))
 }
 
 fn hex_lower(bytes: &[u8]) -> String {

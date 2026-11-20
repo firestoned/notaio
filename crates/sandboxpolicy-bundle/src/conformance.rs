@@ -16,14 +16,23 @@ use base64::{engine::general_purpose::STANDARD, Engine as _};
 use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
 
-use crate::floor::{accept, FloorEntry, MemoryFloor, VersionFloor};
-use crate::{BundleError, Envelope, TrustedKeys};
+use crate::floor::{
+    accept, audience_floor_name, next_audience_floor, FloorEntry, MemoryFloor, VersionFloor,
+};
+use crate::{verify_audience_bundle, BundleError, Envelope, TrustedKeys, VerifyOptions};
 
 /// The vectors, as generated: the [`Suite`] in JSON.
 pub const VECTORS_JSON: &str = include_str!("../conformance/vectors.json");
 
 /// The JSON Schema of the bundle payload these vectors are signed over.
 pub const PAYLOAD_SCHEMA_JSON: &str = include_str!("../conformance/bundle-v3.schema.json");
+
+/// The audience bundle vectors (ADR-0020), as generated: the [`AudienceSuite`] in JSON.
+pub const AUDIENCE_VECTORS_JSON: &str = include_str!("../conformance/audience-vectors.json");
+
+/// The JSON Schema of the audience bundle payload.
+pub const AUDIENCE_PAYLOAD_SCHEMA_JSON: &str =
+    include_str!("../conformance/audience-bundle-v1.schema.json");
 
 /// Every vector, with what a consumer needs to check it.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -54,6 +63,22 @@ pub struct PolicyCoordinates {
     pub name: String,
 }
 
+/// The audience bundle vectors (ADR-0020): the same shape as [`Suite`], about one audience.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AudienceSuite {
+    /// What this file is: `sandbox.firestoned.io/conformance/v1`.
+    pub schema: String,
+    /// The audience bundle schema the vectors exercise.
+    pub bundle_schema: String,
+    /// The keys a consumer trusts for these vectors.
+    pub trusted_keys: Vec<TrustedKey>,
+    /// The audience every vector is about. Its floor is kept under
+    /// [`audience_floor_name`]`(name)` in this namespace.
+    pub audience: PolicyCoordinates,
+    pub vectors: Vec<Vector>,
+}
+
 /// One case: an envelope, the consumer's clock and floor before it, and the verdict.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -64,6 +89,9 @@ pub struct Vector {
     pub now: Timestamp,
     /// The floor the consumer holds for the policy before this envelope; None for first sight.
     pub floor: Option<FloorEntry>,
+    /// A minimum version the consumer demands besides its floor (`VerifyOptions::min_version`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub min_version: Option<u64>,
     pub envelope: Envelope,
     pub expect: Expect,
 }
@@ -90,24 +118,46 @@ pub fn suite() -> Result<Suite, serde_json::Error> {
     serde_json::from_str(VECTORS_JSON)
 }
 
+/// The audience suite in [`AUDIENCE_VECTORS_JSON`].
+///
+/// # Errors
+/// Only if the checked-in file does not parse, which `make conformance-check` rules out.
+pub fn audience_suite() -> Result<AudienceSuite, serde_json::Error> {
+    serde_json::from_str(AUDIENCE_VECTORS_JSON)
+}
+
 impl Suite {
     /// The suite's trusted keys, ready for [`crate::verify_bundle`].
     ///
     /// # Errors
     /// `BundleError::Key` for a key that is not 32 bytes of standard base64.
     pub fn keys(&self) -> Result<TrustedKeys, BundleError> {
-        let mut keys = TrustedKeys::new();
-        for k in &self.trusted_keys {
-            let raw = STANDARD
-                .decode(&k.public_key)
-                .map_err(|e| BundleError::Key(e.to_string()))?;
-            let public: [u8; 32] = raw
-                .try_into()
-                .map_err(|_| BundleError::Key("a public key is 32 bytes".into()))?;
-            keys.insert(&k.key_id, public)?;
-        }
-        Ok(keys)
+        load_keys(&self.trusted_keys)
     }
+}
+
+impl AudienceSuite {
+    /// The suite's trusted keys, ready for [`crate::verify_audience_bundle`].
+    ///
+    /// # Errors
+    /// As [`Suite::keys`].
+    pub fn keys(&self) -> Result<TrustedKeys, BundleError> {
+        load_keys(&self.trusted_keys)
+    }
+}
+
+fn load_keys(trusted: &[TrustedKey]) -> Result<TrustedKeys, BundleError> {
+    let mut keys = TrustedKeys::new();
+    for k in trusted {
+        let raw = STANDARD
+            .decode(&k.public_key)
+            .map_err(|e| BundleError::Key(e.to_string()))?;
+        let public: [u8; 32] = raw
+            .try_into()
+            .map_err(|_| BundleError::Key("a public key is 32 bytes".into()))?;
+        keys.insert(&k.key_id, public)?;
+    }
+    Ok(keys)
 }
 
 /// The stable name of a refusal, as the vectors spell it: the [`BundleError`] variant.
@@ -130,32 +180,84 @@ pub fn error_name(e: &BundleError) -> &'static str {
 }
 
 /// Checks `vector` with this crate's [`accept`] and a fresh in-memory floor: what any consumer's
-/// verifier must reproduce.
+/// verifier must reproduce. A vector with a `minVersion` is first verified with it.
 ///
 /// # Errors
 /// A description of how the outcome differs from [`Vector::expect`].
 pub fn run(suite: &Suite, vector: &Vector, keys: &TrustedKeys) -> Result<(), String> {
+    let (ns, name) = (suite.policy.namespace.as_str(), suite.policy.name.as_str());
+    let mut floor = seeded(ns, name, vector)?;
+    let outcome = match vector.min_version {
+        Some(min) => crate::verify_bundle(&vector.envelope, keys, &with_min(vector.now, min))
+            .and_then(|_| accept(&vector.envelope, keys, vector.now, &mut floor)),
+        None => accept(&vector.envelope, keys, vector.now, &mut floor),
+    };
+    judge(vector, outcome.map(|p| p.meta.version), &floor, ns, name)
+}
+
+/// [`run`] for an audience vector: [`verify_audience_bundle`] (with the vector's `minVersion`),
+/// then the floor rule under [`audience_floor_name`], recorded only on acceptance. The same steps
+/// as [`crate::floor::accept_audience`], which takes no minimum version.
+///
+/// # Errors
+/// A description of how the outcome differs from [`Vector::expect`].
+pub fn run_audience(
+    suite: &AudienceSuite,
+    vector: &Vector,
+    keys: &TrustedKeys,
+) -> Result<(), String> {
+    let ns = suite.audience.namespace.as_str();
+    let name = audience_floor_name(&suite.audience.name);
+    let mut floor = seeded(ns, &name, vector)?;
+    let opts = match vector.min_version {
+        Some(min) => with_min(vector.now, min),
+        None => VerifyOptions::at(vector.now),
+    };
+    let outcome = verify_audience_bundle(&vector.envelope, keys, &opts).and_then(|payload| {
+        let next = next_audience_floor(floor.get(ns, &name).as_ref(), &payload)?;
+        floor.set(ns, &name, next)?;
+        Ok(payload.meta.version)
+    });
+    judge(vector, outcome, &floor, ns, &name)
+}
+
+fn with_min(now: Timestamp, min: u64) -> VerifyOptions {
+    VerifyOptions {
+        min_version: Some(min),
+        ..VerifyOptions::at(now)
+    }
+}
+
+/// A fresh in-memory floor holding the vector's floor, if it has one.
+fn seeded(ns: &str, name: &str, vector: &Vector) -> Result<MemoryFloor, String> {
     let mut floor = MemoryFloor::default();
-    let (ns, name) = (&suite.policy.namespace, &suite.policy.name);
     if let Some(held) = &vector.floor {
         floor
             .set(ns, name, held.clone())
             .map_err(|e| e.to_string())?;
     }
-    let outcome = accept(&vector.envelope, keys, vector.now, &mut floor);
+    Ok(floor)
+}
+
+/// Compares an outcome (the accepted version, or the refusal) and the floor left behind with the
+/// vector's verdict.
+fn judge(
+    vector: &Vector,
+    outcome: Result<u64, BundleError>,
+    floor: &MemoryFloor,
+    ns: &str,
+    name: &str,
+) -> Result<(), String> {
     match (&vector.expect, outcome) {
         (
             Expect::Accepted {
                 version,
                 floor_after,
             },
-            Ok(payload),
+            Ok(got),
         ) => {
-            if payload.meta.version != *version {
-                return Err(format!(
-                    "accepted version {}, expected {version}",
-                    payload.meta.version
-                ));
+            if got != *version {
+                return Err(format!("accepted version {got}, expected {version}"));
             }
             let after = floor.get(ns, name);
             if after.as_ref() != Some(floor_after) {
@@ -174,7 +276,7 @@ pub fn run(suite: &Suite, vector: &Vector, keys: &TrustedKeys) -> Result<(), Str
         }
         (expect, got) => Err(format!(
             "expected {expect:?}, got {:?}",
-            got.map(|p| p.meta.version).map_err(|e| error_name(&e))
+            got.map_err(|e| error_name(&e))
         )),
     }
 }

@@ -1,0 +1,30 @@
+# A team audience (ADR-0020): the definition of internal-git, owned by the team in `sandboxes`.
+# Any namespace other than the platform audience namespace holds team audiences, usable and
+# grantable only there: examples/sandboxpolicy-hardened.yaml grants it from the same namespace.
+#
+# The credential is a Secret in this namespace, synced by the team from its own OpenBao (with the
+# External Secrets Operator or any other means). notaio signs the reference, never reads the
+# Secret; the consumer resolves it here. A team audience uses the `secret` or `none` backend
+# (L022), never an OpenBao source (L023).
+#
+# Its endpoints must be in the ceiling of every policy that grants it (L014): this one matches
+# examples/exposureceiling-agent-default.yaml. A grant may narrow the endpoints, rules and token
+# lifetime here, never widen them (L028).
+apiVersion: sandbox.firestoned.io/v1alpha2
+kind: SandboxAudience
+metadata:
+  name: internal-git
+  namespace: sandboxes
+spec:
+  credential:
+    backend: secret
+    # gateway keeps the credential outside the pool VM; proxy is allowed for a team with a
+    # warning (L029).
+    placement: gateway
+    format: bearer
+    source:
+      secretRef: { name: internal-git-svc, tokenKey: token }
+  endpoints: ["git.foo.io:443"]
+  rules:
+    - { method: GET, path: "/repos/**" }
+  maxTtlSeconds: 300

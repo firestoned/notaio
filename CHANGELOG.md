@@ -10,6 +10,26 @@ a release, the maintainer renames Unreleased to the version and date.
 
 ## Unreleased
 
+### Added
+
+- `SandboxAudience`, a fifth kind: the definition of one audience (how the consumer obtains and
+  places its credential, a reference to its source, its endpoints, the widest rules and token any
+  grant may have), compiled into its own signed bundle and published to `<audience>-audience`
+  (ADR-0020). In the platform audience namespace it is a platform audience; anywhere else it is a
+  team audience, usable and grantable only in its own namespace, so a team can bring a credential
+  it owns. **Off until you set `NOTAIO_AUDIENCE_PLATFORM_NAMESPACE`**: upgrading changes nothing
+  until then. Once set, every policy that grants an audience needs a definition it can see (L027),
+  so lint the whole set first with `notaio lint --platform-audience-namespace <namespace>`.
+- Lint rules `L022` to `L029` for audiences and their grants, and `L014` now also checks a granted
+  audience's definition against the policy's ceiling. Input codes `I010` (an audience without a
+  namespace) and `I011` (audiences in the inputs but no platform namespace given, a warning).
+- `sandboxpolicy-bundle` verifies audience bundles (`verify_audience_bundle`) and keeps their
+  version floor (`floor::accept_audience`), for consumers, with conformance vectors
+  (`conformance::audience_suite`) every consumer can test against. The policy vectors gain one,
+  an audience envelope refused by its payload type.
+- Apply the new CRD, and the updated ClusterRole (read on `sandboxaudiences`, status and finalizers
+  writes). `deploy/admission/gitops-only.yaml` now covers `SandboxAudience` too.
+
 ### Changed
 
 - The `sandboxpolicy-*` crates use `jiff` for time instead of `chrono`: `DateTime<Utc>` is

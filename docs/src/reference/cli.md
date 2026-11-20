@@ -17,7 +17,7 @@ Usage: notaio <COMMAND>
 
 Commands:
   controller  Run the controller: watch policy objects, publish signed bundles
-  lint        Check SandboxProfile, SandboxPolicy, KnobGrant and ExposureCeiling files, for pull requests
+  lint        Check SandboxProfile, SandboxPolicy, KnobGrant, ExposureCeiling and SandboxAudience files, for pull requests
   help        Print this message or the help of the given subcommand(s)
 
 Options:
@@ -43,7 +43,7 @@ Options:
 ## notaio lint
 
 ```text
-Check SandboxProfile, SandboxPolicy, KnobGrant and ExposureCeiling files, for pull requests
+Check SandboxProfile, SandboxPolicy, KnobGrant, ExposureCeiling and SandboxAudience files, for pull requests
 
 Usage: notaio lint [OPTIONS] <PATHS>...
 
@@ -60,6 +60,9 @@ Options:
 
       --now <NOW>
           Evaluate grants at this instant (RFC 3339) instead of now
+
+      --platform-audience-namespace <PLATFORM_AUDIENCE_NAMESPACE>
+          The platform audience namespace (ADR-0020), as the controller's NOTAIO_AUDIENCE_PLATFORM_NAMESPACE. With it, SandboxAudience objects are linted and policy grants are checked against their definitions; without it, neither is
 
   -h, --help
           Print help

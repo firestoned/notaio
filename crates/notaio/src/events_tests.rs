@@ -111,3 +111,23 @@ fn notes_fit_the_api_servers_limit() {
             <= MAX_NOTE
     );
 }
+
+fn audience_status(ready: Condition, version: Option<u64>) -> SandboxAudienceStatus {
+    SandboxAudienceStatus {
+        conditions: vec![ready],
+        bundle_version: version,
+        ..Default::default()
+    }
+}
+
+#[test]
+fn an_audience_publishes_and_refuses_like_a_policy() {
+    let published = audience_status(cond("Ready", true, "Published", "ok"), Some(1));
+    let n = audience(&SandboxAudienceStatus::default(), &published).unwrap();
+    assert_eq!(n.reason, "Published");
+    assert!(audience(&published, &published).is_none());
+    let refused = audience_status(cond("Ready", false, "InvalidAudience", "L022"), Some(1));
+    let n = audience(&published, &refused).unwrap();
+    assert!(n.warning);
+    assert_eq!(n.reason, "InvalidAudience");
+}

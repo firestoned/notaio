@@ -18,6 +18,7 @@ use sandboxpolicy_bundle::{
 use sandboxpolicy_types::{Access, AudienceGrant, KnobId, Step};
 use sha2::{Digest, Sha256};
 
+use crate::audience::{lint_definitions_against_ceiling, lint_grants, AudienceCatalog};
 use crate::ceilings::Ceilings;
 use crate::lint::{self, has_errors, step_of, summarize, Finding};
 use crate::registry::REGISTRY;
@@ -39,6 +40,9 @@ pub struct EvalInput<'a> {
     /// How long a compiled bundle stays valid. This is the upper bound on staleness.
     pub bundle_lifetime: SignedDuration,
     pub ceilings: &'a Ceilings,
+    /// Every audience definition, once the platform audience namespace is configured (ADR-0020).
+    /// `None` leaves policies as they were before it: no L027, L028 or definition half of L014.
+    pub audiences: Option<&'a AudienceCatalog<'a>>,
 }
 
 #[derive(Debug, Clone)]
@@ -325,8 +329,30 @@ pub fn evaluate(input: &EvalInput<'_>) -> EvalOutput {
     status.active_grants = active;
     status.next_grant_expiry = earliest;
 
-    // 3. The policy itself, against the effective knobs.
+    // 3. The policy itself, against the effective knobs, and its grants against the audiences'
+    // definitions (ADR-0020), with the token lifetime the bundle would carry.
     let mut findings = lint::lint_policy(&effective, &input.policy.spec, input.ceilings);
+    let policy_ns = input
+        .policy
+        .metadata
+        .namespace
+        .as_deref()
+        .unwrap_or_default();
+    if let Some(catalog) = input.audiences {
+        let ttl_default = input.ceilings.token_ttl(step_of(&effective, "K5.1"));
+        let compiled: Vec<AudienceGrant> = input
+            .policy
+            .spec
+            .audiences
+            .iter()
+            .cloned()
+            .map(|mut a| {
+                a.ttl_seconds = Some(a.ttl_seconds.unwrap_or(ttl_default));
+                a
+            })
+            .collect();
+        findings.extend(lint_grants(&compiled, policy_ns, catalog));
+    }
     let mut requeue = input.bundle_lifetime / 2;
     if let Some(e) = earliest {
         requeue = requeue.min(e.duration_since(now) + SignedDuration::from_secs(1));
@@ -372,11 +398,20 @@ pub fn evaluate(input: &EvalInput<'_>) -> EvalOutput {
     // A policy it does not cover publishes nothing new; its exposure is still reported, so the
     // approvers can see what they are being asked to approve.
     let exposed = exposure(&content);
-    let gate = lint::lint_exposure(
+    let mut gate = lint::lint_exposure(
         &exposed,
         input.exposure_ceiling.map(|c| &c.spec),
         profile.spec.data_scope,
     );
+    // A definition opens nothing on its own: its endpoints and lifetime need the ceiling too.
+    if let Some(catalog) = input.audiences {
+        gate.extend(lint_definitions_against_ceiling(
+            &content.audiences,
+            policy_ns,
+            catalog,
+            input.exposure_ceiling.map(|c| &c.spec),
+        ));
+    }
     if has_errors(&gate) {
         let reason = if input.exposure_ceiling.is_none() {
             "NoApprovedCeiling"

@@ -1,0 +1,357 @@
+{
+  "schema": "sandbox.firestoned.io/conformance/v1",
+  "bundleSchema": "sandbox.firestoned.io/audience-bundle/v1",
+  "trustedKeys": [
+    {
+      "keyId": "conformance:v1",
+      "publicKey": "0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc="
+    }
+  ],
+  "audience": {
+    "namespace": "conformance",
+    "name": "artifactory"
+  },
+  "vectors": [
+    {
+      "name": "accepted-first-sight",
+      "description": "No floor yet: a valid audience bundle is accepted and becomes the floor.",
+      "now": "2026-01-01T12:00:00Z",
+      "floor": null,
+      "envelope": {
+        "payloadType": "application/vnd.firestoned.sandboxaudience.bundle.v1+json",
+        "payload": "eyJzY2hlbWEiOiJzYW5kYm94LmZpcmVzdG9uZWQuaW8vYXVkaWVuY2UtYnVuZGxlL3YxIiwibWV0YSI6eyJ2ZXJzaW9uIjozLCJpc3N1ZWRBdCI6IjIwMjYtMDEtMDFUMTE6MDA6MDBaIiwibm90QWZ0ZXIiOiIyMDI2LTAxLTAxVDEzOjAwOjAwWiJ9LCJjb250ZW50Ijp7ImF1ZGllbmNlIjp7Im5hbWVzcGFjZSI6ImNvbmZvcm1hbmNlIiwibmFtZSI6ImFydGlmYWN0b3J5IiwidWlkIjoiMDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDExIn0sImRlZmluaXRpb24iOnsiY3JlZGVudGlhbCI6eyJiYWNrZW5kIjoic2VjcmV0IiwicGxhY2VtZW50IjoiZ2F0ZXdheSIsImZvcm1hdCI6ImJhc2ljIiwic291cmNlIjp7InNlY3JldFJlZiI6eyJuYW1lIjoiYWYtc3ZjIiwidG9rZW5LZXkiOiJ0b2tlbiIsInVzZXJuYW1lS2V5IjoidXNlcm5hbWUifX0sImV4dHJhSGVhZGVycyI6W119LCJlbmRwb2ludHMiOlsiYXJ0aWZhY3RvcnkuZm9vLmlvOjQ0MyJdLCJydWxlcyI6W3sibWV0aG9kIjoiR0VUIiwicGF0aCI6Ii92Mi8qKiJ9XSwibWF4VHRsU2Vjb25kcyI6OTAwfX0sImNvbnRlbnREaWdlc3QiOiJzaGEyNTY6NzRlNWZkZTJmMWIxZjgyODFmNDY3NzM1MDNmNTQ4NDQwMjE0ZTcwM2I1OWQ0MjY0ZjE0ZWJmYTA2Nzk1ZDBjMSJ9",
+        "signatures": [
+          {
+            "keyid": "conformance:v1",
+            "sig": "Nk32gosdjwcU6jBz7k84rA11Jsxf+RBMLdKQgCEvBsdDdw46age9BUr04tQFlIBY9IIBZnWazuSfKK+blclQAw=="
+          }
+        ]
+      },
+      "expect": {
+        "outcome": "accepted",
+        "version": 3,
+        "floorAfter": {
+          "uid": "00000000-0000-4000-8000-000000000011",
+          "version": 3,
+          "issuedAt": "2026-01-01T11:00:00Z"
+        }
+      }
+    },
+    {
+      "name": "accepted-same-version",
+      "description": "The floor's own version again (a re-delivery): accepted, the floor unchanged.",
+      "now": "2026-01-01T12:00:00Z",
+      "floor": {
+        "uid": "00000000-0000-4000-8000-000000000011",
+        "version": 3,
+        "issuedAt": "2026-01-01T11:00:00Z"
+      },
+      "envelope": {
+        "payloadType": "application/vnd.firestoned.sandboxaudience.bundle.v1+json",
+        "payload": "eyJzY2hlbWEiOiJzYW5kYm94LmZpcmVzdG9uZWQuaW8vYXVkaWVuY2UtYnVuZGxlL3YxIiwibWV0YSI6eyJ2ZXJzaW9uIjozLCJpc3N1ZWRBdCI6IjIwMjYtMDEtMDFUMTE6MDA6MDBaIiwibm90QWZ0ZXIiOiIyMDI2LTAxLTAxVDEzOjAwOjAwWiJ9LCJjb250ZW50Ijp7ImF1ZGllbmNlIjp7Im5hbWVzcGFjZSI6ImNvbmZvcm1hbmNlIiwibmFtZSI6ImFydGlmYWN0b3J5IiwidWlkIjoiMDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDExIn0sImRlZmluaXRpb24iOnsiY3JlZGVudGlhbCI6eyJiYWNrZW5kIjoic2VjcmV0IiwicGxhY2VtZW50IjoiZ2F0ZXdheSIsImZvcm1hdCI6ImJhc2ljIiwic291cmNlIjp7InNlY3JldFJlZiI6eyJuYW1lIjoiYWYtc3ZjIiwidG9rZW5LZXkiOiJ0b2tlbiIsInVzZXJuYW1lS2V5IjoidXNlcm5hbWUifX0sImV4dHJhSGVhZGVycyI6W119LCJlbmRwb2ludHMiOlsiYXJ0aWZhY3RvcnkuZm9vLmlvOjQ0MyJdLCJydWxlcyI6W3sibWV0aG9kIjoiR0VUIiwicGF0aCI6Ii92Mi8qKiJ9XSwibWF4VHRsU2Vjb25kcyI6OTAwfX0sImNvbnRlbnREaWdlc3QiOiJzaGEyNTY6NzRlNWZkZTJmMWIxZjgyODFmNDY3NzM1MDNmNTQ4NDQwMjE0ZTcwM2I1OWQ0MjY0ZjE0ZWJmYTA2Nzk1ZDBjMSJ9",
+        "signatures": [
+          {
+            "keyid": "conformance:v1",
+            "sig": "Nk32gosdjwcU6jBz7k84rA11Jsxf+RBMLdKQgCEvBsdDdw46age9BUr04tQFlIBY9IIBZnWazuSfKK+blclQAw=="
+          }
+        ]
+      },
+      "expect": {
+        "outcome": "accepted",
+        "version": 3,
+        "floorAfter": {
+          "uid": "00000000-0000-4000-8000-000000000011",
+          "version": 3,
+          "issuedAt": "2026-01-01T11:00:00Z"
+        }
+      }
+    },
+    {
+      "name": "accepted-newer-version",
+      "description": "A higher version of the same incarnation: accepted, the floor moves up.",
+      "now": "2026-01-01T12:00:00Z",
+      "floor": {
+        "uid": "00000000-0000-4000-8000-000000000011",
+        "version": 2,
+        "issuedAt": "2026-01-01T10:00:00Z"
+      },
+      "envelope": {
+        "payloadType": "application/vnd.firestoned.sandboxaudience.bundle.v1+json",
+        "payload": "eyJzY2hlbWEiOiJzYW5kYm94LmZpcmVzdG9uZWQuaW8vYXVkaWVuY2UtYnVuZGxlL3YxIiwibWV0YSI6eyJ2ZXJzaW9uIjozLCJpc3N1ZWRBdCI6IjIwMjYtMDEtMDFUMTE6MDA6MDBaIiwibm90QWZ0ZXIiOiIyMDI2LTAxLTAxVDEzOjAwOjAwWiJ9LCJjb250ZW50Ijp7ImF1ZGllbmNlIjp7Im5hbWVzcGFjZSI6ImNvbmZvcm1hbmNlIiwibmFtZSI6ImFydGlmYWN0b3J5IiwidWlkIjoiMDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDExIn0sImRlZmluaXRpb24iOnsiY3JlZGVudGlhbCI6eyJiYWNrZW5kIjoic2VjcmV0IiwicGxhY2VtZW50IjoiZ2F0ZXdheSIsImZvcm1hdCI6ImJhc2ljIiwic291cmNlIjp7InNlY3JldFJlZiI6eyJuYW1lIjoiYWYtc3ZjIiwidG9rZW5LZXkiOiJ0b2tlbiIsInVzZXJuYW1lS2V5IjoidXNlcm5hbWUifX0sImV4dHJhSGVhZGVycyI6W119LCJlbmRwb2ludHMiOlsiYXJ0aWZhY3RvcnkuZm9vLmlvOjQ0MyJdLCJydWxlcyI6W3sibWV0aG9kIjoiR0VUIiwicGF0aCI6Ii92Mi8qKiJ9XSwibWF4VHRsU2Vjb25kcyI6OTAwfX0sImNvbnRlbnREaWdlc3QiOiJzaGEyNTY6NzRlNWZkZTJmMWIxZjgyODFmNDY3NzM1MDNmNTQ4NDQwMjE0ZTcwM2I1OWQ0MjY0ZjE0ZWJmYTA2Nzk1ZDBjMSJ9",
+        "signatures": [
+          {
+            "keyid": "conformance:v1",
+            "sig": "Nk32gosdjwcU6jBz7k84rA11Jsxf+RBMLdKQgCEvBsdDdw46age9BUr04tQFlIBY9IIBZnWazuSfKK+blclQAw=="
+          }
+        ]
+      },
+      "expect": {
+        "outcome": "accepted",
+        "version": 3,
+        "floorAfter": {
+          "uid": "00000000-0000-4000-8000-000000000011",
+          "version": 3,
+          "issuedAt": "2026-01-01T11:00:00Z"
+        }
+      }
+    },
+    {
+      "name": "accepted-new-incarnation",
+      "description": "A recreated audience (new uid) issued after the floor's bundle: accepted, the floor moves to it.",
+      "now": "2026-01-01T12:00:00Z",
+      "floor": {
+        "uid": "00000000-0000-4000-8000-000000000012",
+        "version": 9,
+        "issuedAt": "2026-01-01T10:00:00Z"
+      },
+      "envelope": {
+        "payloadType": "application/vnd.firestoned.sandboxaudience.bundle.v1+json",
+        "payload": "eyJzY2hlbWEiOiJzYW5kYm94LmZpcmVzdG9uZWQuaW8vYXVkaWVuY2UtYnVuZGxlL3YxIiwibWV0YSI6eyJ2ZXJzaW9uIjozLCJpc3N1ZWRBdCI6IjIwMjYtMDEtMDFUMTE6MDA6MDBaIiwibm90QWZ0ZXIiOiIyMDI2LTAxLTAxVDEzOjAwOjAwWiJ9LCJjb250ZW50Ijp7ImF1ZGllbmNlIjp7Im5hbWVzcGFjZSI6ImNvbmZvcm1hbmNlIiwibmFtZSI6ImFydGlmYWN0b3J5IiwidWlkIjoiMDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDExIn0sImRlZmluaXRpb24iOnsiY3JlZGVudGlhbCI6eyJiYWNrZW5kIjoic2VjcmV0IiwicGxhY2VtZW50IjoiZ2F0ZXdheSIsImZvcm1hdCI6ImJhc2ljIiwic291cmNlIjp7InNlY3JldFJlZiI6eyJuYW1lIjoiYWYtc3ZjIiwidG9rZW5LZXkiOiJ0b2tlbiIsInVzZXJuYW1lS2V5IjoidXNlcm5hbWUifX0sImV4dHJhSGVhZGVycyI6W119LCJlbmRwb2ludHMiOlsiYXJ0aWZhY3RvcnkuZm9vLmlvOjQ0MyJdLCJydWxlcyI6W3sibWV0aG9kIjoiR0VUIiwicGF0aCI6Ii92Mi8qKiJ9XSwibWF4VHRsU2Vjb25kcyI6OTAwfX0sImNvbnRlbnREaWdlc3QiOiJzaGEyNTY6NzRlNWZkZTJmMWIxZjgyODFmNDY3NzM1MDNmNTQ4NDQwMjE0ZTcwM2I1OWQ0MjY0ZjE0ZWJmYTA2Nzk1ZDBjMSJ9",
+        "signatures": [
+          {
+            "keyid": "conformance:v1",
+            "sig": "Nk32gosdjwcU6jBz7k84rA11Jsxf+RBMLdKQgCEvBsdDdw46age9BUr04tQFlIBY9IIBZnWazuSfKK+blclQAw=="
+          }
+        ]
+      },
+      "expect": {
+        "outcome": "accepted",
+        "version": 3,
+        "floorAfter": {
+          "uid": "00000000-0000-4000-8000-000000000011",
+          "version": 3,
+          "issuedAt": "2026-01-01T11:00:00Z"
+        }
+      }
+    },
+    {
+      "name": "refused-downgrade",
+      "description": "A lower version of the incarnation the floor holds: refused.",
+      "now": "2026-01-01T12:00:00Z",
+      "floor": {
+        "uid": "00000000-0000-4000-8000-000000000011",
+        "version": 4,
+        "issuedAt": "2026-01-01T11:30:00Z"
+      },
+      "envelope": {
+        "payloadType": "application/vnd.firestoned.sandboxaudience.bundle.v1+json",
+        "payload": "eyJzY2hlbWEiOiJzYW5kYm94LmZpcmVzdG9uZWQuaW8vYXVkaWVuY2UtYnVuZGxlL3YxIiwibWV0YSI6eyJ2ZXJzaW9uIjozLCJpc3N1ZWRBdCI6IjIwMjYtMDEtMDFUMTE6MDA6MDBaIiwibm90QWZ0ZXIiOiIyMDI2LTAxLTAxVDEzOjAwOjAwWiJ9LCJjb250ZW50Ijp7ImF1ZGllbmNlIjp7Im5hbWVzcGFjZSI6ImNvbmZvcm1hbmNlIiwibmFtZSI6ImFydGlmYWN0b3J5IiwidWlkIjoiMDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDExIn0sImRlZmluaXRpb24iOnsiY3JlZGVudGlhbCI6eyJiYWNrZW5kIjoic2VjcmV0IiwicGxhY2VtZW50IjoiZ2F0ZXdheSIsImZvcm1hdCI6ImJhc2ljIiwic291cmNlIjp7InNlY3JldFJlZiI6eyJuYW1lIjoiYWYtc3ZjIiwidG9rZW5LZXkiOiJ0b2tlbiIsInVzZXJuYW1lS2V5IjoidXNlcm5hbWUifX0sImV4dHJhSGVhZGVycyI6W119LCJlbmRwb2ludHMiOlsiYXJ0aWZhY3RvcnkuZm9vLmlvOjQ0MyJdLCJydWxlcyI6W3sibWV0aG9kIjoiR0VUIiwicGF0aCI6Ii92Mi8qKiJ9XSwibWF4VHRsU2Vjb25kcyI6OTAwfX0sImNvbnRlbnREaWdlc3QiOiJzaGEyNTY6NzRlNWZkZTJmMWIxZjgyODFmNDY3NzM1MDNmNTQ4NDQwMjE0ZTcwM2I1OWQ0MjY0ZjE0ZWJmYTA2Nzk1ZDBjMSJ9",
+        "signatures": [
+          {
+            "keyid": "conformance:v1",
+            "sig": "Nk32gosdjwcU6jBz7k84rA11Jsxf+RBMLdKQgCEvBsdDdw46age9BUr04tQFlIBY9IIBZnWazuSfKK+blclQAw=="
+          }
+        ]
+      },
+      "expect": {
+        "outcome": "refused",
+        "error": "Downgrade"
+      }
+    },
+    {
+      "name": "refused-stale-incarnation",
+      "description": "Another incarnation, issued no later than the floor's bundle: a replay from before a recreation, refused.",
+      "now": "2026-01-01T12:00:00Z",
+      "floor": {
+        "uid": "00000000-0000-4000-8000-000000000012",
+        "version": 1,
+        "issuedAt": "2026-01-01T11:30:00Z"
+      },
+      "envelope": {
+        "payloadType": "application/vnd.firestoned.sandboxaudience.bundle.v1+json",
+        "payload": "eyJzY2hlbWEiOiJzYW5kYm94LmZpcmVzdG9uZWQuaW8vYXVkaWVuY2UtYnVuZGxlL3YxIiwibWV0YSI6eyJ2ZXJzaW9uIjozLCJpc3N1ZWRBdCI6IjIwMjYtMDEtMDFUMTE6MDA6MDBaIiwibm90QWZ0ZXIiOiIyMDI2LTAxLTAxVDEzOjAwOjAwWiJ9LCJjb250ZW50Ijp7ImF1ZGllbmNlIjp7Im5hbWVzcGFjZSI6ImNvbmZvcm1hbmNlIiwibmFtZSI6ImFydGlmYWN0b3J5IiwidWlkIjoiMDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDExIn0sImRlZmluaXRpb24iOnsiY3JlZGVudGlhbCI6eyJiYWNrZW5kIjoic2VjcmV0IiwicGxhY2VtZW50IjoiZ2F0ZXdheSIsImZvcm1hdCI6ImJhc2ljIiwic291cmNlIjp7InNlY3JldFJlZiI6eyJuYW1lIjoiYWYtc3ZjIiwidG9rZW5LZXkiOiJ0b2tlbiIsInVzZXJuYW1lS2V5IjoidXNlcm5hbWUifX0sImV4dHJhSGVhZGVycyI6W119LCJlbmRwb2ludHMiOlsiYXJ0aWZhY3RvcnkuZm9vLmlvOjQ0MyJdLCJydWxlcyI6W3sibWV0aG9kIjoiR0VUIiwicGF0aCI6Ii92Mi8qKiJ9XSwibWF4VHRsU2Vjb25kcyI6OTAwfX0sImNvbnRlbnREaWdlc3QiOiJzaGEyNTY6NzRlNWZkZTJmMWIxZjgyODFmNDY3NzM1MDNmNTQ4NDQwMjE0ZTcwM2I1OWQ0MjY0ZjE0ZWJmYTA2Nzk1ZDBjMSJ9",
+        "signatures": [
+          {
+            "keyid": "conformance:v1",
+            "sig": "Nk32gosdjwcU6jBz7k84rA11Jsxf+RBMLdKQgCEvBsdDdw46age9BUr04tQFlIBY9IIBZnWazuSfKK+blclQAw=="
+          }
+        ]
+      },
+      "expect": {
+        "outcome": "refused",
+        "error": "StaleIncarnation"
+      }
+    },
+    {
+      "name": "refused-policy-envelope",
+      "description": "A valid policy bundle, signed by the trusted key: refused by its payload type, never read as an audience.",
+      "now": "2026-01-01T12:00:00Z",
+      "floor": null,
+      "envelope": {
+        "payloadType": "application/vnd.firestoned.sandboxpolicy.bundle.v3+json",
+        "payload": "eyJzY2hlbWEiOiJzYW5kYm94LmZpcmVzdG9uZWQuaW8vYnVuZGxlL3YzIiwibWV0YSI6eyJ2ZXJzaW9uIjozLCJpc3N1ZWRBdCI6IjIwMjYtMDEtMDFUMTE6MDA6MDBaIiwibm90QWZ0ZXIiOiIyMDI2LTAxLTAxVDEzOjAwOjAwWiJ9LCJjb250ZW50Ijp7InBvbGljeSI6eyJuYW1lc3BhY2UiOiJjb25mb3JtYW5jZSIsIm5hbWUiOiJhZ2VudCIsInVpZCI6IjAwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSJ9LCJwcm9maWxlIjp7Im5hbWUiOiJoYXJkZW5lZCIsImRpZ2VzdCI6InNoYTI1NjowMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwIn0sImtub2JzIjp7Iks0LjEiOiJSMCIsIks1LjEiOiJSMCIsIks1LjMiOiJSMSJ9LCJhdWRpZW5jZXMiOlt7Im5hbWUiOiJpbnRlcm5hbC1naXQiLCJhY2Nlc3MiOiJSZWFkIiwic2NvcGVzIjpbInJlcG86cmVhZCJdLCJ0dGxTZWNvbmRzIjozMDAsImVuZHBvaW50cyI6WyJnaXQuZm9vLmlvOjQ0MyJdLCJydWxlcyI6W3sibWV0aG9kIjoiR0VUIiwicGF0aCI6Ii9yZXBvcy8qKiJ9XX1dLCJlZ3Jlc3MiOltdLCJ0b29scyI6W10sImxlYXNlIjp7Im1heER1cmF0aW9uU2Vjb25kcyI6MTQ0MDAsIm1heENvbmN1cnJlbnQiOjF9LCJidWRnZXRzIjp7Im1heFRvb2xDYWxscyI6NTAwLCJtYXhXYWxsQ2xvY2tTZWNvbmRzIjoxNDQwMCwibWF4RWdyZXNzQnl0ZXMiOjEwNDg1NzYwfX0sImNvbnRlbnREaWdlc3QiOiJzaGEyNTY6NWQ2YmNkZGZmMDlhYWVlNTY2ZGMzMDhmMzA3YTQ1ZDFmZTk4MzM5ODM5MjY4ZGY0ZTdmZjIwZmQ2OGFlNzgxOCJ9",
+        "signatures": [
+          {
+            "keyid": "conformance:v1",
+            "sig": "32qlBUgCS86HrkDij6zd4sgr9EQ0PK5+O7LT36HnzyV2ej2NUuY313UrPvNTAelSEJOvWqJLXefsMNtr+1ffCw=="
+          }
+        ]
+      },
+      "expect": {
+        "outcome": "refused",
+        "error": "PayloadType"
+      }
+    },
+    {
+      "name": "refused-forged-signature",
+      "description": "One bit of the signature flipped: refused.",
+      "now": "2026-01-01T12:00:00Z",
+      "floor": null,
+      "envelope": {
+        "payloadType": "application/vnd.firestoned.sandboxaudience.bundle.v1+json",
+        "payload": "eyJzY2hlbWEiOiJzYW5kYm94LmZpcmVzdG9uZWQuaW8vYXVkaWVuY2UtYnVuZGxlL3YxIiwibWV0YSI6eyJ2ZXJzaW9uIjozLCJpc3N1ZWRBdCI6IjIwMjYtMDEtMDFUMTE6MDA6MDBaIiwibm90QWZ0ZXIiOiIyMDI2LTAxLTAxVDEzOjAwOjAwWiJ9LCJjb250ZW50Ijp7ImF1ZGllbmNlIjp7Im5hbWVzcGFjZSI6ImNvbmZvcm1hbmNlIiwibmFtZSI6ImFydGlmYWN0b3J5IiwidWlkIjoiMDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDExIn0sImRlZmluaXRpb24iOnsiY3JlZGVudGlhbCI6eyJiYWNrZW5kIjoic2VjcmV0IiwicGxhY2VtZW50IjoiZ2F0ZXdheSIsImZvcm1hdCI6ImJhc2ljIiwic291cmNlIjp7InNlY3JldFJlZiI6eyJuYW1lIjoiYWYtc3ZjIiwidG9rZW5LZXkiOiJ0b2tlbiIsInVzZXJuYW1lS2V5IjoidXNlcm5hbWUifX0sImV4dHJhSGVhZGVycyI6W119LCJlbmRwb2ludHMiOlsiYXJ0aWZhY3RvcnkuZm9vLmlvOjQ0MyJdLCJydWxlcyI6W3sibWV0aG9kIjoiR0VUIiwicGF0aCI6Ii92Mi8qKiJ9XSwibWF4VHRsU2Vjb25kcyI6OTAwfX0sImNvbnRlbnREaWdlc3QiOiJzaGEyNTY6NzRlNWZkZTJmMWIxZjgyODFmNDY3NzM1MDNmNTQ4NDQwMjE0ZTcwM2I1OWQ0MjY0ZjE0ZWJmYTA2Nzk1ZDBjMSJ9",
+        "signatures": [
+          {
+            "keyid": "conformance:v1",
+            "sig": "N032gosdjwcU6jBz7k84rA11Jsxf+RBMLdKQgCEvBsdDdw46age9BUr04tQFlIBY9IIBZnWazuSfKK+blclQAw=="
+          }
+        ]
+      },
+      "expect": {
+        "outcome": "refused",
+        "error": "NoValidSignature"
+      }
+    },
+    {
+      "name": "refused-untrusted-key",
+      "description": "Signed by a key nobody trusts, under the trusted key's id: refused.",
+      "now": "2026-01-01T12:00:00Z",
+      "floor": null,
+      "envelope": {
+        "payloadType": "application/vnd.firestoned.sandboxaudience.bundle.v1+json",
+        "payload": "eyJzY2hlbWEiOiJzYW5kYm94LmZpcmVzdG9uZWQuaW8vYXVkaWVuY2UtYnVuZGxlL3YxIiwibWV0YSI6eyJ2ZXJzaW9uIjozLCJpc3N1ZWRBdCI6IjIwMjYtMDEtMDFUMTE6MDA6MDBaIiwibm90QWZ0ZXIiOiIyMDI2LTAxLTAxVDEzOjAwOjAwWiJ9LCJjb250ZW50Ijp7ImF1ZGllbmNlIjp7Im5hbWVzcGFjZSI6ImNvbmZvcm1hbmNlIiwibmFtZSI6ImFydGlmYWN0b3J5IiwidWlkIjoiMDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDExIn0sImRlZmluaXRpb24iOnsiY3JlZGVudGlhbCI6eyJiYWNrZW5kIjoic2VjcmV0IiwicGxhY2VtZW50IjoiZ2F0ZXdheSIsImZvcm1hdCI6ImJhc2ljIiwic291cmNlIjp7InNlY3JldFJlZiI6eyJuYW1lIjoiYWYtc3ZjIiwidG9rZW5LZXkiOiJ0b2tlbiIsInVzZXJuYW1lS2V5IjoidXNlcm5hbWUifX0sImV4dHJhSGVhZGVycyI6W119LCJlbmRwb2ludHMiOlsiYXJ0aWZhY3RvcnkuZm9vLmlvOjQ0MyJdLCJydWxlcyI6W3sibWV0aG9kIjoiR0VUIiwicGF0aCI6Ii92Mi8qKiJ9XSwibWF4VHRsU2Vjb25kcyI6OTAwfX0sImNvbnRlbnREaWdlc3QiOiJzaGEyNTY6NzRlNWZkZTJmMWIxZjgyODFmNDY3NzM1MDNmNTQ4NDQwMjE0ZTcwM2I1OWQ0MjY0ZjE0ZWJmYTA2Nzk1ZDBjMSJ9",
+        "signatures": [
+          {
+            "keyid": "conformance:v1",
+            "sig": "yEeGIblKNFTlgb5QA2AhtCiuiFuDgr767Y3IK9N/rhhHGmhzgqkLclZ5xrjx5W2dGvbJnRNYbtn+DstchrFsDg=="
+          }
+        ]
+      },
+      "expect": {
+        "outcome": "refused",
+        "error": "NoValidSignature"
+      }
+    },
+    {
+      "name": "refused-digest-mismatch",
+      "description": "Validly signed, but contentDigest is not the digest of the content: refused.",
+      "now": "2026-01-01T12:00:00Z",
+      "floor": null,
+      "envelope": {
+        "payloadType": "application/vnd.firestoned.sandboxaudience.bundle.v1+json",
+        "payload": "eyJzY2hlbWEiOiJzYW5kYm94LmZpcmVzdG9uZWQuaW8vYXVkaWVuY2UtYnVuZGxlL3YxIiwibWV0YSI6eyJ2ZXJzaW9uIjozLCJpc3N1ZWRBdCI6IjIwMjYtMDEtMDFUMTE6MDA6MDBaIiwibm90QWZ0ZXIiOiIyMDI2LTAxLTAxVDEzOjAwOjAwWiJ9LCJjb250ZW50Ijp7ImF1ZGllbmNlIjp7Im5hbWVzcGFjZSI6ImNvbmZvcm1hbmNlIiwibmFtZSI6ImFydGlmYWN0b3J5IiwidWlkIjoiMDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDExIn0sImRlZmluaXRpb24iOnsiY3JlZGVudGlhbCI6eyJiYWNrZW5kIjoic2VjcmV0IiwicGxhY2VtZW50IjoiZ2F0ZXdheSIsImZvcm1hdCI6ImJhc2ljIiwic291cmNlIjp7InNlY3JldFJlZiI6eyJuYW1lIjoiYWYtc3ZjIiwidG9rZW5LZXkiOiJ0b2tlbiIsInVzZXJuYW1lS2V5IjoidXNlcm5hbWUifX0sImV4dHJhSGVhZGVycyI6W119LCJlbmRwb2ludHMiOlsiYXJ0aWZhY3RvcnkuZm9vLmlvOjQ0MyJdLCJydWxlcyI6W3sibWV0aG9kIjoiR0VUIiwicGF0aCI6Ii92Mi8qKiJ9XSwibWF4VHRsU2Vjb25kcyI6OTAwfX0sImNvbnRlbnREaWdlc3QiOiJzaGEyNTY6ZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZiJ9",
+        "signatures": [
+          {
+            "keyid": "conformance:v1",
+            "sig": "6MS748WyPWbiGYT8O+w4HDHqlxKTVbnyuHY5ZJG3kUmkPffhoY+mpYLdMF/SUeSKvajMGaDQWEPJk1AQcGqsDw=="
+          }
+        ]
+      },
+      "expect": {
+        "outcome": "refused",
+        "error": "DigestMismatch"
+      }
+    },
+    {
+      "name": "refused-policy-schema",
+      "description": "Validly signed under the audience payload type, but the policy bundle's schema: refused.",
+      "now": "2026-01-01T12:00:00Z",
+      "floor": null,
+      "envelope": {
+        "payloadType": "application/vnd.firestoned.sandboxaudience.bundle.v1+json",
+        "payload": "eyJzY2hlbWEiOiJzYW5kYm94LmZpcmVzdG9uZWQuaW8vYnVuZGxlL3YzIiwibWV0YSI6eyJ2ZXJzaW9uIjozLCJpc3N1ZWRBdCI6IjIwMjYtMDEtMDFUMTE6MDA6MDBaIiwibm90QWZ0ZXIiOiIyMDI2LTAxLTAxVDEzOjAwOjAwWiJ9LCJjb250ZW50Ijp7ImF1ZGllbmNlIjp7Im5hbWVzcGFjZSI6ImNvbmZvcm1hbmNlIiwibmFtZSI6ImFydGlmYWN0b3J5IiwidWlkIjoiMDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDExIn0sImRlZmluaXRpb24iOnsiY3JlZGVudGlhbCI6eyJiYWNrZW5kIjoic2VjcmV0IiwicGxhY2VtZW50IjoiZ2F0ZXdheSIsImZvcm1hdCI6ImJhc2ljIiwic291cmNlIjp7InNlY3JldFJlZiI6eyJuYW1lIjoiYWYtc3ZjIiwidG9rZW5LZXkiOiJ0b2tlbiIsInVzZXJuYW1lS2V5IjoidXNlcm5hbWUifX0sImV4dHJhSGVhZGVycyI6W119LCJlbmRwb2ludHMiOlsiYXJ0aWZhY3RvcnkuZm9vLmlvOjQ0MyJdLCJydWxlcyI6W3sibWV0aG9kIjoiR0VUIiwicGF0aCI6Ii92Mi8qKiJ9XSwibWF4VHRsU2Vjb25kcyI6OTAwfX0sImNvbnRlbnREaWdlc3QiOiJzaGEyNTY6NzRlNWZkZTJmMWIxZjgyODFmNDY3NzM1MDNmNTQ4NDQwMjE0ZTcwM2I1OWQ0MjY0ZjE0ZWJmYTA2Nzk1ZDBjMSJ9",
+        "signatures": [
+          {
+            "keyid": "conformance:v1",
+            "sig": "y0cH7NCZ89UyjlbCWBli8EsOL6oUBWlz7JiJ0mE219UcWjl/Lh9IcYHNEiuF0e6Qejon2blh7eIbit3q09FyAw=="
+          }
+        ]
+      },
+      "expect": {
+        "outcome": "refused",
+        "error": "Schema"
+      }
+    },
+    {
+      "name": "refused-expired",
+      "description": "The consumer's clock at notAfter exactly: refused.",
+      "now": "2026-01-01T13:00:00Z",
+      "floor": null,
+      "envelope": {
+        "payloadType": "application/vnd.firestoned.sandboxaudience.bundle.v1+json",
+        "payload": "eyJzY2hlbWEiOiJzYW5kYm94LmZpcmVzdG9uZWQuaW8vYXVkaWVuY2UtYnVuZGxlL3YxIiwibWV0YSI6eyJ2ZXJzaW9uIjozLCJpc3N1ZWRBdCI6IjIwMjYtMDEtMDFUMTE6MDA6MDBaIiwibm90QWZ0ZXIiOiIyMDI2LTAxLTAxVDEzOjAwOjAwWiJ9LCJjb250ZW50Ijp7ImF1ZGllbmNlIjp7Im5hbWVzcGFjZSI6ImNvbmZvcm1hbmNlIiwibmFtZSI6ImFydGlmYWN0b3J5IiwidWlkIjoiMDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDExIn0sImRlZmluaXRpb24iOnsiY3JlZGVudGlhbCI6eyJiYWNrZW5kIjoic2VjcmV0IiwicGxhY2VtZW50IjoiZ2F0ZXdheSIsImZvcm1hdCI6ImJhc2ljIiwic291cmNlIjp7InNlY3JldFJlZiI6eyJuYW1lIjoiYWYtc3ZjIiwidG9rZW5LZXkiOiJ0b2tlbiIsInVzZXJuYW1lS2V5IjoidXNlcm5hbWUifX0sImV4dHJhSGVhZGVycyI6W119LCJlbmRwb2ludHMiOlsiYXJ0aWZhY3RvcnkuZm9vLmlvOjQ0MyJdLCJydWxlcyI6W3sibWV0aG9kIjoiR0VUIiwicGF0aCI6Ii92Mi8qKiJ9XSwibWF4VHRsU2Vjb25kcyI6OTAwfX0sImNvbnRlbnREaWdlc3QiOiJzaGEyNTY6NzRlNWZkZTJmMWIxZjgyODFmNDY3NzM1MDNmNTQ4NDQwMjE0ZTcwM2I1OWQ0MjY0ZjE0ZWJmYTA2Nzk1ZDBjMSJ9",
+        "signatures": [
+          {
+            "keyid": "conformance:v1",
+            "sig": "Nk32gosdjwcU6jBz7k84rA11Jsxf+RBMLdKQgCEvBsdDdw46age9BUr04tQFlIBY9IIBZnWazuSfKK+blclQAw=="
+          }
+        ]
+      },
+      "expect": {
+        "outcome": "refused",
+        "error": "Expired"
+      }
+    },
+    {
+      "name": "refused-not-yet-valid",
+      "description": "Issued five minutes after the consumer's clock, beyond the 60 seconds of skew: refused.",
+      "now": "2026-01-01T12:00:00Z",
+      "floor": null,
+      "envelope": {
+        "payloadType": "application/vnd.firestoned.sandboxaudience.bundle.v1+json",
+        "payload": "eyJzY2hlbWEiOiJzYW5kYm94LmZpcmVzdG9uZWQuaW8vYXVkaWVuY2UtYnVuZGxlL3YxIiwibWV0YSI6eyJ2ZXJzaW9uIjozLCJpc3N1ZWRBdCI6IjIwMjYtMDEtMDFUMTI6MDU6MDBaIiwibm90QWZ0ZXIiOiIyMDI2LTAxLTAxVDE0OjA1OjAwWiJ9LCJjb250ZW50Ijp7ImF1ZGllbmNlIjp7Im5hbWVzcGFjZSI6ImNvbmZvcm1hbmNlIiwibmFtZSI6ImFydGlmYWN0b3J5IiwidWlkIjoiMDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDExIn0sImRlZmluaXRpb24iOnsiY3JlZGVudGlhbCI6eyJiYWNrZW5kIjoic2VjcmV0IiwicGxhY2VtZW50IjoiZ2F0ZXdheSIsImZvcm1hdCI6ImJhc2ljIiwic291cmNlIjp7InNlY3JldFJlZiI6eyJuYW1lIjoiYWYtc3ZjIiwidG9rZW5LZXkiOiJ0b2tlbiIsInVzZXJuYW1lS2V5IjoidXNlcm5hbWUifX0sImV4dHJhSGVhZGVycyI6W119LCJlbmRwb2ludHMiOlsiYXJ0aWZhY3RvcnkuZm9vLmlvOjQ0MyJdLCJydWxlcyI6W3sibWV0aG9kIjoiR0VUIiwicGF0aCI6Ii92Mi8qKiJ9XSwibWF4VHRsU2Vjb25kcyI6OTAwfX0sImNvbnRlbnREaWdlc3QiOiJzaGEyNTY6NzRlNWZkZTJmMWIxZjgyODFmNDY3NzM1MDNmNTQ4NDQwMjE0ZTcwM2I1OWQ0MjY0ZjE0ZWJmYTA2Nzk1ZDBjMSJ9",
+        "signatures": [
+          {
+            "keyid": "conformance:v1",
+            "sig": "VqMxUmQo61je/OCyW2QnAFm9KDmzQrjDHbuUg5tD8xEqwNmwOHsmBqyCM82Xbaj4SClrht0q3XK2bo9pFtaHCw=="
+          }
+        ]
+      },
+      "expect": {
+        "outcome": "refused",
+        "error": "NotYetValid"
+      }
+    },
+    {
+      "name": "refused-below-min-version",
+      "description": "Version 3 against a consumer demanding at least 4, with no floor: refused.",
+      "now": "2026-01-01T12:00:00Z",
+      "floor": null,
+      "minVersion": 4,
+      "envelope": {
+        "payloadType": "application/vnd.firestoned.sandboxaudience.bundle.v1+json",
+        "payload": "eyJzY2hlbWEiOiJzYW5kYm94LmZpcmVzdG9uZWQuaW8vYXVkaWVuY2UtYnVuZGxlL3YxIiwibWV0YSI6eyJ2ZXJzaW9uIjozLCJpc3N1ZWRBdCI6IjIwMjYtMDEtMDFUMTE6MDA6MDBaIiwibm90QWZ0ZXIiOiIyMDI2LTAxLTAxVDEzOjAwOjAwWiJ9LCJjb250ZW50Ijp7ImF1ZGllbmNlIjp7Im5hbWVzcGFjZSI6ImNvbmZvcm1hbmNlIiwibmFtZSI6ImFydGlmYWN0b3J5IiwidWlkIjoiMDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDExIn0sImRlZmluaXRpb24iOnsiY3JlZGVudGlhbCI6eyJiYWNrZW5kIjoic2VjcmV0IiwicGxhY2VtZW50IjoiZ2F0ZXdheSIsImZvcm1hdCI6ImJhc2ljIiwic291cmNlIjp7InNlY3JldFJlZiI6eyJuYW1lIjoiYWYtc3ZjIiwidG9rZW5LZXkiOiJ0b2tlbiIsInVzZXJuYW1lS2V5IjoidXNlcm5hbWUifX0sImV4dHJhSGVhZGVycyI6W119LCJlbmRwb2ludHMiOlsiYXJ0aWZhY3RvcnkuZm9vLmlvOjQ0MyJdLCJydWxlcyI6W3sibWV0aG9kIjoiR0VUIiwicGF0aCI6Ii92Mi8qKiJ9XSwibWF4VHRsU2Vjb25kcyI6OTAwfX0sImNvbnRlbnREaWdlc3QiOiJzaGEyNTY6NzRlNWZkZTJmMWIxZjgyODFmNDY3NzM1MDNmNTQ4NDQwMjE0ZTcwM2I1OWQ0MjY0ZjE0ZWJmYTA2Nzk1ZDBjMSJ9",
+        "signatures": [
+          {
+            "keyid": "conformance:v1",
+            "sig": "Nk32gosdjwcU6jBz7k84rA11Jsxf+RBMLdKQgCEvBsdDdw46age9BUr04tQFlIBY9IIBZnWazuSfKK+blclQAw=="
+          }
+        ]
+      },
+      "expect": {
+        "outcome": "refused",
+        "error": "Downgrade"
+      }
+    },
+    {
+      "name": "refused-malformed",
+      "description": "The payload is not base64: refused.",
+      "now": "2026-01-01T12:00:00Z",
+      "floor": null,
+      "envelope": {
+        "payloadType": "application/vnd.firestoned.sandboxaudience.bundle.v1+json",
+        "payload": "not base64 at all!",
+        "signatures": [
+          {
+            "keyid": "conformance:v1",
+            "sig": "Nk32gosdjwcU6jBz7k84rA11Jsxf+RBMLdKQgCEvBsdDdw46age9BUr04tQFlIBY9IIBZnWazuSfKK+blclQAw=="
+          }
+        ]
+      },
+      "expect": {
+        "outcome": "refused",
+        "error": "Malformed"
+      }
+    }
+  ]
+}

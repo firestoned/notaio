@@ -3,7 +3,8 @@
 - **Status:** Proposed
 - **Date:** 2026-11-08
 - **Deciders:** Erick Bourgeois
-- **Amended:** 2026-11-08 (decisions 3 and 4: lint code `L022`, `resources` optional in the
+- **Amended:** 2026-11-20 (decision 3: lint code `L030`, since ADR-0020 took `L022` to `L029`);
+  2026-11-08 (decisions 3 and 4: lint code `L022`, `resources` optional in the
   schema; one v4 with ADR-0016)
 - **Related:** ADR-0002 (the bundle contract; this is a `SCHEMA` change), ADR-0013 (the last schema
   change, and how consumers took it), ADR-0008 (the consumer's floor); threat model K2.4, section
@@ -51,7 +52,7 @@ Three things are already settled by how the other numeric knobs work:
 2. **A policy may ask for less.** `SandboxPolicy.spec.resources`, optional, with `vcpus`,
    `memoryMiB` and `diskGiB`. Omitted, it is the size for the policy's effective K2.4 step, as an
    omitted lease is K7.3's. Integers only (ADR-0005: the canonical form has no floats).
-3. **A new lint rule, `L022`, an error:** a requested value is zero or above the size for the
+3. **A new lint rule, `L030`, an error:** a requested value is zero or above the size for the
    effective K2.4 step. A separate code from `L009`, so a finding names the knob it comes from. A
    `KnobGrant` raising K2.4 raises the ceiling it is checked against, as for every knob.
 4. **The bundle carries the size: schema v4.** `BundleContent` gains `resources`, optional in the

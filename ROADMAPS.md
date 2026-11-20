@@ -135,9 +135,14 @@ notaio computes in the cluster.
   a `dataScope` on each ceiling audience, Security's to set, and lint `L020`.
 - K2.4 resource sizes once the model defines them. Proposed 2026-11-08
   ([ADR-0019](https://github.com/firestoned/notaio/blob/main/docs/adr/0019-resource-sizes.md)):
-  sizes per step in the ceilings, `spec.resources`, lint `L022`, bundle schema v4 (one migration
+  sizes per step in the ceilings, `spec.resources`, lint `L030`, bundle schema v4 (one migration
   with ADR-0016's `sources`); waiting on the model's numbers.
 - Cedar: compile a Cedar policy set into the bundle when the declarative form runs out.
+- Audience definitions signed like policies, and teams' own credentials. Done 2026-11-20
+  ([ADR-0020](https://github.com/firestoned/notaio/blob/main/docs/adr/0020-sandbox-audience.md)):
+  `SandboxAudience`, platform and team audiences by namespace, its own signed bundle, lint `L022`
+  to `L029`, opt-in with `NOTAIO_AUDIENCE_PLATFORM_NAMESPACE`. mediatore's consumer side is its
+  ADR-0055.
 - Knob dashboard over `KnobGrant`. Done 2026-11-07: a Grafana dashboard in `deploy/monitoring/`
   (health, policies, bundles, and every active grant by expiry and age), in
   [Observe notaio](https://firestoned.github.io/notaio/guides/observability/#dashboard).

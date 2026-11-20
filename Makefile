@@ -77,9 +77,12 @@ manifests-check: ## Fail if deploy/crds or deploy/profiles drifted from the Rust
 # against the real clock they go stale on a known day. Pin the clock to when they were written;
 # a policy repository runs `notaio lint` without --now (ADR-0006, decision 5).
 EXAMPLES_NOW ?= 2026-10-20T00:00:00Z
+# The platform audience namespace examples/sandboxaudience-platform.yaml lives in (ADR-0020).
+EXAMPLES_PLATFORM_NAMESPACE ?= sandbox-platform
 
-policy-lint: ## Run `notaio lint` on examples/ and deploy/profiles/ (dogfooding ADR-0006)
-	cargo run -q -p notaio --bin notaio -- lint --now $(EXAMPLES_NOW) examples/ deploy/profiles/
+policy-lint: ## Run `notaio lint` on examples/ and deploy/profiles/ (dogfooding ADR-0006), audiences on (ADR-0020)
+	cargo run -q -p notaio --bin notaio -- lint --now $(EXAMPLES_NOW) \
+	  --platform-audience-namespace $(EXAMPLES_PLATFORM_NAMESPACE) examples/ deploy/profiles/
 
 # docs/framework-mapping.md is generated from docs/air/*.yaml. Edit the YAML, then run `make air`.
 air: ## Regenerate docs/framework-mapping.md from docs/air/*.yaml
@@ -487,10 +490,17 @@ kind-deploy: kind-load kind-openbao ## Install CRDs, profiles and the controller
 #                       when the leader's pod goes, and publishes
 #   kind-e2e-openbao    bundles signed by the OpenBao transit key verify against
 #                       its public key; without OpenBao nothing is published
+#   kind-e2e-audience   audiences turned on (ADR-0020): a SandboxAudience is
+#                       published, verified, kept on a finding and deleted with
+#                       its object; an undefined grant publishes nothing (L027)
 
-# Keep in sync with the matrix in .github/workflows/e2e.yaml. openbao runs last in
-# `make kind-e2e`: it switches the signer and restores it afterwards.
-E2E_SUITES = install bundle rbac admission leader openbao
+# Keep in sync with the matrix in .github/workflows/e2e.yaml. audience and openbao
+# run last in `make kind-e2e`: each changes the controller's configuration and
+# restores it afterwards.
+E2E_SUITES = install bundle rbac admission leader audience openbao
+
+# The platform audience namespace the audience suite turns on (ADR-0020).
+E2E_PLATFORM_NAMESPACE ?= notaio-e2e-platform
 
 # Every suite verifies bundles against OpenBao's public key, the one setup.sh printed.
 E2E_ENV = KUBECONFIG=$(KIND_KUBECONFIG) \
@@ -507,6 +517,7 @@ endef
 
 kind-e2e-install: kind-deploy ## e2e: install from deploy/, profiles Valid, examples accepted
 	@echo "Validating examples/ against the live schema (server-side dry run)..."
+	@$(KIND_KUBECTL) create namespace $(EXAMPLES_PLATFORM_NAMESPACE) --dry-run=client -o yaml | $(KIND_KUBECTL) apply -f -
 	@$(KIND_KUBECTL) apply --dry-run=server -f examples/
 	$(call run-e2e-suite,e2e_install)
 
@@ -518,6 +529,21 @@ kind-e2e-rbac: kind-deploy ## e2e: controller RBAC is read plus status writes on
 
 kind-e2e-leader: kind-deploy ## e2e: one leader by Lease; a follower takes over and publishes
 	$(call run-e2e-suite,e2e_leader)
+
+kind-e2e-audience: kind-deploy ## e2e: SandboxAudience published, verified, kept on a finding, deleted with its object
+	@$(KIND_KUBECTL) create namespace $(E2E_PLATFORM_NAMESPACE) --dry-run=client -o yaml | $(KIND_KUBECTL) apply -f -
+	@$(KIND_KUBECTL) -n $(E2E_PLATFORM_NAMESPACE) apply -f deploy/policy-namespace/
+	@$(KIND_KUBECTL) -n $(NAMESPACE) set env deployment/notaio NOTAIO_AUDIENCE_PLATFORM_NAMESPACE=$(E2E_PLATFORM_NAMESPACE)
+	@$(KIND_KUBECTL) -n $(NAMESPACE) rollout status deployment/notaio --timeout=180s
+	@# Always turn audiences off again, pass or fail: with them on, every policy
+	@# that grants an undefined audience stops publishing (L027), which would
+	@# break any suite run after this one.
+	@$(E2E_ENV) \
+	 cargo test -p notaio --test e2e_audience -- --ignored --nocapture --test-threads=1; \
+	 rc=$$?; \
+	 $(KIND_KUBECTL) -n $(NAMESPACE) set env deployment/notaio NOTAIO_AUDIENCE_PLATFORM_NAMESPACE-; \
+	 $(KIND_KUBECTL) -n $(NAMESPACE) rollout status deployment/notaio --timeout=180s; \
+	 exit $$rc
 
 kind-e2e-admission: kind-deploy ## e2e: GitOps-only admission policy refuses direct edits
 	@$(KIND_KUBECTL) apply -f deploy/admission/gitops-only.yaml

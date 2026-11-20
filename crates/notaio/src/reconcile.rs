@@ -10,19 +10,20 @@ use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 use kube::api::{Api, ListParams, Patch, PatchParams};
 use kube::runtime::controller::Action;
 use kube::runtime::events::{Event, EventType, Recorder};
+use kube::runtime::reflector::Store;
 use kube::{Client, Resource, ResourceExt};
 use notaio::events::{self, Note};
 use notaio::guard::{self, Evaluated};
 use notaio::metrics::Counters;
 use notaio::refresh;
 use sandboxpolicy_api::{
-    ExposureCeiling, GrantPhase, KnobGrant, KnobGrantStatus, SandboxPolicy, SandboxPolicyStatus,
-    SandboxProfile, SandboxProfileStatus,
+    ExposureCeiling, GrantPhase, KnobGrant, KnobGrantStatus, SandboxAudience, SandboxPolicy,
+    SandboxPolicyStatus, SandboxProfile, SandboxProfileStatus,
 };
 use sandboxpolicy_core::ceilings::Ceilings;
 use sandboxpolicy_core::evaluate::{condition, profile_digest};
 use sandboxpolicy_core::lint::{has_errors, lint_knobs, summarize};
-use sandboxpolicy_core::{evaluate, EvalInput};
+use sandboxpolicy_core::{evaluate, AudienceCatalog, EvalInput};
 use serde_json::json;
 
 use crate::error::Error;
@@ -43,17 +44,20 @@ pub struct Ctx {
     pub recorder: Recorder,
     /// True while this replica holds the leader Lease (ADR-0011).
     pub leading: Arc<std::sync::atomic::AtomicBool>,
+    /// Every audience definition and the platform audience namespace, when it is configured
+    /// (ADR-0020). `None` leaves policies as they were before it.
+    pub audiences: Option<(String, Store<SandboxAudience>)>,
 }
 
 impl Ctx {
-    fn leading(&self) -> bool {
+    pub(crate) fn leading(&self) -> bool {
         self.leading.load(std::sync::atomic::Ordering::Acquire)
     }
 }
 
 /// Record `note` on `regarding`, if there is one. A failure is logged, never returned: an Event is
 /// a report, and must not hold back a reconcile (ADR-0010, decision 5).
-async fn record(ctx: &Ctx, regarding: &ObjectReference, note: Option<Note>) {
+pub(crate) async fn record(ctx: &Ctx, regarding: &ObjectReference, note: Option<Note>) {
     let Some(n) = note else { return };
     let ev = Event {
         type_: if n.warning {
@@ -100,7 +104,7 @@ pub fn bundle_object_name(policy: &str) -> String {
     format!("{policy}-bundle")
 }
 
-fn std_dur(d: SignedDuration) -> StdDuration {
+pub(crate) fn std_dur(d: SignedDuration) -> StdDuration {
     StdDuration::try_from(d).unwrap_or(StdDuration::from_secs(30))
 }
 
@@ -155,6 +159,15 @@ pub async fn reconcile_policy(policy: Arc<SandboxPolicy>, ctx: Arc<Ctx>) -> Resu
         (None, None) => (None, None),
     };
 
+    let defined = ctx
+        .audiences
+        .as_ref()
+        .map(|(_, store)| crate::audience::snapshot(store, None))
+        .unwrap_or_default();
+    let catalog = ctx
+        .audiences
+        .as_ref()
+        .map(|(platform, _)| AudienceCatalog::new(platform, &defined));
     let out = evaluate(&EvalInput {
         now,
         exposure_ceiling: exposure_ceiling.as_ref(),
@@ -166,6 +179,7 @@ pub async fn reconcile_policy(policy: Arc<SandboxPolicy>, ctx: Arc<Ctx>) -> Resu
         prev_conditions: &prev.conditions,
         bundle_lifetime: ctx.bundle_lifetime,
         ceilings: &ctx.ceilings,
+        audiences: catalog.as_ref(),
     });
     for f in &out.findings {
         tracing::debug!(policy = %name, code = f.code, path = %f.path, "{}", f.message);
