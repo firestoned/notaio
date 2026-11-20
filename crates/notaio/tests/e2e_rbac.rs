@@ -23,7 +23,13 @@ use common::{client, controller_namespace, controller_user, policy_namespace};
 
 const GROUP: &str = "sandbox.firestoned.io";
 const RBAC: &str = "rbac.authorization.k8s.io";
-const POLICY_KINDS: [&str; 3] = ["sandboxprofiles", "sandboxpolicies", "knobgrants"];
+/// Read, and status writes; never create, edit or delete. `sandboxaudiences` since ADR-0020.
+const POLICY_KINDS: [&str; 4] = [
+    "sandboxprofiles",
+    "sandboxpolicies",
+    "knobgrants",
+    "sandboxaudiences",
+];
 /// Read only, and no status subresource to write (ADR-0007).
 const CEILINGS: &str = "exposureceilings";
 

@@ -5,7 +5,8 @@ use std::sync::Arc;
 use anyhow::Context as _;
 use notaio::openbao::{choose_signer, SignerChoice, TransitSigner};
 use sandboxpolicy_bundle::{
-    envelope, sign_bundle, signing_input, BundlePayload, Ed25519Signer, Envelope, Signer as _,
+    audience_envelope, audience_signing_input, envelope, sign_audience_bundle, sign_bundle,
+    signing_input, AudienceBundlePayload, BundlePayload, Ed25519Signer, Envelope, Signer as _,
 };
 
 use crate::error::Error;
@@ -35,6 +36,22 @@ impl BundleSigner {
                 let input = signing_input(payload)?;
                 let (key_id, sig) = t.sign(&input.message).await?;
                 Ok(envelope(&input.payload, &key_id, &sig))
+            }
+        }
+    }
+
+    /// The signed envelope for an audience `payload` (ADR-0020, decision 9): the same key and
+    /// custody as a policy bundle (ADR-0004), under the audience payload type.
+    ///
+    /// # Errors
+    /// As [`BundleSigner::sign`].
+    pub async fn sign_audience(&self, payload: &AudienceBundlePayload) -> Result<Envelope, Error> {
+        match self {
+            BundleSigner::Development(s) => Ok(sign_audience_bundle(payload, s)?),
+            BundleSigner::OpenBao(t) => {
+                let input = audience_signing_input(payload)?;
+                let (key_id, sig) = t.sign(&input.message).await?;
+                Ok(audience_envelope(&input.payload, &key_id, &sig))
             }
         }
     }

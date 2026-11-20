@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 //! Writes the conformance kit (roadmap 00, phase 0) into a directory: `vectors.json`, signed
 //! bundles with the verdict each consumer must reach, and `bundle-v3.schema.json`, the payload's
-//! JSON Schema.
+//! JSON Schema; and the same for audience bundles (ADR-0020), `audience-vectors.json` and
+//! `audience-bundle-v1.schema.json`.
 //!
 //! ```sh
 //! make conformance          # writes crates/sandboxpolicy-bundle/conformance/
@@ -18,13 +19,19 @@ use std::process::ExitCode;
 
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use jiff::{SignedDuration, Timestamp};
-use sandboxpolicy_bundle::conformance::{Expect, PolicyCoordinates, Suite, TrustedKey, Vector};
+use sandboxpolicy_bundle::conformance::{
+    AudienceSuite, Expect, PolicyCoordinates, Suite, TrustedKey, Vector,
+};
 use sandboxpolicy_bundle::floor::FloorEntry;
 use sandboxpolicy_bundle::{
-    sign_bundle, BundleContent, BundleMeta, BundlePayload, Ed25519Signer, Envelope, PolicyRef,
-    ProfileRef, SCHEMA,
+    sign_audience_bundle, sign_bundle, AudienceBundleContent, AudienceBundlePayload, AudienceRef,
+    BundleContent, BundleMeta, BundlePayload, Ed25519Signer, Envelope, PolicyRef, ProfileRef,
+    AUDIENCE_SCHEMA, SCHEMA,
 };
-use sandboxpolicy_types::{Access, AudienceGrant, Budgets, EndpointRule, KnobId, Lease, Step};
+use sandboxpolicy_types::{
+    Access, AudienceCredential, AudienceDefinition, AudienceGrant, Backend, Budgets,
+    CredentialFormat, CredentialSource, EndpointRule, KnobId, Lease, Placement, SecretRef, Step,
+};
 
 const KEY_ID: &str = "conformance:v1";
 /// The trusted key's seed. Published on purpose: it signs these vectors and nothing else.
@@ -120,6 +127,7 @@ fn accepted(
         description: description.into(),
         now: at(12, 0),
         floor,
+        min_version: None,
         envelope: env.clone(),
         expect: Expect::Accepted {
             version: after.version,
@@ -141,6 +149,7 @@ fn refused(
         description: description.into(),
         now,
         floor,
+        min_version: None,
         envelope: env,
         expect: Expect::Refused {
             error: error.into(),
@@ -199,6 +208,8 @@ fn suite() -> Result<Suite, String> {
             at(12, 0), None, payload_type, "PayloadType"),
         refused("refused-malformed", "The payload is not base64: refused.",
             at(12, 0), None, malformed, "Malformed"),
+        refused("refused-audience-envelope", "A valid audience bundle (ADR-0020), signed by the trusted key: refused by its payload type, never read as a policy.",
+            at(12, 0), None, sign_audience(&audience_payload(AUDIENCE_UID, 3, at(11, 0))?, TRUSTED_SEED)?, "PayloadType"),
     ];
     Ok(Suite {
         schema: "sandbox.firestoned.io/conformance/v1".into(),
@@ -216,6 +227,139 @@ fn suite() -> Result<Suite, String> {
     })
 }
 
+const AUDIENCE_NAMESPACE: &str = "conformance";
+const AUDIENCE_NAME: &str = "artifactory";
+const AUDIENCE_UID: &str = "00000000-0000-4000-8000-000000000011";
+
+fn audience_content(uid: &str) -> AudienceBundleContent {
+    AudienceBundleContent {
+        audience: AudienceRef {
+            namespace: AUDIENCE_NAMESPACE.into(),
+            name: AUDIENCE_NAME.into(),
+            uid: uid.into(),
+        },
+        definition: AudienceDefinition {
+            credential: AudienceCredential {
+                backend: Backend::Secret,
+                placement: Placement::Gateway,
+                format: CredentialFormat::Basic,
+                source: Some(CredentialSource::SecretRef(SecretRef {
+                    name: "af-svc".into(),
+                    token_key: "token".into(),
+                    username_key: Some("username".into()),
+                })),
+                header: None,
+                extra_headers: vec![],
+                refresh: None,
+            },
+            endpoints: vec!["artifactory.foo.io:443".into()],
+            rules: vec![EndpointRule {
+                method: "GET".into(),
+                path: "/v2/**".into(),
+            }],
+            max_ttl_seconds: 900,
+            ca_ref: None,
+        },
+    }
+}
+
+fn audience_payload(
+    uid: &str,
+    version: u64,
+    issued_at: Timestamp,
+) -> Result<AudienceBundlePayload, String> {
+    AudienceBundlePayload::new(
+        BundleMeta {
+            version,
+            issued_at,
+            not_after: issued_at + SignedDuration::from_hours(2),
+        },
+        audience_content(uid),
+    )
+    .map_err(|e| e.to_string())
+}
+
+fn sign_audience(p: &AudienceBundlePayload, seed: [u8; 32]) -> Result<Envelope, String> {
+    sign_audience_bundle(p, &Ed25519Signer::from_seed(KEY_ID, seed)).map_err(|e| e.to_string())
+}
+
+fn audience_suite() -> Result<AudienceSuite, String> {
+    let uid = AUDIENCE_UID;
+    let other_uid = "00000000-0000-4000-8000-000000000012";
+    let good = audience_payload(uid, 3, at(11, 0))?;
+    let env = sign_audience(&good, TRUSTED_SEED)?;
+
+    let mut forged = env.clone();
+    if let Some(s) = forged.signatures.first_mut() {
+        let mut raw = STANDARD.decode(&s.sig).map_err(|e| e.to_string())?;
+        if let Some(b) = raw.first_mut() {
+            *b ^= 0x01;
+        }
+        s.sig = STANDARD.encode(raw);
+    }
+    let mut digest = good.clone();
+    digest.content_digest = format!("sha256:{}", "f".repeat(64));
+    let mut policy_schema = good.clone();
+    policy_schema.schema = SCHEMA.into();
+    let mut malformed = env.clone();
+    malformed.payload = "not base64 at all!".into();
+    let mut below_min = refused(
+        "refused-below-min-version",
+        "Version 3 against a consumer demanding at least 4, with no floor: refused.",
+        at(12, 0),
+        None,
+        env.clone(),
+        "Downgrade",
+    );
+    below_min.min_version = Some(4);
+
+    let vectors = vec![
+        accepted("accepted-first-sight", "No floor yet: a valid audience bundle is accepted and becomes the floor.",
+            None, &env, entry(uid, 3, at(11, 0))),
+        accepted("accepted-same-version", "The floor's own version again (a re-delivery): accepted, the floor unchanged.",
+            Some(entry(uid, 3, at(11, 0))), &env, entry(uid, 3, at(11, 0))),
+        accepted("accepted-newer-version", "A higher version of the same incarnation: accepted, the floor moves up.",
+            Some(entry(uid, 2, at(10, 0))), &env, entry(uid, 3, at(11, 0))),
+        accepted("accepted-new-incarnation", "A recreated audience (new uid) issued after the floor's bundle: accepted, the floor moves to it.",
+            Some(entry(other_uid, 9, at(10, 0))), &env, entry(uid, 3, at(11, 0))),
+        refused("refused-downgrade", "A lower version of the incarnation the floor holds: refused.",
+            at(12, 0), Some(entry(uid, 4, at(11, 30))), env.clone(), "Downgrade"),
+        refused("refused-stale-incarnation", "Another incarnation, issued no later than the floor's bundle: a replay from before a recreation, refused.",
+            at(12, 0), Some(entry(other_uid, 1, at(11, 30))), env.clone(), "StaleIncarnation"),
+        refused("refused-policy-envelope", "A valid policy bundle, signed by the trusted key: refused by its payload type, never read as an audience.",
+            at(12, 0), None, sign(&payload(UID, 3, at(11, 0))?, TRUSTED_SEED)?, "PayloadType"),
+        refused("refused-forged-signature", "One bit of the signature flipped: refused.",
+            at(12, 0), None, forged, "NoValidSignature"),
+        refused("refused-untrusted-key", "Signed by a key nobody trusts, under the trusted key's id: refused.",
+            at(12, 0), None, sign_audience(&good, UNTRUSTED_SEED)?, "NoValidSignature"),
+        refused("refused-digest-mismatch", "Validly signed, but contentDigest is not the digest of the content: refused.",
+            at(12, 0), None, sign_audience(&digest, TRUSTED_SEED)?, "DigestMismatch"),
+        refused("refused-policy-schema", "Validly signed under the audience payload type, but the policy bundle's schema: refused.",
+            at(12, 0), None, sign_audience(&policy_schema, TRUSTED_SEED)?, "Schema"),
+        refused("refused-expired", "The consumer's clock at notAfter exactly: refused.",
+            at(13, 0), None, env.clone(), "Expired"),
+        refused("refused-not-yet-valid", "Issued five minutes after the consumer's clock, beyond the 60 seconds of skew: refused.",
+            at(12, 0), None, sign_audience(&audience_payload(uid, 3, at(12, 5))?, TRUSTED_SEED)?, "NotYetValid"),
+        below_min,
+        refused("refused-malformed", "The payload is not base64: refused.",
+            at(12, 0), None, malformed, "Malformed"),
+    ];
+    Ok(AudienceSuite {
+        schema: "sandbox.firestoned.io/conformance/v1".into(),
+        bundle_schema: AUDIENCE_SCHEMA.into(),
+        trusted_keys: vec![TrustedKey {
+            key_id: KEY_ID.into(),
+            public_key: STANDARD
+                .encode(Ed25519Signer::from_seed(KEY_ID, TRUSTED_SEED).verifying_key_bytes()),
+        }],
+        audience: PolicyCoordinates {
+            namespace: AUDIENCE_NAMESPACE.into(),
+            name: AUDIENCE_NAME.into(),
+        },
+        vectors,
+    })
+}
+
 fn main() -> ExitCode {
     let Some(dir) = std::env::args().nth(1).map(PathBuf::from) else {
         eprintln!("usage: conformance <dir>");
@@ -227,7 +371,16 @@ fn main() -> ExitCode {
         std::fs::write(dir.join("vectors.json"), vectors + "\n").map_err(|e| e.to_string())?;
         let schema = schemars::schema_for!(BundlePayload);
         let schema = serde_json::to_string_pretty(&schema).map_err(|e| e.to_string())?;
-        std::fs::write(dir.join("bundle-v3.schema.json"), schema + "\n").map_err(|e| e.to_string())
+        std::fs::write(dir.join("bundle-v3.schema.json"), schema + "\n")
+            .map_err(|e| e.to_string())?;
+        let audience =
+            serde_json::to_string_pretty(&audience_suite()?).map_err(|e| e.to_string())?;
+        std::fs::write(dir.join("audience-vectors.json"), audience + "\n")
+            .map_err(|e| e.to_string())?;
+        let schema = schemars::schema_for!(AudienceBundlePayload);
+        let schema = serde_json::to_string_pretty(&schema).map_err(|e| e.to_string())?;
+        std::fs::write(dir.join("audience-bundle-v1.schema.json"), schema + "\n")
+            .map_err(|e| e.to_string())
     };
     match write() {
         Ok(()) => ExitCode::SUCCESS,

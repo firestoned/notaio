@@ -331,6 +331,26 @@
         "outcome": "refused",
         "error": "Malformed"
       }
+    },
+    {
+      "name": "refused-audience-envelope",
+      "description": "A valid audience bundle (ADR-0020), signed by the trusted key: refused by its payload type, never read as a policy.",
+      "now": "2026-01-01T12:00:00Z",
+      "floor": null,
+      "envelope": {
+        "payloadType": "application/vnd.firestoned.sandboxaudience.bundle.v1+json",
+        "payload": "eyJzY2hlbWEiOiJzYW5kYm94LmZpcmVzdG9uZWQuaW8vYXVkaWVuY2UtYnVuZGxlL3YxIiwibWV0YSI6eyJ2ZXJzaW9uIjozLCJpc3N1ZWRBdCI6IjIwMjYtMDEtMDFUMTE6MDA6MDBaIiwibm90QWZ0ZXIiOiIyMDI2LTAxLTAxVDEzOjAwOjAwWiJ9LCJjb250ZW50Ijp7ImF1ZGllbmNlIjp7Im5hbWVzcGFjZSI6ImNvbmZvcm1hbmNlIiwibmFtZSI6ImFydGlmYWN0b3J5IiwidWlkIjoiMDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDExIn0sImRlZmluaXRpb24iOnsiY3JlZGVudGlhbCI6eyJiYWNrZW5kIjoic2VjcmV0IiwicGxhY2VtZW50IjoiZ2F0ZXdheSIsImZvcm1hdCI6ImJhc2ljIiwic291cmNlIjp7InNlY3JldFJlZiI6eyJuYW1lIjoiYWYtc3ZjIiwidG9rZW5LZXkiOiJ0b2tlbiIsInVzZXJuYW1lS2V5IjoidXNlcm5hbWUifX0sImV4dHJhSGVhZGVycyI6W119LCJlbmRwb2ludHMiOlsiYXJ0aWZhY3RvcnkuZm9vLmlvOjQ0MyJdLCJydWxlcyI6W3sibWV0aG9kIjoiR0VUIiwicGF0aCI6Ii92Mi8qKiJ9XSwibWF4VHRsU2Vjb25kcyI6OTAwfX0sImNvbnRlbnREaWdlc3QiOiJzaGEyNTY6NzRlNWZkZTJmMWIxZjgyODFmNDY3NzM1MDNmNTQ4NDQwMjE0ZTcwM2I1OWQ0MjY0ZjE0ZWJmYTA2Nzk1ZDBjMSJ9",
+        "signatures": [
+          {
+            "keyid": "conformance:v1",
+            "sig": "Nk32gosdjwcU6jBz7k84rA11Jsxf+RBMLdKQgCEvBsdDdw46age9BUr04tQFlIBY9IIBZnWazuSfKK+blclQAw=="
+          }
+        ]
+      },
+      "expect": {
+        "outcome": "refused",
+        "error": "PayloadType"
+      }
     }
   ]
 }

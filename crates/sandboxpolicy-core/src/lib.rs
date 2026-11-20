@@ -6,11 +6,13 @@
 //! No I/O lives here. The controller fetches objects and calls [`evaluate`]; everything that decides
 //! anything is a function of its inputs, which is what makes it testable without a cluster.
 
+pub mod audience;
 pub mod builtin;
 pub mod ceilings;
 pub mod evaluate;
 pub mod lint;
 pub mod registry;
 
+pub use audience::{evaluate_audience, AudienceCatalog, AudienceEvalInput, AudienceEvalOutput};
 pub use evaluate::{evaluate, EvalInput, EvalOutput, GrantResult};
 pub use lint::{Finding, Severity};

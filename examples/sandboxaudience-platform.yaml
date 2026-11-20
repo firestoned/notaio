@@ -1,0 +1,26 @@
+# A platform audience (ADR-0020), in the platform audience namespace: the namespace named by the
+# controller's NOTAIO_AUDIENCE_PLATFORM_NAMESPACE and by each consumer's own configuration. It is
+# usable from any namespace a signed grant reaches, and no team audience may take its name (L024)
+# or one of its endpoints (L025).
+#
+# A platform audience may use every backend, and read its credential from the platform's OpenBao
+# with the consumer's own identity. It grants nothing on its own: a policy grants it, and that
+# policy's ExposureCeiling must approve these endpoints and this lifetime (L014).
+apiVersion: sandbox.firestoned.io/v1alpha2
+kind: SandboxAudience
+metadata:
+  name: model-api
+  namespace: sandbox-platform
+spec:
+  credential:
+    backend: secret
+    placement: gateway
+    source:
+      openbao: { mount: kv-platform, path: mediatore/model-api, key: api-key }
+    header: x-api-key
+    extraHeaders:
+      - { name: api-version, value: "2023-06-01" }
+  endpoints: ["models.bar.foo.io:443"]
+  rules:
+    - { method: POST, path: "/v1/messages" }
+  maxTtlSeconds: 900

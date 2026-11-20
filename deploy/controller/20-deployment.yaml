@@ -76,6 +76,12 @@ spec:
             # policy sooner; longer gives the signer more time to be down before bundles expire.
             - name: NOTAIO_BUNDLE_LIFETIME_SECONDS
               value: "900"
+            # Audience definitions (ADR-0020) are off while this is unset: SandboxAudience is not
+            # reconciled and policies are checked as before. Set it to the platform audience
+            # namespace, the same name the consumers are configured with, to turn them on; the
+            # namespace also needs the notaio-bundles Role (deploy/policy-namespace/).
+            # - name: NOTAIO_AUDIENCE_PLATFORM_NAMESPACE
+            #   value: sandbox-platform
             # The signer: a non-exportable OpenBao transit key (ADR-0004). notaio logs in with its
             # ServiceAccount (the projected token below) and may only request signatures. Point the
             # address at your OpenBao, and put the CA that signed its certificate in ConfigMap

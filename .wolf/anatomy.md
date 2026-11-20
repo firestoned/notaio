@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-11-08T19:53:57.027Z
-> Files: 74 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-11-20T17:30:12.148Z
+> Files: 85 tracked | Anatomy hits: 0 | Misses: 0
 
 > Project structure index. Auto-maintained by OpenWolf hooks and daemon.
 > Run `openwolf scan` to generate, or wait for the first Claude Code session.
@@ -37,12 +37,14 @@
 
 ## crates/notaio/src/
 
+- `audience.rs` — The `SandboxAudience` reconcile (ADR-0020): lint the definition against every other audience, (~2857 tok)
 - `refresh_tests.rs` — SPDX-License-Identifier: Apache-2.0 (~866 tok)
 - `refresh.rs` — When a published bundle is re-signed. A bundle is refreshed once half its lifetime is left (~506 tok)
 
 ## crates/notaio/tests/
 
 - `e2e_admission.rs` — e2e: `deploy/admission/gitops-only.yaml` refuses direct edits to policy objects, lets the GitOps (~1732 tok)
+- `e2e_audience.rs` — e2e: a SandboxAudience goes in, a signed audience bundle comes out (ADR-0020). (~2210 tok)
 - `e2e_bundle.rs` — e2e: a policy goes in, a signed bundle comes out, and a consumer can verify it. (~2108 tok)
 - `e2e_rbac.rs` — e2e: the controller's deployed RBAC is read plus status writes, and nothing more. (~1446 tok)
 
@@ -56,6 +58,7 @@
 
 ## crates/sandboxpolicy-api/src/
 
+- `audience.rs` — The definition of one audience (ADR-0020). In the platform audience namespace it is a platform (~667 tok)
 - `grant.rs` — A recorded approval by a role named in the knob register. `reference` points at the reviewed (~676 tok)
 - `lib.rs` — CRD types for the SandboxPolicy API, `sandbox.firestoned.io/v1alpha1`. (~226 tok)
 - `policy.rs` — Identity provider group ids allowed to claim a sandbox under this policy. (~1109 tok)
@@ -68,6 +71,7 @@
 
 ## crates/sandboxpolicy-bundle/src/
 
+- `audience.rs` — The signed audience bundle (ADR-0020, decision 9): one `SandboxAudience`'s definition, wrapped (~1621 tok)
 - `content.rs` — PolicyRef: canonical_bytes, digest, new (~796 tok)
 - `dsse.rs` — DSSE envelope, https://github.com/secure-systems-lab/dsse (~929 tok)
 - `error.rs` — [derive(Debug, Error, PartialEq, Eq)] (~235 tok)
@@ -76,6 +80,7 @@
 
 ## crates/sandboxpolicy-bundle/tests/
 
+- `audience.rs` — ".into(), (~2584 tok)
 - `bundle.rs` (~1688 tok)
 
 ## crates/sandboxpolicy-core/
@@ -84,6 +89,8 @@
 
 ## crates/sandboxpolicy-core/src/
 
+- `audience_tests.rs` — SPDX-License-Identifier: Apache-2.0 (~4042 tok)
+- `audience.rs` — Audience definitions (ADR-0020): the lint rules on a `SandboxAudience` (L017 on its endpoints (~3983 tok)
 - `builtin.rs` — The four built-in profiles, transcribed from the profile matrix in section 10 of the threat (~708 tok)
 - `ceilings.rs` — Numeric ceilings that hang off knob steps. (~590 tok)
 - `evaluate.rs` — `evaluate` is the whole decision: given a policy, its profile and its grants at an instant, say (~3678 tok)
@@ -101,6 +108,7 @@
 
 ## crates/sandboxpolicy-types/src/
 
+- `audience.rs` — The definition of one audience (ADR-0020): what it is, how the consumer obtains and places its (~1855 tok)
 - `knob.rs` — A relaxation step for a knob. `R0` is the locked default; higher steps are progressively looser. (~556 tok)
 - `lib.rs` — Pure data types shared by the SandboxPolicy CRDs, the compiler and the signed bundle. (~125 tok)
 - `parts.rs` — Classification of the data a profile may touch. It exists so the toxic-combination rule can be (~683 tok)
@@ -156,11 +164,20 @@
 - `0017-audience-classification.md` — ADR-0017: Audience classification, so Lab policies reach lab audiences only (~1598 tok)
 - `0018-tightening-latency.md` — ADR-0018: Tightening latency: a shorter, bounded bundle lifetime (~1496 tok)
 - `0019-resource-sizes.md` — ADR-0019: Resource sizes for K2.4 (~1488 tok)
+- `0020-sandbox-audience.md` — ADR-0020: SandboxAudience, an audience defined by the platform or by a team, signed like a policy (~4717 tok)
 
 ## docs/air/
 
 - `catalogue.yaml` (~1582 tok)
 - `mapping.yaml` — One entry per item in docs/air/catalogue.yaml. Judgments are the author's and need review by (~2822 tok)
+
+## docs/src/concepts/
+
+- `audiences.md` — SandboxAudience (~1200 tok)
+
+## docs/src/guides/
+
+- `platform-audiences.md` — Set up platform audiences (~887 tok)
 
 ## examples/
 

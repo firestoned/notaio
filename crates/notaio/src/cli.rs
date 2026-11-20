@@ -40,6 +40,35 @@ pub fn bundle_lifetime_seconds(raw: Option<&str>) -> anyhow::Result<i64> {
     }
     Ok(secs)
 }
+/// The platform audience namespace (ADR-0020, decision 2). Unset, `SandboxAudience` is not
+/// reconciled and policies behave as before the ADR; set, every audience rule applies. No default:
+/// the consumer names the same namespace, and a guess on either side is a refusal.
+pub const ENV_AUDIENCE_PLATFORM_NAMESPACE: &str = "NOTAIO_AUDIENCE_PLATFORM_NAMESPACE";
+/// The longest Kubernetes namespace name (an RFC 1123 label).
+const MAX_NAMESPACE_LEN: usize = 63;
+
+/// The platform audience namespace from the raw value of [`ENV_AUDIENCE_PLATFORM_NAMESPACE`]:
+/// `None` when unset or empty, which leaves audiences off.
+///
+/// # Errors
+/// A value that is not a Kubernetes namespace name: the controller refuses to start rather than
+/// classify audiences against a namespace that cannot exist.
+pub fn audience_platform_namespace(raw: Option<&str>) -> anyhow::Result<Option<String>> {
+    let Some(ns) = raw.map(str::trim).filter(|v| !v.is_empty()) else {
+        return Ok(None);
+    };
+    let label = ns.len() <= MAX_NAMESPACE_LEN
+        && ns
+            .bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+        && !ns.starts_with('-')
+        && !ns.ends_with('-');
+    if !label {
+        anyhow::bail!("{ENV_AUDIENCE_PLATFORM_NAMESPACE}={ns:?} is not a namespace name");
+    }
+    Ok(Some(ns.to_string()))
+}
+
 /// `1` for JSON logs.
 pub const ENV_LOG_JSON: &str = "NOTAIO_LOG_JSON";
 /// The health and metrics listener's address (ADR-0010). Default `crate::http::DEFAULT_ADDR`.
@@ -66,7 +95,8 @@ pub struct Cli {
 pub enum Command {
     /// Run the controller: watch policy objects, publish signed bundles.
     Controller,
-    /// Check SandboxProfile, SandboxPolicy, KnobGrant and ExposureCeiling files, for pull requests.
+    /// Check SandboxProfile, SandboxPolicy, KnobGrant, ExposureCeiling and SandboxAudience files,
+    /// for pull requests.
     Lint(LintArgs),
 }
 
@@ -81,6 +111,11 @@ pub struct LintArgs {
     /// Evaluate grants at this instant (RFC 3339) instead of now.
     #[arg(long)]
     pub now: Option<Timestamp>,
+    /// The platform audience namespace (ADR-0020), as the controller's
+    /// NOTAIO_AUDIENCE_PLATFORM_NAMESPACE. With it, SandboxAudience objects are linted and policy
+    /// grants are checked against their definitions; without it, neither is.
+    #[arg(long)]
+    pub platform_audience_namespace: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]

@@ -5,8 +5,14 @@
 //! This crate deliberately has no Kubernetes dependency. `mediatore-guest` runs as root in every
 //! sandbox VM and must be able to verify and read a bundle without pulling in a cluster client.
 
+mod audience;
 mod knob;
 mod parts;
+
+pub use audience::{
+    AudienceCredential, AudienceDefinition, Backend, ConfigMapKeyRef, CredentialFormat,
+    CredentialSource, DelegatedRefresh, HeaderPair, OpenBaoSource, Placement, SecretRef,
+};
 
 pub use knob::{KnobId, Role, Step};
 pub use parts::{

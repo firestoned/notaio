@@ -110,8 +110,18 @@ pub fn signing_input(payload: &BundlePayload) -> Result<SigningInput, BundleErro
 
 /// The envelope for `payload` (from [`signing_input`]) with one signature by `key_id`.
 pub fn envelope(payload: &[u8], key_id: &str, signature: &[u8]) -> Envelope {
+    signed_envelope(PAYLOAD_TYPE, payload, key_id, signature)
+}
+
+/// An envelope of `payload_type` with one signature: the shape every bundle kind shares.
+pub(crate) fn signed_envelope(
+    payload_type: &str,
+    payload: &[u8],
+    key_id: &str,
+    signature: &[u8],
+) -> Envelope {
     Envelope {
-        payload_type: PAYLOAD_TYPE.to_string(),
+        payload_type: payload_type.to_string(),
         payload: STANDARD.encode(payload),
         signatures: vec![Signature {
             keyid: key_id.to_string(),

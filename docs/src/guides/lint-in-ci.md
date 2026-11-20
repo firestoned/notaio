@@ -16,7 +16,7 @@ notaio lint --format sarif policies/ > notaio.sarif    # for inline review
 notaio lint --now 2026-10-20T00:00:00Z policies/       # pin the clock for a reproducible run
 ```
 
-It reads every `.yaml` and `.yml` file under the paths given, picks out the four kinds, and
+It reads every `.yaml` and `.yml` file under the paths given, picks out the five kinds, and
 ignores other documents. Policies may reference the built-in profiles without the files being
 present.
 

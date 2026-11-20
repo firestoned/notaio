@@ -6,7 +6,7 @@
 //! These functions decide; the controller records what they return, and a failure to record is
 //! logged, never fatal.
 
-use sandboxpolicy_api::{Condition, GrantPhase, SandboxPolicyStatus};
+use sandboxpolicy_api::{Condition, GrantPhase, SandboxAudienceStatus, SandboxPolicyStatus};
 
 /// The `action` of every Event notaio records.
 pub const ACTION: &str = "Reconcile";
@@ -37,6 +37,17 @@ pub struct Note {
 
 fn ready(conditions: &[Condition]) -> Option<&Condition> {
     conditions.iter().find(|c| c.type_ == "Ready")
+}
+
+/// The Event for a `SandboxAudience` whose status goes from `prev` to `next` (ADR-0020): the same
+/// transitions as a policy's, on the same two fields.
+pub fn audience(prev: &SandboxAudienceStatus, next: &SandboxAudienceStatus) -> Option<Note> {
+    let as_policy = |s: &SandboxAudienceStatus| SandboxPolicyStatus {
+        conditions: s.conditions.clone(),
+        bundle_version: s.bundle_version,
+        ..Default::default()
+    };
+    policy(&as_policy(prev), &as_policy(next))
 }
 
 /// The Event for a policy whose status goes from `prev` to `next`, if any.

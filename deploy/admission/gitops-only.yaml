@@ -2,6 +2,10 @@
 # (threat model T8.2, scenario S6). Notaio's own writes go to the /status subresource, which
 # this policy does not match. Replace the allowed user with your GitOps reconciler.
 #
+# One identity for every namespace. Where teams deliver their own SandboxAudience and
+# SandboxPolicy (ADR-0020, decision 12), give each team namespace its own binding that admits only
+# that team's GitOps identity there, and keep the ceilings Security's alone.
+#
 # Needs Kubernetes 1.30 or later (ValidatingAdmissionPolicy is GA). Tested by the `e2e_admission`
 # suite (`make kind-e2e-admission`) on kind (1.31) and on k0s (1.36).
 apiVersion: admissionregistration.k8s.io/v1
@@ -15,10 +19,11 @@ spec:
       - apiGroups: ["sandbox.firestoned.io"]
         apiVersions: ["*"]
         operations: ["CREATE", "UPDATE", "DELETE"]
-        resources: ["sandboxprofiles", "sandboxpolicies", "knobgrants", "exposureceilings"]
+        resources:
+          ["sandboxprofiles", "sandboxpolicies", "knobgrants", "exposureceilings", "sandboxaudiences"]
   validations:
     - expression: "request.userInfo.username in ['system:serviceaccount:flux-system:kustomize-controller']"
-      message: "SandboxProfile, SandboxPolicy, KnobGrant and ExposureCeiling may only be changed by the GitOps reconciler, through a reviewed change."
+      message: "SandboxProfile, SandboxPolicy, KnobGrant, ExposureCeiling and SandboxAudience may only be changed by the GitOps reconciler, through a reviewed change."
       reason: Forbidden
 ---
 apiVersion: admissionregistration.k8s.io/v1

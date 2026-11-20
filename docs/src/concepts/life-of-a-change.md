@@ -43,7 +43,7 @@ sequenceDiagram
 | --- | --- | --- | --- |
 | 1 | The change is linted with the controller's own rules, ceilings included | `notaio lint` in the policy repository's CI ([ADR-0006](../adr/0006-notaio-lint-cli.md)) | the pull request shows the finding and its code |
 | 2 | The roles the knob names approve | review and CODEOWNERS; the approval is recorded in the grant (`L013`) | not merged, or rejected by the controller |
-| 3 | Only the GitOps identity may change the four kinds | `deploy/admission/gitops-only.yaml`, a ValidatingAdmissionPolicy | the API server denies it, even for cluster-admin |
+| 3 | Only the GitOps identity may change the five kinds | `deploy/admission/gitops-only.yaml`, a ValidatingAdmissionPolicy | the API server denies it, even for cluster-admin |
 | 4 | The profile is valid; the grant is one step, in time, approved, and completes no toxic combination; the policy fits its effective knobs | `evaluate` in `sandboxpolicy-core` | `Ready=False` with the reason; the grant `Rejected` |
 | 5 | The exposure, grant included, is within the approved ceiling | `lint_exposure` (`L014` to `L016`) | `Ready=False, ExposureAboveCeiling`; nothing published |
 | 6 | The bundle passes an independent re-check | the fail-open guard ([ADR-0010](../adr/0010-health-metrics-and-events.md)) | `Ready=False, FailOpenRefused`; `notaio_fail_open_total` rises |

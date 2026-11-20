@@ -16,6 +16,7 @@ can verify on its own. These pages explain the pieces, from the smallest up.
 | [SandboxPolicy](policies.md) | Who may claim a sandbox, under which profile, with which audiences, egress and tools |
 | [KnobGrant](grants.md) | A time-boxed, approved relaxation of one knob for one policy |
 | [ExposureCeiling](ceilings.md) | The approved maximum of what a policy may expose |
+| [SandboxAudience](audiences.md) | The signed definition of one audience, the platform's or a team's |
 | [The bundle](bundle.md) | What notaio publishes, and how a consumer decides to trust it |
 | [The life of a change](life-of-a-change.md) | One change, from pull request to enforcement, with every check on the way |
 
@@ -39,7 +40,7 @@ flowchart LR
 
 Three ideas run through every page:
 
-- **Policy is data, reviewed like code.** The four kinds arrive only through review and a GitOps
+- **Policy is data, reviewed like code.** The five kinds arrive only through review and a GitOps
   reconciler (`deploy/admission/gitops-only.yaml`). notaio itself can read them and write their
   status, nothing else.
 - **Everything narrows.** A profile sets the loosest each knob may be; a policy can only narrow

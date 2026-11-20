@@ -1,0 +1,415 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AudienceBundlePayload",
+  "description": "The payload of an audience bundle: the same meta as a policy bundle (version, `issuedAt`,\n`notAfter`), its own schema and content.",
+  "type": "object",
+  "properties": {
+    "content": {
+      "$ref": "#/$defs/AudienceBundleContent"
+    },
+    "contentDigest": {
+      "type": "string"
+    },
+    "meta": {
+      "$ref": "#/$defs/BundleMeta"
+    },
+    "schema": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema",
+    "meta",
+    "content",
+    "contentDigest"
+  ],
+  "$defs": {
+    "AudienceBundleContent": {
+      "description": "Everything the audience bundle asserts. RFC 8785 canonical form (ADR-0005); adding, removing,\nrenaming or retyping a field is a schema change.",
+      "type": "object",
+      "properties": {
+        "audience": {
+          "$ref": "#/$defs/AudienceRef"
+        },
+        "definition": {
+          "$ref": "#/$defs/AudienceDefinition"
+        }
+      },
+      "required": [
+        "audience",
+        "definition"
+      ]
+    },
+    "AudienceCredential": {
+      "description": "How the consumer obtains and places the credential.",
+      "type": "object",
+      "properties": {
+        "backend": {
+          "description": "How the credential is obtained.",
+          "$ref": "#/$defs/Backend"
+        },
+        "extraHeaders": {
+          "description": "Further headers set with fixed values.",
+          "type": "array",
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/HeaderPair"
+          }
+        },
+        "format": {
+          "description": "What it is. Defaults to `bearer`.",
+          "$ref": "#/$defs/CredentialFormat",
+          "default": "bearer"
+        },
+        "header": {
+          "description": "The header the credential is placed in, a lowercase token. Unset means `authorization`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "placement": {
+          "description": "Where it is placed. Required: a misspelling must never fall back to a default.",
+          "$ref": "#/$defs/Placement"
+        },
+        "refresh": {
+          "description": "Refresh settings for the `delegated` backend.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DelegatedRefresh"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source": {
+          "description": "Where it comes from, for the `secret` backend.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CredentialSource"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "backend",
+        "placement"
+      ]
+    },
+    "AudienceDefinition": {
+      "description": "The definition of one audience: the spec of a `SandboxAudience`, and the content of its signed\nbundle.",
+      "type": "object",
+      "properties": {
+        "caRef": {
+          "description": "A CA bundle for an upstream on a private PKI.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ConfigMapKeyRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "credential": {
+          "description": "The credential.",
+          "$ref": "#/$defs/AudienceCredential"
+        },
+        "endpoints": {
+          "description": "Where the audience is reached, `host:port`, exact names only (L017). Every one must be in\nthe ceiling of each policy that grants the audience (L014).",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "maxTtlSeconds": {
+          "description": "The longest token lifetime any grant may have (L028), and no more than the ceiling's (L014).",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "rules": {
+          "description": "The widest any grant may be (L028). None means every method and path.",
+          "type": "array",
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/EndpointRule"
+          }
+        }
+      },
+      "required": [
+        "credential",
+        "endpoints",
+        "maxTtlSeconds"
+      ]
+    },
+    "AudienceRef": {
+      "description": "Which `SandboxAudience` the bundle defines. The namespace decides whether it is a platform or a\nteam audience, and the consumer derives that from its own configuration, never from a field\nhere (ADR-0020, decision 2).",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "namespace": {
+          "type": "string"
+        },
+        "uid": {
+          "description": "The incarnation, for the version floor (ADR-0008).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "namespace",
+        "name",
+        "uid"
+      ]
+    },
+    "Backend": {
+      "description": "How the consumer obtains the credential, the vocabulary mediatore implements.",
+      "oneOf": [
+        {
+          "description": "The consumer mints a token with its own signing key. Platform audiences only (L022).",
+          "type": "string",
+          "const": "sts"
+        },
+        {
+          "description": "An operator-held credential, read from the source.",
+          "type": "string",
+          "const": "secret"
+        },
+        {
+          "description": "The requester's own credential, delegated with the claim. Platform audiences only (L022).",
+          "type": "string",
+          "const": "delegated"
+        },
+        {
+          "description": "Entra ID On-Behalf-Of with the consumer's app registration. Platform audiences only (L022).",
+          "type": "string",
+          "const": "entra-obo"
+        },
+        {
+          "description": "No credential: the audience is reached through the proxy, under its endpoints and rules.",
+          "type": "string",
+          "const": "none"
+        }
+      ]
+    },
+    "BundleMeta": {
+      "type": "object",
+      "properties": {
+        "issuedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "notAfter": {
+          "description": "The bundle is worthless after this instant. Bounded by the earliest active grant expiry, so a\nrelaxation lapses without any revocation mechanism.",
+          "type": "string",
+          "format": "date-time"
+        },
+        "version": {
+          "description": "Monotonic. Bumps only when `contentDigest` changes.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "version",
+        "issuedAt",
+        "notAfter"
+      ]
+    },
+    "ConfigMapKeyRef": {
+      "description": "A key of a ConfigMap in the audience's own namespace (no namespace field, as for\n[`SecretRef`]).",
+      "type": "object",
+      "properties": {
+        "key": {
+          "description": "The key holding the PEM bundle.",
+          "type": "string"
+        },
+        "name": {
+          "description": "The ConfigMap's name.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "key"
+      ]
+    },
+    "CredentialFormat": {
+      "description": "What the credential is.",
+      "oneOf": [
+        {
+          "description": "A bearer token.",
+          "type": "string",
+          "const": "bearer"
+        },
+        {
+          "description": "A username and a password or token, sent as HTTP Basic.",
+          "type": "string",
+          "const": "basic"
+        }
+      ]
+    },
+    "CredentialSource": {
+      "description": "Where the credential comes from: exactly one of the two.",
+      "oneOf": [
+        {
+          "description": "The platform's OpenBao.",
+          "type": "object",
+          "properties": {
+            "openbao": {
+              "$ref": "#/$defs/OpenBaoSource"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "openbao"
+          ]
+        },
+        {
+          "description": "A Secret in the audience's namespace.",
+          "type": "object",
+          "properties": {
+            "secretRef": {
+              "$ref": "#/$defs/SecretRef"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "secretRef"
+          ]
+        }
+      ]
+    },
+    "DelegatedRefresh": {
+      "description": "How a `delegated` credential is refreshed.",
+      "type": "object",
+      "properties": {
+        "clientId": {
+          "description": "The OAuth client id.",
+          "type": "string"
+        },
+        "scope": {
+          "description": "The scope to request.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tokenEndpoint": {
+          "description": "The token endpoint, an `https://` URL.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tokenEndpoint",
+        "clientId"
+      ]
+    },
+    "EndpointRule": {
+      "description": "One HTTP rule for an endpoint (ADR-0013): a method, or `*` for any, and a path glob in which `*`\nmatches one segment and `**` zero or more, matched against the path without the query. The\nshape mediatore's egress proxy uses (its ADR-0025).",
+      "type": "object",
+      "properties": {
+        "method": {
+          "description": "An HTTP method, or `*`.",
+          "type": "string"
+        },
+        "path": {
+          "description": "A path glob starting with `/`.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "method",
+        "path"
+      ]
+    },
+    "HeaderPair": {
+      "description": "One header set on the upstream request with a fixed value.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "The header name, a lowercase token (L026).",
+          "type": "string"
+        },
+        "value": {
+          "description": "The value, as sent.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "value"
+      ]
+    },
+    "OpenBaoSource": {
+      "description": "A path in the platform's OpenBao, read with the consumer's own identity. Platform audiences\nonly (L023).",
+      "type": "object",
+      "properties": {
+        "key": {
+          "description": "The key in the secret.",
+          "type": "string"
+        },
+        "mount": {
+          "description": "The KV mount.",
+          "type": "string"
+        },
+        "path": {
+          "description": "The path under the mount.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "mount",
+        "path",
+        "key"
+      ]
+    },
+    "Placement": {
+      "description": "Where the credential is placed.",
+      "oneOf": [
+        {
+          "description": "At the gateway, outside the pool VM.",
+          "type": "string",
+          "const": "gateway"
+        },
+        {
+          "description": "In the pool VM's egress proxy: the credential sits in the VM's memory (L029 for a team).",
+          "type": "string",
+          "const": "proxy"
+        }
+      ]
+    },
+    "SecretRef": {
+      "description": "A Secret in the audience's own namespace. There is no namespace field on purpose: a reference\nis always resolved where the audience lives (ADR-0020, decision 4).",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "The Secret's name.",
+          "type": "string"
+        },
+        "tokenKey": {
+          "description": "The key holding the token or password.",
+          "type": "string"
+        },
+        "usernameKey": {
+          "description": "The key holding the username, for `format: basic`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "tokenKey"
+      ]
+    }
+  }
+}

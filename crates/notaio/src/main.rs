@@ -7,6 +7,7 @@
 //! One binary, the roles as subcommands (ADR-0006): `notaio controller` runs the controller,
 //! `notaio lint` checks policy files for pull requests.
 
+mod audience;
 mod error;
 mod reconcile;
 mod signer;
@@ -24,17 +25,21 @@ use kube::runtime::reflector::{self, ObjectRef, Store};
 use kube::runtime::{watcher, WatchStreamExt};
 use kube::{Api, Client};
 use notaio::cli::{
-    bundle_lifetime_seconds, Cli, Command, Format, LintArgs, DEFAULT_NAMESPACE,
-    ENV_BUNDLE_LIFETIME, ENV_HTTP_ADDR, ENV_LOG_JSON, ENV_NAMESPACE, ENV_POD_NAME,
+    audience_platform_namespace, bundle_lifetime_seconds, Cli, Command, Format, LintArgs,
+    DEFAULT_NAMESPACE, ENV_AUDIENCE_PLATFORM_NAMESPACE, ENV_BUNDLE_LIFETIME, ENV_HTTP_ADDR,
+    ENV_LOG_JSON, ENV_NAMESPACE, ENV_POD_NAME,
 };
 use notaio::http::Observed;
 use notaio::leader::Elector;
 use notaio::metrics::{Counters, Snapshot};
 use notaio::watch::deserves_warning;
-use sandboxpolicy_api::{ExposureCeiling, KnobGrant, SandboxPolicy, SandboxProfile};
+use sandboxpolicy_api::{
+    ExposureCeiling, KnobGrant, SandboxAudience, SandboxPolicy, SandboxProfile,
+};
 use sandboxpolicy_core::ceilings::Ceilings;
 use tracing_subscriber::EnvFilter;
 
+use audience::{error_audience, reconcile_audience, AudienceCtx};
 use reconcile::{error_policy, reconcile_policy, reconcile_profile, Ctx};
 
 /// `notaio lint` exit codes (ADR-0006, decision 6). 0 is success.
@@ -115,9 +120,14 @@ where
 
 fn run_lint(args: &LintArgs) -> ExitCode {
     let now = args.now.unwrap_or_else(Timestamp::now);
-    let report = match notaio::lint::load(&args.paths)
-        .and_then(|sources| notaio::lint::lint_sources(&sources, now))
-    {
+    let report = match notaio::lint::load(&args.paths).and_then(|sources| {
+        notaio::lint::lint_sources_for(
+            &sources,
+            now,
+            &sandboxpolicy_core::ceilings::Ceilings::default(),
+            args.platform_audience_namespace.as_deref(),
+        )
+    }) {
         Ok(r) => r,
         Err(e) => {
             eprintln!("notaio lint: {}: {}", e.path.display(), e.message);
@@ -149,6 +159,17 @@ async fn run_controller() -> anyhow::Result<()> {
 
     let lifetime_secs =
         bundle_lifetime_seconds(std::env::var(ENV_BUNDLE_LIFETIME).ok().as_deref())?;
+    let platform_namespace = audience_platform_namespace(
+        std::env::var(ENV_AUDIENCE_PLATFORM_NAMESPACE)
+            .ok()
+            .as_deref(),
+    )?;
+    match &platform_namespace {
+        Some(ns) => tracing::info!(platform_namespace = %ns, "audience definitions on (ADR-0020)"),
+        None => tracing::info!(
+            "{ENV_AUDIENCE_PLATFORM_NAMESPACE} unset: SandboxAudience is not reconciled"
+        ),
+    }
     let signer = signer::from_env()?;
     match &signer {
         Some(s) => tracing::info!(signer = %s.describe(), "signing bundles"),
@@ -166,6 +187,12 @@ async fn run_controller() -> anyhow::Result<()> {
     let namespace = std::env::var(ENV_NAMESPACE).unwrap_or_else(|_| DEFAULT_NAMESPACE.to_string());
 
     let client = Client::try_default().await?;
+    // Every audience definition, cached for both controllers, only when audiences are on.
+    let audiences_api: Api<SandboxAudience> = Api::all(client.clone());
+    let audience_cache = platform_namespace
+        .as_ref()
+        .map(|_| cache(audiences_api.clone(), "audience"));
+    let audience_store = audience_cache.as_ref().map(|(store, _)| store.clone());
     let elector = Elector::new(client.clone(), &namespace, &identity);
     let counters = Counters::default();
     let reporter = Reporter {
@@ -180,6 +207,7 @@ async fn run_controller() -> anyhow::Result<()> {
         bundle_lifetime: SignedDuration::from_secs(lifetime_secs),
         counters: counters.clone(),
         recorder: Recorder::new(client.clone(), reporter),
+        audiences: platform_namespace.clone().zip(audience_store.clone()),
     });
 
     // Bind before anything else, so a taken port fails the start rather than the first probe.
@@ -200,8 +228,29 @@ async fn run_controller() -> anyhow::Result<()> {
     let (grant_cache, grant_cache_task) = cache(grants.clone(), "grant");
     let exposure_ceilings: Api<ExposureCeiling> = Api::all(client.clone());
 
-    let policy_controller = Controller::new(policies, watcher::Config::default());
+    let mut policy_controller = Controller::new(policies, watcher::Config::default());
     let store = policy_controller.store();
+    if let Some(platform) = platform_namespace.clone() {
+        // An audience change re-evaluates every policy that grants it (ADR-0020): in every
+        // namespace for a platform audience, in its own namespace for a team audience.
+        let store = store.clone();
+        policy_controller = policy_controller.watches(
+            audiences_api.clone(),
+            watcher::Config::default(),
+            move |a| {
+                let name = kube::ResourceExt::name_any(&a);
+                let ns = kube::ResourceExt::namespace(&a).unwrap_or_default();
+                let platform_audience = ns == platform;
+                store
+                    .state()
+                    .into_iter()
+                    .filter(|p| platform_audience || p.metadata.namespace.as_deref() == Some(&ns))
+                    .filter(|p| p.spec.audiences.iter().any(|g| g.name == name))
+                    .map(|p| ObjectRef::from_obj(&*p))
+                    .collect::<Vec<_>>()
+            },
+        );
+    }
     let policy_task = policy_controller
         // A profile change re-evaluates every policy that references it.
         .watches(profiles.clone(), watcher::Config::default(), move |p| {
@@ -237,6 +286,42 @@ async fn run_controller() -> anyhow::Result<()> {
                 Err(e) => tracing::debug!(error = %e, "policy controller error"),
             }
         });
+
+    // The audience controller (ADR-0020), only when audiences are on.
+    let audience_task: std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>> =
+        match (platform_namespace.clone(), audience_store.clone()) {
+            (Some(platform), Some(all)) => {
+                let controller = Controller::new(audiences_api.clone(), watcher::Config::default());
+                let own = controller.store();
+                let actx = Arc::new(AudienceCtx {
+                    ctx: ctx.clone(),
+                    platform_namespace: platform,
+                    audiences: all,
+                });
+                Box::pin(
+                    controller
+                        // A change to one audience can move a collision finding (L024, L025) on
+                        // another: re-evaluate every audience that shares its name or an endpoint.
+                        .watches(
+                            audiences_api.clone(),
+                            watcher::Config::default(),
+                            move |a| colliding(&own, &a),
+                        )
+                        .shutdown_on_signal()
+                        .run(reconcile_audience, error_audience, actx)
+                        .for_each(|res| async move {
+                            match res {
+                                Ok((obj, _)) => tracing::debug!(audience = %obj.name, "reconciled"),
+                                Err(e) if deserves_warning(&e) => {
+                                    tracing::warn!(error = %e, "audience controller error")
+                                }
+                                Err(e) => tracing::debug!(error = %e, "audience controller error"),
+                            }
+                        }),
+                )
+            }
+            _ => Box::pin(futures::future::ready(())),
+        };
 
     let profile_controller = Controller::new(profiles, watcher::Config::default());
     let observer = Arc::new(Observer {
@@ -277,8 +362,18 @@ async fn run_controller() -> anyhow::Result<()> {
         });
 
     // Every replica keeps its caches and serves health and metrics.
+    let audience_cache_task = async move {
+        if let Some((_, task)) = audience_cache {
+            task.await;
+        }
+    };
     let caches = tokio::spawn(async move {
-        futures::join!(policy_cache_task, profile_cache_task, grant_cache_task);
+        futures::join!(
+            policy_cache_task,
+            profile_cache_task,
+            grant_cache_task,
+            audience_cache_task
+        );
     });
 
     // Only the Lease holder reconciles, signs and publishes (ADR-0011). The controllers are lazy
@@ -292,8 +387,15 @@ async fn run_controller() -> anyhow::Result<()> {
             return Ok(());
         }
     }
+    // A policy or an audience evaluated against a half-filled cache would see definitions missing
+    // (L027) or collisions absent (L024, L025): wait for the first full list. The only waiter.
+    if let Some(store) = &audience_store {
+        if store.wait_until_ready().await.is_err() {
+            anyhow::bail!("the SandboxAudience cache never filled");
+        }
+    }
     let outcome = tokio::select! {
-        () = async { futures::join!(policy_task, profile_task); } => Ok(()),
+        () = async { futures::join!(policy_task, profile_task, audience_task); } => Ok(()),
         // Losing the Lease ends the process; the pod restarts as a follower.
         reason = elector.hold() => Err(anyhow::anyhow!("stopped leading: {reason}")),
     };
@@ -303,6 +405,35 @@ async fn run_controller() -> anyhow::Result<()> {
     server.abort();
     caches.abort();
     outcome
+}
+
+/// The audiences in `store` that collide with `a` on its name or an endpoint (ADR-0020,
+/// decision 6), `a` itself excluded.
+fn colliding(
+    store: &Store<SandboxAudience>,
+    a: &SandboxAudience,
+) -> Vec<ObjectRef<SandboxAudience>> {
+    let key = |x: &SandboxAudience| {
+        (
+            kube::ResourceExt::namespace(x),
+            kube::ResourceExt::name_any(x),
+        )
+    };
+    let name = kube::ResourceExt::name_any(a);
+    store
+        .state()
+        .into_iter()
+        .filter(|o| key(o) != key(a))
+        .filter(|o| {
+            kube::ResourceExt::name_any(&**o) == name
+                || o.spec
+                    .definition
+                    .endpoints
+                    .iter()
+                    .any(|e| a.spec.definition.endpoints.contains(e))
+        })
+        .map(|o| ObjectRef::from_obj(&*o))
+        .collect()
 }
 
 /// SIGTERM or Ctrl-C, for a replica that is not leading. The controllers handle their own.

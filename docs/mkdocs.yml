@@ -148,6 +148,8 @@ nav:
       - Write a Policy: guides/write-a-policy.md
       - Grant a Relaxation: guides/grant-a-relaxation.md
       - Approve an Exposure Ceiling: guides/approve-a-ceiling.md
+      - Set Up Platform Audiences: guides/platform-audiences.md
+      - Bring Your Own Credential: guides/bring-your-own-credential.md
       - Lint a Policy Repository: guides/lint-in-ci.md
       - Deliver Signed Policies: guides/deliver-signed-policies.md
       - Consume a Bundle: guides/consume-a-bundle.md
@@ -161,6 +163,7 @@ nav:
       - SandboxPolicy: concepts/policies.md
       - KnobGrant: concepts/grants.md
       - ExposureCeiling: concepts/ceilings.md
+      - SandboxAudience: concepts/audiences.md
       - The Bundle: concepts/bundle.md
       - The Life of a Change: concepts/life-of-a-change.md
   - Governance:
@@ -193,6 +196,7 @@ nav:
       - "ADR-0017: Audience classification": adr/0017-audience-classification.md
       - "ADR-0018: Tightening latency": adr/0018-tightening-latency.md
       - "ADR-0019: Resource sizes": adr/0019-resource-sizes.md
+      - "ADR-0020: SandboxAudience": adr/0020-sandbox-audience.md
   - Reference:
       - Glossary: glossary.md
       - CRD API: reference/crds.md

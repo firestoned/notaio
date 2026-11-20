@@ -2,14 +2,16 @@
 // SPDX-License-Identifier: Apache-2.0
 //! Generates the raw manifests that are checked in under `deploy/`.
 //!
-//! `crdgen crds`      prints the four CustomResourceDefinitions.
+//! `crdgen crds`      prints the five CustomResourceDefinitions.
 //! `crdgen profiles`  prints the four built-in SandboxProfile objects.
 //!
 //! The checked-in YAML is always the output of this tool, never hand edited. CI runs
 //! `make manifests-check` to fail on drift.
 
 use kube::CustomResourceExt;
-use sandboxpolicy_api::{ExposureCeiling, KnobGrant, SandboxPolicy, SandboxProfile};
+use sandboxpolicy_api::{
+    ExposureCeiling, KnobGrant, SandboxAudience, SandboxPolicy, SandboxProfile,
+};
 use sandboxpolicy_core::builtin;
 
 /// Kubernetes formats for the unsigned integer formats schemars emits. The API server does not
@@ -71,6 +73,7 @@ fn main() {
             emit_crd(&SandboxPolicy::crd());
             emit_crd(&KnobGrant::crd());
             emit_crd(&ExposureCeiling::crd());
+            emit_crd(&SandboxAudience::crd());
         }
         Some("profiles") => {
             for (name, spec) in builtin::all() {

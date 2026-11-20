@@ -1,6 +1,6 @@
 // Copyright (c) 2026 Erick Bourgeois, notaio
 // SPDX-License-Identifier: Apache-2.0
-//! The signed policy bundle: the contract between notaio (producer) and mediatore,
+//! The signed policy bundle, and the signed audience bundle (ADR-0020): the contract between notaio (producer) and mediatore,
 //! mediatore-guest and the gateway (consumers).
 //!
 //! Design rules, see ADR-0002:
@@ -15,6 +15,7 @@
 //!   fails closed.
 //! - This crate has no Kubernetes dependency, so `mediatore-guest` can verify a bundle without one.
 
+mod audience;
 pub mod conformance;
 mod content;
 mod dsse;
@@ -23,6 +24,11 @@ pub mod floor;
 pub mod jcs;
 mod verify;
 
+pub use audience::{
+    audience_envelope, audience_signing_input, sign_audience_bundle, verify_audience_bundle,
+    AudienceBundleContent, AudienceBundlePayload, AudienceRef, AUDIENCE_PAYLOAD_TYPE,
+    AUDIENCE_SCHEMA,
+};
 pub use content::{BundleContent, BundleMeta, BundlePayload, PolicyRef, ProfileRef, SCHEMA};
 pub use dsse::{
     envelope, sign_bundle, signing_input, Ed25519Signer, Envelope, Signature, Signer, SigningInput,

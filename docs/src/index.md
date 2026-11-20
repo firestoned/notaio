@@ -95,11 +95,11 @@ It is deliberately **not** in [banlieue](https://github.com/firestoned/banlieue)
 | If you want to know | Read |
 | --- | --- |
 | How to install it, write a policy, grant a relaxation, and run it day to day | [Guides](guides/index.md) |
-| What the four kinds are, how knobs and steps work, and what a bundle promises | [Concepts](concepts/index.md) |
+| What the five kinds are, how knobs and steps work, and what a bundle promises | [Concepts](concepts/index.md) |
 | What a `K`, `R`, `L`, `I`, `T`, `S` or `O` identifier means, or any other term | [Glossary](glossary.md) |
 | How one change travels from pull request to enforcement, and every gate on the way | [The Life of a Change](concepts/life-of-a-change.md) |
 | How notaio, banlieue, mediatore, mediatore-guest and the gateway relate, the contracts between them, and who trusts what | [Where notaio sits in AgentSandbox](architecture.md#where-notaio-sits-in-agentsandbox) |
-| How the four kinds, evaluation and the controller work | [Architecture](architecture.md) |
+| How the five kinds, evaluation and the controller work | [Architecture](architecture.md) |
 | Which threat model items this enforces, and which it does not | [Threat Model Mapping](security/threat-model-mapping.md) |
 | What a consumer can trust in a bundle | [ADR-0002: Bundle contract](adr/0002-bundle-contract.md) |
 | What the built-in profiles allow | [Built-in Profiles](reference/profiles.md) |
@@ -111,7 +111,7 @@ It is deliberately **not** in [banlieue](https://github.com/firestoned/banlieue)
 | Crate | Purpose |
 | --- | --- |
 | `sandboxpolicy-types` | Pure data types. No Kubernetes dependency. |
-| `sandboxpolicy-api` | The four CRDs, `sandbox.firestoned.io/v1alpha2`. |
+| `sandboxpolicy-api` | The five CRDs, `sandbox.firestoned.io/v1alpha2`. |
 | `sandboxpolicy-bundle` | Bundle format, DSSE signing, verification. The only crate mediatore-guest needs. |
 | `sandboxpolicy-core` | Knob register, built-in profiles, lint rules, ceilings, `evaluate`. Pure, no I/O. |
 | `notaio` | The controller, and `crdgen`, which generates the checked-in manifests. |

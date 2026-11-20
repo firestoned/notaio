@@ -13,6 +13,8 @@ Task-oriented walkthroughs. For what the objects are, see [Concepts](../concepts
 | [Write a policy](write-a-policy.md) | Team owning sandboxes | Pick a profile, write a SandboxPolicy, check it, and get it Ready |
 | [Grant a relaxation](grant-a-relaxation.md) | Team, with its approvers | Relax one knob by one step for a bounded time |
 | [Approve an exposure ceiling](approve-a-ceiling.md) | Security | Review what a policy can reach and record the approval |
+| [Set up platform audiences](platform-audiences.md) | Platform | Turn on signed audience definitions and onboard teams |
+| [Bring your own credential](bring-your-own-credential.md) | Team | Define an audience in your namespace with a credential you own |
 | [Lint a policy repository](lint-in-ci.md) | Policy repository owners | Run `notaio lint` on every pull request, with inline findings |
 | [Deliver signed policies](deliver-signed-policies.md) | Policy repository owners and Security | Publish the repository as two signed OCI artifacts that Flux verifies, so only Security can change a ceiling |
 | [Consume a bundle](consume-a-bundle.md) | mediatore, mediatore-guest, gateway authors | Verify bundles and keep a version floor |

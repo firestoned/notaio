@@ -2,6 +2,67 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-20 16:00] - ADR-0020 SandboxAudience: signed audience definitions
+
+**Author:** Erick Bourgeois
+
+### Added
+- ADR-0020 accepted, with the deciders' resolutions recorded: the platform audience namespace is
+  `NOTAIO_AUDIENCE_PLATFORM_NAMESPACE` with no default and audiences are opt-in through it; no team
+  audience through a mapped-namespace policy; a grant's endpoints are a subset of the definition's
+  and an empty list reaches nothing (empty rules mean the definition's); `secretRef` and `caRef`
+  carry no namespace field; a collision refuses the newcomer (an audience is stable when its
+  published digest is its current content).
+- `sandboxpolicy-types`: `AudienceDefinition` and its parts (`Backend`, `Placement`,
+  `CredentialFormat`, `CredentialSource`, `SecretRef`, `OpenBaoSource`, `HeaderPair`,
+  `DelegatedRefresh`, `ConfigMapKeyRef`). No new dependency.
+- `sandboxpolicy-api`: the `SandboxAudience` CRD (`v1alpha2`, namespaced, status like a policy's).
+- `sandboxpolicy-bundle`: the audience bundle (`audience.rs`): payload type
+  `application/vnd.firestoned.sandboxaudience.bundle.v1+json`, schema `audience-bundle/v1`, golden
+  canonical bytes and digest pinned in `tests/audience.rs` (the digest checked independently with
+  `shasum`). `verify_audience_bundle` shares the signature and window checks with `verify_bundle`
+  (`check_signature`, `check_window`). `floor::accept_audience`, `next_audience_floor`, with an
+  audience's floor entry named `audience/<name>` so it never meets a policy's in one store.
+- `sandboxpolicy-core`: `audience.rs` with `AudienceCatalog`, `lint_audience` (L017, L022 to L026,
+  L029), `lint_grants` (L027, L028), `lint_definitions_against_ceiling` (L014),
+  `evaluate_audience`, and `rule_covers` (the same segment glob rule as mediatore's
+  `glob_covers`). `EvalInput.audiences`: `None` keeps every earlier behaviour. 49 unit tests, 5
+  integration tests in `tests/evaluate.rs`.
+- `notaio`: the audience reconciler (`src/audience.rs`), started only with the namespace set; one
+  audience cache shared with the policy reconciler and awaited before either runs; policies
+  re-evaluated when an audience they grant changes, audiences when one they collide with changes.
+  `BundleSigner::sign_audience`, `events::audience`. `notaio lint --platform-audience-namespace`,
+  input codes I010 and I011.
+- Conformance kit for audience bundles: `conformance/audience-vectors.json` (15 vectors) and
+  `audience-bundle-v1.schema.json`, `conformance::audience_suite` and `run_audience`; an optional
+  `minVersion` on `Vector` (skipped when unset, so `vectors.json` keeps its shape) and one new
+  policy vector, `refused-audience-envelope`. The reference page lists both suites.
+- `examples/sandboxaudience-team.yaml`, `examples/sandboxaudience-platform.yaml`; `make
+  policy-lint` lints with audiences on.
+- e2e: `e2e_audience` (`make kind-e2e-audience`, a matrix row, `E2E_SUITES`): published and
+  verified against OpenBao's key, refused as a policy bundle, kept on an L022 finding, deleted with
+  its object; an undefined grant publishes nothing. `e2e_rbac` covers `sandboxaudiences`;
+  `e2e_admission` refuses a direct `SandboxAudience`.
+- Docs: `docs/src/concepts/audiences.md`, `docs/src/guides/bring-your-own-credential.md`,
+  `docs/src/guides/platform-audiences.md`; `docs/architecture.md` (the CALM step, deferred as for
+  every ADR until the model is bootstrapped); reference pages regenerated.
+
+### Changed
+- `deploy/controller/10-rbac.yaml`: read on `sandboxaudiences`, `patch` on its status, `update` on
+  its finalizers. Nothing else; notaio still reads no Secret.
+- `deploy/admission/gitops-only.yaml` covers `sandboxaudiences`.
+- `deploy/controller/20-deployment.yaml`: the variable, commented out.
+- `crates/sandboxpolicy-core/src/lint.rs`: `endpoint_problem` factored out of L017 for reuse;
+  `RULES` has 29 entries.
+
+### Threat model pass
+- Full pass over `docs/threat-model-mapping.md`, stamped against ADR-0001 to ADR-0020: eight rows
+  updated, two Implemented rows added (signed definitions; a team's audience kept to its namespace
+  and credential), one Supported row (mediatore resolves credentials, ADR-0055), two Not covered
+  rows (the Secret behind a reference; no per-audience metrics). `docs/air/mapping.yaml` ri-29 and
+  mi-23 moved; `make air` regenerated `docs/framework-mapping.md`. `registry.rs` and `builtin.rs`
+  unchanged (no knob or profile change).
+
 ## [2026-11-17 09:05] - chrono replaced by jiff across the workspace (#94)
 
 **Author:** Erick Bourgeois

@@ -75,6 +75,7 @@ fn every_kind_and_its_fields_are_documented() {
         "## SandboxPolicy",
         "## KnobGrant",
         "## ExposureCeiling",
+        "## SandboxAudience",
     ] {
         assert!(p.contains(heading), "{heading}");
     }
@@ -85,6 +86,7 @@ fn every_kind_and_its_fields_are_documented() {
         "| `expiresAt` | string | yes |",
         "| `maxLeaseSeconds` | integer | yes |",
         "| `maxExposure.writeCapable` |",
+        "| `credential.backend` | string: `sts`, `secret`, `delegated`, `entra-obo`, `none` | yes |",
     ] {
         assert!(p.contains(field), "{field} missing from:\n{p}");
     }
@@ -156,4 +158,13 @@ fn every_variable_read_is_documented() {
     assert!(missing.is_empty(), "read but not documented: {missing:?}");
     let stale: Vec<_> = documented.difference(&read).collect();
     assert!(stale.is_empty(), "documented but never read: {stale:?}");
+}
+
+#[test]
+fn the_conformance_page_lists_policy_and_audience_vectors() {
+    let p = page_named("conformance.md");
+    assert!(p.contains("| `refused-audience-envelope` |"), "{p}");
+    assert!(p.contains("## Audience bundles"), "{p}");
+    assert!(p.contains("| `refused-policy-envelope` |"), "{p}");
+    assert!(p.contains("| `refused-below-min-version` |"), "{p}");
 }
