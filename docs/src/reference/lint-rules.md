@@ -39,7 +39,7 @@ Checked by the controller and by `notaio lint`, from `crates/sandboxpolicy-core/
 | `L023` | A team audience with an `openbao` source |
 | `L024` | A team audience and a platform audience with the same name |
 | `L025` | An endpoint held by two audiences visible from one namespace |
-| `L026` | A header name that is not a lowercase token, or one of the reserved names |
+| `L026` | A header name that is not a lowercase token or is reserved, or a header value that is not printable ASCII |
 | `L027` | A policy grants an audience no definition is visible for, or a team audience from another namespace |
 | `L028` | A grant's endpoints, rules or token lifetime wider than its audience's definition |
 | `L029` | A team audience placed in the proxy |

@@ -278,6 +278,96 @@ fn two_new_platform_audiences_on_one_endpoint_are_both_l025() {
     assert_eq!(codes(&lint_one(&b, &all)), ["L025"]);
 }
 
+/// `a`, published and then edited: its status digest is no longer its content's.
+fn changed(a: SandboxAudience) -> SandboxAudience {
+    let mut a = published(a);
+    a.spec.definition.max_ttl_seconds -= 1;
+    a
+}
+
+/// A refused newcomer left in place must never turn the next edit of the audience it collides
+/// with into a finding: an audience with a finding is no longer re-signed, so one team namespace
+/// could withdraw a platform audience from every namespace (decision 6, amended).
+#[test]
+fn a_never_published_audience_refuses_nothing() {
+    let p = changed(platform("anthropic", "api.example.com:443"));
+    let by_endpoint = team("mine", "api.example.com:443");
+    let all = [p.clone(), by_endpoint.clone()];
+    assert!(lint_one(&p, &all).is_empty(), "L025 from a parked newcomer");
+    assert_eq!(codes(&lint_one(&by_endpoint, &all)), ["L025"]);
+
+    let by_name = team("anthropic", "other.example.com:443");
+    let all = [p.clone(), by_name.clone()];
+    assert!(lint_one(&p, &all).is_empty(), "L024 from a parked newcomer");
+    assert_eq!(codes(&lint_one(&by_name, &all)), ["L024"]);
+}
+
+/// The same between two team audiences in one namespace: the working one's edit goes through.
+#[test]
+fn a_changed_team_audience_is_not_refused_by_a_new_one() {
+    let a = changed(team("one", "af.example.com:443"));
+    let b = team("two", "af.example.com:443");
+    let all = [a.clone(), b.clone()];
+    assert!(lint_one(&a, &all).is_empty());
+    assert_eq!(codes(&lint_one(&b, &all)), ["L025"]);
+}
+
+/// Two changed audiences of different tenants: the namespace decides, the platform is kept.
+#[test]
+fn between_two_changed_audiences_the_platform_wins() {
+    let p = changed(platform("anthropic", "api.example.com:443"));
+    let t = changed(team("mine", "api.example.com:443"));
+    let all = [p.clone(), t.clone()];
+    assert!(lint_one(&p, &all).is_empty());
+    assert_eq!(codes(&lint_one(&t, &all)), ["L025"]);
+}
+
+#[test]
+fn two_changed_audiences_of_one_kind_are_both_refused() {
+    let a = changed(team("one", "af.example.com:443"));
+    let b = changed(team("two", "af.example.com:443"));
+    let all = [a.clone(), b.clone()];
+    assert_eq!(codes(&lint_one(&a, &all)), ["L025"]);
+    assert_eq!(codes(&lint_one(&b, &all)), ["L025"]);
+}
+
+/// A stable team audience still holds its endpoint against a platform edit: first come stays.
+#[test]
+fn a_changed_platform_audience_is_refused_by_a_stable_team_one() {
+    let p = changed(platform("anthropic", "api.example.com:443"));
+    let t = published(team("mine", "api.example.com:443"));
+    let all = [p.clone(), t.clone()];
+    assert_eq!(codes(&lint_one(&p, &all)), ["L025"]);
+    assert!(lint_one(&t, &all).is_empty());
+}
+
+/// Whatever the standings, at least one side of a collision is refused: two colliding
+/// definitions are never both published.
+#[test]
+fn at_least_one_side_of_every_collision_is_refused() {
+    type Make = fn(SandboxAudience) -> SandboxAudience;
+    let standings: [(&str, Make); 3] =
+        [("new", |a| a), ("stable", published), ("changed", changed)];
+    for (ln, lf) in standings {
+        for (rn, rf) in standings {
+            for cross in [true, false] {
+                let l = if cross {
+                    lf(platform("one", "x.example.com:443"))
+                } else {
+                    lf(team("one", "x.example.com:443"))
+                };
+                let r = rf(team("two", "x.example.com:443"));
+                let all = [l.clone(), r.clone()];
+                let refused = !lint_one(&l, &all).is_empty() || !lint_one(&r, &all).is_empty();
+                assert!(
+                    refused,
+                    "{ln} against {rn}, cross-tenant {cross}: neither refused"
+                );
+            }
+        }
+    }
+}
+
 // L026
 
 #[test]
@@ -310,6 +400,41 @@ fn a_reserved_extra_header_is_l026() {
     }];
     let a = audience("team-a", "x", d);
     assert_eq!(codes(&lint_one(&a, std::slice::from_ref(&a))), ["L026"]);
+}
+
+/// A line break in a value would end the header and start another (decision 7, amended).
+#[test]
+fn a_header_value_with_a_control_character_is_l026() {
+    for bad in [
+        "v\r\nhost: evil.example.com",
+        "v\nx",
+        "v\0",
+        "caf\u{e9}",
+        " padded",
+        "padded ",
+        "",
+    ] {
+        let mut d = def("af.example.com:443");
+        d.credential.extra_headers = vec![HeaderPair {
+            name: "x-ok".into(),
+            value: bad.into(),
+        }];
+        let a = audience("team-a", "x", d);
+        let f = lint_one(&a, std::slice::from_ref(&a));
+        assert_eq!(codes(&f), ["L026"], "{bad:?}");
+        assert!(f[0].path.ends_with(".value"), "{}", f[0].path);
+    }
+}
+
+#[test]
+fn a_header_value_with_inner_spaces_and_tabs_passes() {
+    let mut d = def("af.example.com:443");
+    d.credential.extra_headers = vec![HeaderPair {
+        name: "x-ok".into(),
+        value: "a b\tc; q=0.5".into(),
+    }];
+    let a = audience("team-a", "x", d);
+    assert!(lint_one(&a, std::slice::from_ref(&a)).is_empty());
 }
 
 #[test]

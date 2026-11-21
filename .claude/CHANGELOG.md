@@ -2,6 +2,42 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-21 12:00] - ADR-0020 amended: collision standing, header values (security audit)
+
+**Author:** Erick Bourgeois
+
+### Fixed
+- `crates/sandboxpolicy-core/src/audience.rs`: `refused_in_collision` now decides on a
+  `Standing` (new, changed, stable) per audience, replacing the stable-or-not test. A new audience
+  always loses and refuses nothing; changed gives way to stable; two changed audiences of
+  different tenants are decided by the namespace (platform kept), of the same kind both refused.
+  Before, any two non-stable audiences refused each other, so a refused newcomer parked on a
+  platform audience's name or endpoint made that audience's next edit a finding, and it was no
+  longer re-signed. Found in the 2026-11-21 security audit, in v0.7.0-rc.1 only.
+- `header_value_problem`: `extraHeaders[].value` must be non-empty printable ASCII (inner spaces
+  and tabs allowed, no leading or trailing whitespace), under `L026`. Names alone were checked.
+
+- `crates/sandboxpolicy-core/src/lint.rs`: `rule_problem` (L017 on audience and definition
+  rules, L007 on direct egress) refuses a rule path a consumer would refuse as a request, the same
+  rule as mediatore's `path_is_canonical`, confirmed with the mediatore session: dot segments,
+  inner empty segments, backslash, control characters, malformed escapes and escapes decoding to
+  `.`, `/`, `\\` or a control character. A dead rule before, never a widening, but L028's coverage
+  check read it as inside a wider rule. Two tests in `lint_tests.rs`.
+
+### Changed
+- ADR-0020: `Amended: 2026-11-21`, decision 6 rewritten as a table of standings with the reason,
+  decision 7 extended to values, two threat rows; status no longer says "Not implemented".
+- `L026`'s meaning in `RULES`, the rustdoc table and the reference page.
+- `docs/src/concepts/audiences.md`, `docs/architecture.md`, CRD description of `HeaderPair.value`.
+
+### Tests
+- 8 new unit tests in `audience_tests.rs`, among them every pair of standings, cross-tenant and
+  not, asserting at least one side of a collision is refused.
+
+### Threat model pass
+- `docs/threat-model-mapping.md` re-stamped 2026-11-21: the team-audience row now cites the
+  standing rule and the value check. No other row moves; `docs/air/` unchanged.
+
 ## [2026-11-20 16:00] - ADR-0020 SandboxAudience: signed audience definitions
 
 **Author:** Erick Bourgeois

@@ -125,18 +125,50 @@ pub fn audience_content(a: &SandboxAudience) -> AudienceBundleContent {
     }
 }
 
-/// Stable: published, and the published bundle is the current content (decision 6).
-fn is_stable(a: &SandboxAudience) -> bool {
-    let Some(published) = a.status.as_ref().and_then(|s| s.bundle_digest.as_deref()) else {
-        return false;
-    };
-    audience_content(a).digest().is_ok_and(|d| d == published)
+/// Where an audience stands in a collision (ADR-0020, decision 6), read from its status.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Standing {
+    /// No published bundle: it can only lose a collision, never refuse another.
+    New,
+    /// Published, and the content has moved since.
+    Changed,
+    /// Published, and the published bundle is the current content.
+    Stable,
 }
 
-/// Of a collision between `me` and `other`, is `me` refused? Unless `me` is stable and `other`
-/// is not: the newcomer, or both when neither or both are stable (decision 6).
-fn refused_in_collision(me: &SandboxAudience, other: &SandboxAudience) -> bool {
-    !(is_stable(me) && !is_stable(other))
+fn standing(a: &SandboxAudience) -> Standing {
+    let Some(published) = a.status.as_ref().and_then(|s| s.bundle_digest.as_deref()) else {
+        return Standing::New;
+    };
+    if audience_content(a).digest().is_ok_and(|d| d == published) {
+        Standing::Stable
+    } else {
+        Standing::Changed
+    }
+}
+
+/// Of a collision between `me` and `other`, is `me` refused (decision 6)? The newcomer is; a
+/// changed audience gives way to a stable one; two changed audiences of different tenants are
+/// decided by the namespace, the platform kept. At least one side is always refused.
+///
+/// An audience that was never published refuses nothing: otherwise a refused newcomer left in
+/// place would turn the next edit of a working audience into a finding, and one team namespace
+/// could withdraw a platform audience from every namespace.
+fn refused_in_collision(
+    me: &SandboxAudience,
+    other: &SandboxAudience,
+    catalog: &AudienceCatalog<'_>,
+) -> bool {
+    match (standing(me), standing(other)) {
+        (Standing::New, _) => true,
+        (Standing::Stable, Standing::Stable) => true,
+        (Standing::Stable, _) => false,
+        (Standing::Changed, Standing::New) => false,
+        (Standing::Changed, Standing::Stable) => true,
+        (Standing::Changed, Standing::Changed) => {
+            !(catalog.is_platform(me) && !catalog.is_platform(other))
+        }
+    }
 }
 
 /// A lowercase RFC 9110 token.
@@ -153,6 +185,26 @@ fn header_problem(h: &str) -> Option<&'static str> {
     }
     if RESERVED_HEADERS.contains(&h) {
         return Some("a reserved header name: it frames the request or belongs to the proxy");
+    }
+    None
+}
+
+/// Why `v` is not a header value notaio signs, if it is not: printable ASCII, with spaces and
+/// tabs inside it only. A carriage return or line feed would end the header and start another.
+fn header_value_problem(v: &str) -> Option<&'static str> {
+    const SPACE: u8 = b' ';
+    const TAB: u8 = b'\t';
+    if v.is_empty() {
+        return Some("a header value is not empty");
+    }
+    if !v
+        .bytes()
+        .all(|b| b.is_ascii_graphic() || b == SPACE || b == TAB)
+    {
+        return Some("a header value is printable ASCII: no line break or other control character");
+    }
+    if v.starts_with([' ', '\t']) || v.ends_with([' ', '\t']) {
+        return Some("a header value has no leading or trailing whitespace");
     }
     None
 }
@@ -198,7 +250,7 @@ pub fn lint_audience(a: &SandboxAudience, catalog: &AudienceCatalog<'_>) -> Vec<
         .iter()
         .filter(|o| name(o) == name(a) && catalog.is_platform(o) != catalog.is_platform(a))
     {
-        if refused_in_collision(a, other) {
+        if refused_in_collision(a, other, catalog) {
             out.push(Finding::err(
                 "L024",
                 "metadata.name",
@@ -231,7 +283,7 @@ pub fn lint_audience(a: &SandboxAudience, catalog: &AudienceCatalog<'_>) -> Vec<
             .map(String::as_str)
             .filter(|e| mine.contains(e))
             .collect();
-        if shared.is_empty() || !refused_in_collision(a, other) {
+        if shared.is_empty() || !refused_in_collision(a, other, catalog) {
             continue;
         }
         for e in shared {
@@ -258,6 +310,13 @@ pub fn lint_audience(a: &SandboxAudience, catalog: &AudienceCatalog<'_>) -> Vec<
             out.push(Finding::err(
                 "L026",
                 format!("spec.credential.extraHeaders[{j}].name"),
+                why,
+            ));
+        }
+        if let Some(why) = header_value_problem(&h.value) {
+            out.push(Finding::err(
+                "L026",
+                format!("spec.credential.extraHeaders[{j}].value"),
                 why,
             ));
         }
