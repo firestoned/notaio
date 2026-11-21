@@ -49,9 +49,9 @@ ADR  →  TDD  →  implement  →  docs  →  threat model
   and the model disagree, say so in the issue or pull request rather than picking one. Never loosen
   a lint rule, a ceiling or a knob maximum without a change to the threat model to point to.
 
-Keep one topic per pull request. Say what changed, why, and how you tested it, and add an entry to
-the Unreleased section of [CHANGELOG.md](https://github.com/firestoned/notaio/blob/main/CHANGELOG.md)
-for anything a user would notice.
+Keep one topic per pull request. Say what changed, why, and how you tested it, and add an entry at
+the top of [.claude/CHANGELOG.md](https://github.com/firestoned/notaio/blob/main/.claude/CHANGELOG.md),
+the project's one changelog, saying what a user would notice.
 
 ### Rules worth knowing before you write code
 

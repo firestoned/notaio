@@ -184,7 +184,8 @@ missing approval, an expired grant).
 Contributions are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md), and
 [GOVERNANCE.md](GOVERNANCE.md) for how decisions are made. Everyone taking part follows the
 [Code of Conduct](CODE_OF_CONDUCT.md). Report security issues privately, as described in
-[SECURITY.md](SECURITY.md). Notable changes are in [CHANGELOG.md](CHANGELOG.md).
+[SECURITY.md](SECURITY.md). Each release's notes are on its [release page](https://github.com/firestoned/notaio/releases); the
+detailed change log is [.claude/CHANGELOG.md](.claude/CHANGELOG.md).
 
 ## Licence
 

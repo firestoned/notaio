@@ -67,7 +67,7 @@ Releases are cut from `main` by a maintainer, tagged `vX.Y.Z`
 ([Semantic Versioning](https://semver.org/)), and published by CI with a keyless signature,
 SBOMs, build provenance and an install manifest pinned by digest
 ([ADR-0009](https://github.com/firestoned/notaio/blob/main/docs/adr/0009-release-and-supply-chain.md)).
-Each release's notes are in [CHANGELOG.md](https://github.com/firestoned/notaio/blob/main/CHANGELOG.md).
+Each release's notes are on its [release page](https://github.com/firestoned/notaio/releases).
 
 Before 1.0, only the latest release and `main` are supported (see
 [SECURITY.md](https://github.com/firestoned/notaio/blob/main/SECURITY.md)). A change to the CRDs or

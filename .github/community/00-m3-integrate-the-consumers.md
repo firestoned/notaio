@@ -1,12 +1,12 @@
 # Roadmap 00: M3, integrate the consumers
 
-- **Status:** In progress. Phase 0 is complete, released as v0.3.0 (2026-10-31): D1 and D2 are
-  decided and built. Phase 1 is complete in mediatore (its roadmap 09 and ADR-0026, done
-  2026-11-02), which also decided D3 for the shadow phase. Phase 4 is largely built (2026-11-05):
-  mediatore's egress gateway authorizes on the broker's per-claim answer (D5 decided, mediatore
-  ADR-0028), and the verified bundle's direct egress joins that answer behind a switch that
-  defaults to shadow (mediatore ADR-0030), which is also phase 2's first enforcing slice. D4 and
-  D6 are open.
+- **Status:** In progress, audited 2026-11-21 against the mediatore tree. Phases 0 and 1 are
+  complete. Phase 2 is built in mediatore behind switches that default to shadow, and proven on
+  kind, but no live cluster enforces it yet, and eligibility by group is not built. Phase 3 has not
+  started: D4 is undecided and the guest verifies nothing. Phase 4 follows the bundle when phase
+  2's switches are on. D6 is open. Since this plan was written the audience's definition moved
+  into a signed bundle of its own (notaio [ADR-0020](../../docs/adr/0020-sandbox-audience.md),
+  v0.7.0; mediatore ADR-0055), which phase 2 now also builds on.
 - **Milestone:** M3 in [`ROADMAPS.md`](../../ROADMAPS.md)
 - **Related:** ADR-0002 (the bundle contract), ADR-0003 (distribution), ADR-0004 (signing keys),
   ADR-0008 (the consumer's version floor); mediatore ADR-0008 (AgentSandbox), ADR-0024 (Landlock),
@@ -151,32 +151,62 @@ Tracked in detail by mediatore's roadmap 09, built on its ADR-0026.
 
 ### Phase 2: mediatore enforces the bundle
 
-- [ ] D3: `AgentSandbox.spec.policyRef`, and the eligibility admission policy. The field is
-      decided in mediatore ADR-0026 (optional and immutable in phase 1, required here); the
-      eligibility admission policy is this phase's.
+Built behind two switches in the broker's configuration, both `shadow` by default:
+`policy.audiences` (claims and mints follow the policy bundle; mediatore ADR-0053, 2026-11-19) and
+`policy.egress` (direct egress at the gateway; mediatore ADR-0030). A third,
+`policy.audience_definitions.mode: bundles`, takes each audience's definition from notaio's signed
+`SandboxAudience` bundle and no longer from the broker's file (mediatore ADR-0055, 2026-11-20).
+
+- [ ] D3: `AgentSandbox.spec.policyRef`, and the eligibility admission policy. *Partly.*
+      `policyRef` is required under `policy.audiences: enforce` (the API answers
+      `policy_required`, the reconciler fails the sandbox), and optional otherwise. Which policies
+      a namespace may name is decided and built (mediatore ADR-0054). Eligibility by
+      `spec.subjects.groups` (K7.2) is not built and has no ADR: who may claim is still the
+      broker's own namespace-to-groups mapping.
 - [ ] At claim: the policy's audiences are the ceiling for the claim's; the lease is the ceiling
-      for `ttl_seconds`; a claim under a policy with no valid bundle is refused.
+      for `ttl_seconds`; a claim under a policy with no valid bundle is refused. *Built, not
+      live.* Under `enforce` a claim is admitted only if its policy resolves, the bundle is
+      verified and unexpired, every audience is a grant and `ttl_seconds` is within the lease;
+      proven by mediatore's `make kind-e2e-policy` (2026-11-19, and on notaio v0.7.0-rc.2 on
+      2026-11-21). No live cluster runs `policy.audiences: enforce` yet.
 - [ ] At every mint: the audience is in the verified bundle, the TTL is the bundle's (which also
       fixes the collapsed per-audience `max_ttl`), and the token carries the policy version (D6).
-      A bundle that expired or was superseded since the claim refuses the mint.
-- [ ] The broker config's `egress` and `rules` are removed, or kept only as a ceiling the bundle
-      must fit inside.
-- [ ] *First slice built 2026-11-05 (mediatore ADR-0030, roadmap 11):* the verified bundle's
-      direct `egress[]` joins a claim's gateway allowlist, behind a per-environment switch that
-      defaults to `shadow`; entries the gateway cannot enforce exactly (method and path `rules`,
-      wildcard hosts) are not served, which notaio's `L019` now warns about (IP literals and
-      missing ports are `L007` errors already). In `shadow` no direct egress is served at all: a
-      policy's `egress[]` has no effect at the gateway until the switch is `enforce`. The live
-      proof through the real gateway and the rollout (shadow, then enforce per environment) are
-      open.
+      A bundle that expired or was superseded since the claim refuses the mint. *Partly, and one
+      rule differs.* Under `enforce` every mint, `/v1/me` and gateway answer reads the current
+      bundle of the claim's policy: the audience must be granted there, the lifetime is the
+      smallest of the grant's, the audience's and its definition's, and an expired, missing or
+      unverified bundle drops the claim's audiences. A **superseded** bundle is not refused: the
+      newer version is followed (the floor stops a downgrade), so a tightened policy narrows a
+      running claim at its next request. That is mediatore's decision (its ADR-0053, decision 12),
+      and it replaces "refuses the mint" above unless decided otherwise. The token does not carry
+      the policy version (D6, open).
+- [x] The broker config's `egress` and `rules` are removed, or kept only as a ceiling the bundle
+      must fit inside. Done as a ceiling (2026-11-19): under `enforce` the effective grant is the
+      bundle's, inside the audience's own endpoints and rules. In `bundles` mode that ceiling is
+      the signed `SandboxAudience` bundle, proven on kind with notaio v0.7.0-rc.1 and rc.2
+      (a team's Secret served and rotated through a real Envoy); the move from `shadow` to
+      `bundles` on a live cluster is open.
+- [ ] *First slice (mediatore ADR-0030, roadmap 11):* the verified bundle's direct `egress[]`
+      joins a claim's gateway allowlist, behind `policy.egress`; entries the gateway cannot
+      enforce exactly (method and path `rules`, wildcard hosts) are not served, which notaio's
+      `L019` warns about. *Proven through the real gateway on kind (2026-11-08)*: under `shadow`
+      the entry is refused and logged, under `enforce` it opens, an entry with rules is never
+      served. `enforce` is on in one test environment since 2026-11-08, where no policy names
+      direct egress yet, so none has been served live. The rollout beyond it is open.
 
 ### Phase 3: the guest verifies and renders
 
-- [ ] D4: `GET /v1/me` carries the envelope; the trusted keys ship in the VM image.
+Not started (2026-11-21).
+
+- [ ] D4: `GET /v1/me` carries the envelope; the trusted keys ship in the VM image. Undecided:
+      there is no mediatore ADR, `/v1/me` carries rendered routes and no envelope, and no key is
+      in the image.
 - [ ] The guest verifies the envelope and keeps its own floor before rendering anything; a bundle
-      it refuses means no workload starts.
+      it refuses means no workload starts. The guest does not link `sandboxpolicy-bundle`.
 - [ ] nftables, the proxy routes and Landlock are rendered from the bundle's v3 egress model, one
-      rendering for both layers, as mediatore roadmap 07 asks.
+      rendering for both layers, as mediatore roadmap 07 asks. Today they are rendered from the
+      broker's answer, which under `enforce` is computed from the verified bundle, but which the
+      guest takes on trust.
 
 ### Phase 4: the gateway
 
@@ -184,8 +214,19 @@ Tracked in detail by mediatore's roadmap 09, built on its ADR-0026.
       SPIFFE identity) authorizing each connection on the broker's per-claim answer; built as
       mediatore's roadmap 10.
 - [ ] The gateway's per-claim allowlist, answered by the broker, comes from the verified bundle.
-      Direct egress does, behind the switch (ADR-0030, phase 2 above); audience endpoints still
-      come from the broker's configuration until phase 2's mint and claim checks land.
+      *Built, behind the switches.* With `policy.audiences: enforce` the audience endpoints and
+      the credential routes come from the verified policy bundle's grant inside the audience's
+      definition, and with `bundles` mode that definition is a verified bundle too; direct egress
+      comes from the bundle under `policy.egress: enforce`. Proven on kind; neither switch is the
+      default, so this closes with phase 2's rollout.
+
+### What is left, in order
+
+1. Run `policy.audiences: enforce` and `bundles` mode on a live cluster (the shadow comparison
+   first, as phase 1 did), then make them the default.
+2. Decide eligibility by `subjects.groups` (K7.2) in mediatore, and build it.
+3. Decide D4 and build phase 3: the guest verifies the relayed envelope with keys from its image.
+4. Decide D6: the policy and its version in the token.
 
 ## 5. Done when
 

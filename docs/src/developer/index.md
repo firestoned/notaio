@@ -194,8 +194,8 @@ pinned by digest exactly once, every kind is there, the admission policy is not)
 
 To cut a release, tag it: `gh release create v<version> --target main`. The build takes the
 version from the tag (`make release-version`: `Cargo.toml` stamped, `Cargo.lock` matched offline,
-the binary still built `--locked`). A release-prep commit first (the workspace version and
-`CHANGELOG.md`'s section) keeps the source at the tag in step with the release; without one the run
+the binary still built `--locked`). A release-prep commit first (the workspace version)
+keeps the source at the tag in step with the release; without one the run
 shows a "Released without release prep" warning, and the release is still right.
 
 ## Documentation

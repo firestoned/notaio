@@ -72,8 +72,8 @@ does not need yet.
    `Cargo.toml` and matches `Cargo.lock` offline (`cargo update --workspace --offline`, which
    moves only the workspace crates), so the `--locked` build holds whatever the tree said, and a
    release needs no release-prep commit. When `Cargo.toml` disagreed it warns, without failing: the
-   source at the tag keeps the old version and `CHANGELOG.md` has no section for the release yet,
-   both caught up on `main` afterwards. `--locked` stays: no dependency can change between the
+   source at the tag keeps the old version, caught up on `main` afterwards (the root `CHANGELOG.md`
+   this once mentioned was retired on 2026-11-21: `.claude/CHANGELOG.md` is the one changelog). `--locked` stays: no dependency can change between the
    reviewed lock and the released binary. v0.3.4's first build, cut before its prep commit, failed
    because only `Cargo.toml` was stamped.
 

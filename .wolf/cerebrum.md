@@ -22,7 +22,8 @@ budget_tokens: 2000
 <!-- Mistakes made and corrected. Each entry prevents the same mistake recurring. -->
 <!-- Format: [YYYY-MM-DD] Description of what went wrong and what to do instead. -->
 - [2026-11-08] sandbox-policies ceilings: Security signed the currently applied digest (Flux REVISION column) instead of the new one. Always hand back sign-ceilings.sh with the full digest from the publish job summary or from Flux's "no matching signatures" message, and say not to copy the REVISION column.
-- [2026-11-07] CHANGELOG.md: searching for "### Added" after "## Unreleased" found the released [0.3.6] section's heading, so entries landed in a shipped release. Bound the search to the Unreleased section (up to the next "## ["), and create the heading there when it is missing.
+- [2026-11-21] One changelog only: `.claude/CHANGELOG.md`. The root `CHANGELOG.md` was removed at the maintainer's request; never recreate it or add a Keep a Changelog file. Release notes are written per GitHub release from the `.claude/CHANGELOG.md` entries.
+- [2026-11-07] (obsolete since 2026-11-21, the file is gone) CHANGELOG.md: searching for "### Added" after "## Unreleased" found the released [0.3.6] section's heading, so entries landed in a shipped release. Bound the search to the Unreleased section (up to the next "## ["), and create the heading there when it is missing.
 - [2026-11-07] ROADMAPS.md is pulled into the docs site: link docs and ADRs from it with absolute URLs (GitHub or the Pages site), never repo-relative paths, or `make docs --strict` fails.
 
 ## Decision Log
