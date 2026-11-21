@@ -241,6 +241,10 @@ fn next_floor_for(
 /// Verifies `env`, checks it against the floor, records the new floor durably, and only then
 /// returns the payload (ADR-0008, decision 4).
 ///
+/// The bundle is whichever policy its signed content names, not the one the caller went looking
+/// for: compare `payload.content.policy` with what was asked for, and refuse a mismatch. Whoever
+/// can write the ConfigMap a bundle travels in can put another policy's valid bundle there.
+///
 /// # Errors
 /// - any error from [`verify_bundle`]: the floor is not touched;
 /// - any error from [`next_floor`];

@@ -60,7 +60,7 @@ a bundle ([ADR-0008](../adr/0008-consumer-version-floor.md)):
 use sandboxpolicy_bundle::floor::{accept, FileFloor};
 
 let mut floor = FileFloor::open(Path::new("/var/lib/consumer/floor.json"))?;
-match accept(&envelope, &keys, Utc::now(), &mut floor) {
+match accept(&envelope, &keys, Timestamp::now(), &mut floor) {
     Ok(payload) => enforce(payload),          // verified, and the floor is already on disk
     Err(refusal) => keep_last_good(refusal),  // forged, expired, a downgrade, or a stale replay
 }
@@ -80,6 +80,32 @@ then compares with the floor:
 
 `FileFloor` writes atomically (a temporary file, synced, renamed), and a damaged file is an error,
 never an empty floor. Implement `VersionFloor` for another store if a file does not suit you.
+
+## Check it is the bundle you asked for
+
+A valid signature says notaio compiled the bundle, not that it is the one for your sandbox. The
+ConfigMap is only where the bundle travels: anyone who can write ConfigMaps in a namespace can put
+another policy's bundle there, validly signed. After `accept`, compare what the bundle says it is
+with what you looked up, and refuse a mismatch:
+
+```rust
+let policy = &payload.content.policy;
+if policy.namespace != wanted_namespace || policy.name != wanted_name {
+    return refuse("a bundle for another policy");
+}
+```
+
+Key everything you keep (the floor, a cache) by the namespace and name inside the signed payload,
+never by the ConfigMap's own.
+
+## Audience bundles
+
+With audience definitions on ([ADR-0020](../adr/0020-sandbox-audience.md)), each
+[SandboxAudience](../concepts/audiences.md) is published the same way: ConfigMap
+`<audience>-audience`, key `audience.dsse.json`. Verify it with `verify_audience_bundle` and keep
+its floor with `floor::accept_audience`; a policy bundle never verifies as an audience bundle, nor
+the reverse. The same check applies: use `payload.content.audience.namespace` and `name`, and
+decide platform or team from that signed namespace and your own configuration.
 
 If your store is async, or the floor lives in a database row you read and write in one
 transaction, call the decision on its own and keep the order: verify, decide, store, then act.

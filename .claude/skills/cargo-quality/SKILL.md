@@ -49,4 +49,4 @@ here is green there.
   only run with `--ignored` against a cluster: `make kind-e2e-<suite>`. Do not
   try to make them pass here.
 - On the Mac, a cold build competes for a nearly full disk. Prefer building on
-  grill (`~/dev/CLAUDE.md`).
+  the remote build host.
