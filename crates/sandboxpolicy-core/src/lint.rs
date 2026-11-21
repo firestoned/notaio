@@ -304,17 +304,68 @@ pub(crate) fn endpoint_problem(e: &str) -> Option<&'static str> {
 }
 
 /// Why `r` is not a rule mediatore's broker accepts, if it is not: the method is `*` or ASCII
-/// letters, and the path starts with `/`.
+/// letters, and the path is one a request could have: it starts with `/`, has no `.` or `..`
+/// segment, no empty segment but a trailing slash's, no backslash or control character, and no
+/// escape a consumer refuses. A path a consumer would refuse as a request can never match, yet a
+/// coverage check (L028) would read `/v2/../admin/**` as inside `/v2/**`.
 pub(crate) fn rule_problem(r: &EndpointRule) -> Option<&'static str> {
     let method_ok = r.method == "*"
         || (!r.method.is_empty() && r.method.bytes().all(|b| b.is_ascii_alphabetic()));
     if !method_ok {
         return Some("a rule's method is an HTTP method or *");
     }
-    if !r.path.starts_with('/') {
+    let Some(rest) = r.path.strip_prefix('/') else {
         return Some("a rule's path starts with /");
+    };
+    if r.path.chars().any(|c| c == '\\' || c.is_control()) {
+        return Some("a rule's path has no backslash or control character");
+    }
+    if !escapes_are_plain(r.path.as_bytes()) {
+        return Some(
+            "a rule's path has only well-formed % escapes, none decoding to a dot, a slash, a backslash or a control character",
+        );
+    }
+    let mut segments = rest.split('/').peekable();
+    while let Some(segment) = segments.next() {
+        let last = segments.peek().is_none();
+        if segment == "." || segment == ".." || (segment.is_empty() && !last) {
+            return Some("a rule's path has no . or .. segment and no empty segment");
+        }
     }
     None
+}
+
+/// Length of a percent escape: `%` and two hex digits.
+const ESCAPE_LEN: usize = 3;
+/// Base of the two digits of a percent escape.
+const HEX_RADIX: u32 = 16;
+/// The first byte that is not an ASCII control character (space).
+const FIRST_PRINTABLE: u32 = 0x20;
+/// Bytes a rule path may not carry escaped: `.`, `/`, `\` and DEL. A consumer refuses a request
+/// path holding them (mediatore's `path_is_canonical`), because an upstream may decode them into
+/// another path than the one the rule was matched on.
+const REFUSED_ESCAPES: [u32; 4] = [0x2e, 0x2f, 0x5c, 0x7f];
+
+/// Whether every `%` in `path` starts a well-formed escape that decodes to none of
+/// [`REFUSED_ESCAPES`] and to no control character.
+fn escapes_are_plain(path: &[u8]) -> bool {
+    let hex = |b: Option<&u8>| b.and_then(|b| char::from(*b).to_digit(HEX_RADIX));
+    let mut i = 0;
+    while i < path.len() {
+        if path[i] != b'%' {
+            i += 1;
+            continue;
+        }
+        let (Some(hi), Some(lo)) = (hex(path.get(i + 1)), hex(path.get(i + ESCAPE_LEN - 1))) else {
+            return false;
+        };
+        let decoded = hi * HEX_RADIX + lo;
+        if REFUSED_ESCAPES.contains(&decoded) || decoded < FIRST_PRINTABLE {
+            return false;
+        }
+        i += ESCAPE_LEN;
+    }
+    true
 }
 
 fn valid_digest(d: &str) -> bool {

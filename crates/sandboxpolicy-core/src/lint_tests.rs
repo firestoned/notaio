@@ -150,3 +150,51 @@ fn l021_points_at_the_audience_index_in_each_ceiling() {
 fn l021_is_in_the_rule_table() {
     assert!(RULES.iter().any(|(c, _)| *c == "L021"));
 }
+
+fn path_rule(path: &str) -> EndpointRule {
+    EndpointRule {
+        method: "GET".into(),
+        path: path.into(),
+    }
+}
+
+/// A rule path is in the one spelling a consumer admits requests in (mediatore's
+/// `path_is_canonical`): a path it would refuse can never match, yet reads as inside a wider rule
+/// to a coverage check (L028).
+#[test]
+fn a_rule_path_no_request_could_have_is_refused() {
+    for bad in [
+        "/v2/../admin/**",
+        "/v2/./x",
+        "/v2//x",
+        "/v2\\x",
+        "/v2/%2e%2e/x",
+        "/v2/%2Fx",
+        "/v2/%5cx",
+        "/v2/%00",
+        "/v2/%7f",
+        "/v2/%zz",
+        "/v2/%2",
+        "/v2/\u{7}",
+        "v2/x",
+    ] {
+        assert!(rule_problem(&path_rule(bad)).is_some(), "{bad:?} passed");
+    }
+}
+
+#[test]
+fn ordinary_rule_paths_and_globs_pass() {
+    for good in [
+        "/",
+        "/v1/messages",
+        "/repos/**",
+        "/firestoned/*/info/refs",
+        "/v2/trailing/",
+        "/a%20b/%2B",
+        "/caf\u{e9}",
+        "/.well-known/x",
+        "/v2/...",
+    ] {
+        assert_eq!(rule_problem(&path_rule(good)), None, "{good:?}");
+    }
+}

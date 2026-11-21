@@ -17,6 +17,13 @@ Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 - `header_value_problem`: `extraHeaders[].value` must be non-empty printable ASCII (inner spaces
   and tabs allowed, no leading or trailing whitespace), under `L026`. Names alone were checked.
 
+- `crates/sandboxpolicy-core/src/lint.rs`: `rule_problem` (L017 on audience and definition
+  rules, L007 on direct egress) refuses a rule path a consumer would refuse as a request, the same
+  rule as mediatore's `path_is_canonical`, confirmed with the mediatore session: dot segments,
+  inner empty segments, backslash, control characters, malformed escapes and escapes decoding to
+  `.`, `/`, `\\` or a control character. A dead rule before, never a widening, but L028's coverage
+  check read it as inside a wider rule. Two tests in `lint_tests.rs`.
+
 ### Changed
 - ADR-0020: `Amended: 2026-11-21`, decision 6 rewritten as a table of standings with the reason,
   decision 7 extended to values, two threat rows; status no longer says "Not implemented".

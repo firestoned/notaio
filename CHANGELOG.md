@@ -40,6 +40,12 @@ a release, the maintainer renames Unreleased to the version and date.
 - `L026` now also refuses an `extraHeaders` value that is empty, has leading or trailing
   whitespace, or holds anything but printable ASCII (a line break above all). rc.1 checked header
   names only.
+- `L017` (and `L007` for direct egress) now refuses a rule path no request could have: a `.` or
+  `..` segment, an empty segment other than a trailing slash's, a backslash, a control character,
+  a malformed `%` escape, or an escape that decodes to a dot, a slash, a backslash or a control
+  character. Consumers already refuse such a request path, so the rule could never match, but
+  `/v2/../admin/**` read as inside `/v2/**`. A policy with such a path stops publishing: check
+  with `notaio lint` before upgrading.
 
 ### Changed
 
