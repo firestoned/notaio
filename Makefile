@@ -252,7 +252,24 @@ sbom-check: ## Fail unless SBOM (a CycloneDX file) lists notaio's Rust crates
 	  done; \
 	  echo "sbom-check: $$n Rust crates, including $(SBOM_REQUIRED_CRATES)"
 
-release-manifest: ## Render RELEASE_DIR/notaio-VERSION-crds.yaml and notaio-VERSION.yaml (controller, profiles, image pinned to IMAGE_DIGEST)
+# VERSION reaches the recipes below as text, and in a release it comes from the tag's name, which
+# may hold shell syntax. Every target that takes it runs this first. It reads VERSION from the
+# environment (exported below), never by make's expansion, so the check itself cannot be injected.
+export VERSION
+check-version: ## Fail unless VERSION is a version: 1.2.3, with an optional -prerelease and +build
+	@printf '%s' "$$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$$' \
+	  || { echo "VERSION is not a version (for example 1.2.3 or 1.2.3-rc.1)"; exit 1; }
+
+check-version-test: ## Prove check-version refuses shell syntax and anything else that is not a version
+	@for bad in '1.2.3;id' '1.2.3|id' '1.2' 'v1.2.3' '1.2.3 x' '1.2.3&&id'; do \
+	  if VERSION="$$bad" $(MAKE) --no-print-directory -s check-version >/dev/null 2>&1; then echo "check-version accepted '$$bad'"; exit 1; fi; \
+	done; \
+	for good in 1.2.3 0.7.0-rc.2 1.0.0-alpha.1+build.5; do \
+	  VERSION="$$good" $(MAKE) --no-print-directory -s check-version || { echo "check-version refused $$good"; exit 1; }; \
+	done; \
+	echo "check-version-test: ok"
+
+release-manifest: check-version ## Render RELEASE_DIR/notaio-VERSION-crds.yaml and notaio-VERSION.yaml (controller, profiles, image pinned to IMAGE_DIGEST)
 	@test -n "$(VERSION)" || { echo "set VERSION, e.g. 1.2.3"; exit 1; }
 	@echo "$(IMAGE_DIGEST)" | grep -Eq '^sha256:[0-9a-f]{64}$$' || { echo "set IMAGE_DIGEST to sha256:<64 hex>, got '$(IMAGE_DIGEST)'"; exit 1; }
 	@mkdir -p "$(RELEASE_DIR)"
@@ -278,7 +295,7 @@ release-manifest: ## Render RELEASE_DIR/notaio-VERSION-crds.yaml and notaio-VERS
 # The workspace version in VERSION_FILE, as set-version writes it.
 workspace-version = $$(awk -F'"' '/^\[workspace\.package\]/ { p = 1; next } /^\[/ { p = 0 } p && /^version *=/ { print $$2; exit }' $(VERSION_FILE))
 
-release-version: ## A release's version from its tag: set-version and, when it moved, Cargo.lock's workspace entries; a GitHub warning when Cargo.toml said otherwise
+release-version: check-version ## A release's version from its tag: set-version and, when it moved, Cargo.lock's workspace entries; a GitHub warning when Cargo.toml said otherwise
 	@test -n "$(VERSION)" || { echo "set VERSION, e.g. make release-version VERSION=1.2.3"; exit 1; }
 	@was=$(workspace-version); \
 	  if [ "$$was" = "$(VERSION)" ]; then echo "Cargo.toml and Cargo.lock: already $(VERSION)"; exit 0; fi; \
@@ -288,7 +305,7 @@ release-version: ## A release's version from its tag: set-version and, when it m
 	  cargo metadata --locked --format-version 1 >/dev/null && \
 	  echo "Cargo.lock: workspace crates at $(VERSION)"
 
-set-version: ## Set [workspace.package] version in VERSION_FILE to VERSION; fails if the file does not then say so
+set-version: check-version ## Set [workspace.package] version in VERSION_FILE to VERSION; fails if the file does not then say so
 	@test -n "$(VERSION)" || { echo "set VERSION, e.g. make set-version VERSION=1.2.3"; exit 1; }
 	@perl -i -pe 's/^version = ".*"/version = "$(VERSION)"/ if /^\[workspace\.package\]/ ... /^\[/' $(VERSION_FILE)
 	@got=$$(awk -F'"' '/^\[workspace\.package\]/ { p = 1; next } /^\[/ { p = 0 } p && /^version *=/ { print $$2; exit }' $(VERSION_FILE)); \
@@ -619,7 +636,7 @@ cluster-deploy: ## Deploy notaio from deploy/ to CLUSTER_KUBECONFIG with NOTAIO_
 	@$(CLUSTER_KUBECTL) apply -f deploy/profiles/ >/dev/null
 	@echo "✓ notaio deployed ($(NOTAIO_IMAGE))"
 
-release-manifest-sign: ## Cosign-sign (keyless) both release manifests in RELEASE_DIR, a .sigstore.json bundle each (CI)
+release-manifest-sign: check-version ## Cosign-sign (keyless) both release manifests in RELEASE_DIR, a .sigstore.json bundle each (CI)
 	@test -n "$(VERSION)" || { echo "set VERSION"; exit 1; }
 	@for f in "$(RELEASE_DIR)/notaio-$(VERSION)-crds.yaml" "$(RELEASE_DIR)/notaio-$(VERSION).yaml"; do \
 	  cosign sign-blob --yes --bundle "$$f.sigstore.json" "$$f" || exit 1; \

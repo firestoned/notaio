@@ -14,7 +14,7 @@ use sandboxpolicy_api::{Condition, ExposureCeilingSpec, SandboxAudience, Sandbox
 use sandboxpolicy_bundle::{AudienceBundleContent, AudienceBundlePayload, AudienceRef, BundleMeta};
 use sandboxpolicy_types::{AudienceGrant, Backend, CredentialSource, EndpointRule, Placement};
 
-use crate::evaluate::condition;
+use crate::evaluate::{condition, next_version, REASON_VERSION_EXHAUSTED, VERSION_EXHAUSTED};
 use crate::lint::{endpoint_problem, has_errors, rule_problem, summarize, Finding};
 
 /// The shortest requeue, whatever the bundle lifetime: the same floor as a policy's.
@@ -531,7 +531,22 @@ pub fn evaluate_audience(input: &AudienceEvalInput<'_>) -> AudienceEvalOutput {
     };
     let version = match (input.prev_digest, input.prev_version) {
         (Some(d), Some(v)) if d == digest => v,
-        (_, v) => v.unwrap_or(0) + 1,
+        (_, v) => match next_version(v) {
+            Some(next) => next,
+            None => {
+                // Fail closed, keeping the last version and digest in status.
+                status.conditions = vec![
+                    cond("Valid", true, "Valid", "audience passes every lint rule"),
+                    cond("Ready", false, REASON_VERSION_EXHAUSTED, VERSION_EXHAUSTED),
+                ];
+                return AudienceEvalOutput {
+                    status,
+                    bundle: None,
+                    findings,
+                    requeue_after: requeue,
+                };
+            }
+        },
     };
     let not_after = now + input.bundle_lifetime;
     let bundle = match AudienceBundlePayload::new(

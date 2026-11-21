@@ -808,3 +808,29 @@ fn a_warning_still_publishes() {
     assert!(o.bundle.is_some());
     assert_eq!(codes(&o.findings), ["L029"]);
 }
+
+/// The previous version comes in part from a ConfigMap annotation anyone in the namespace can
+/// write: at the largest safe integer nothing more is issued, rather than a version consumers
+/// misread, or one that wraps to 0 and is refused as a downgrade.
+#[test]
+fn a_version_at_the_safe_integer_limit_issues_nothing_and_keeps_status() {
+    let a = team("af", "af.example.com:443");
+    for prev in [(1u64 << 53) - 1, u64::MAX] {
+        let o = eval(
+            &a,
+            std::slice::from_ref(&a),
+            Some(prev),
+            Some("sha256:other"),
+        );
+        assert!(o.bundle.is_none(), "{prev}");
+        assert_eq!(o.status.bundle_version, Some(prev));
+        assert_eq!(ready(&o).reason, "VersionExhausted");
+    }
+    let o = eval(
+        &a,
+        std::slice::from_ref(&a),
+        Some((1 << 53) - 2),
+        Some("sha256:other"),
+    );
+    assert_eq!(o.bundle.unwrap().meta.version, (1 << 53) - 1);
+}

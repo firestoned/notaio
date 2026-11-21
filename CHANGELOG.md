@@ -46,6 +46,14 @@ a release, the maintainer renames Unreleased to the version and date.
   character. Consumers already refuse such a request path, so the rule could never match, but
   `/v2/../admin/**` read as inside `/v2/**`. A policy with such a path stops publishing: check
   with `notaio lint` before upgrading.
+- A bundle version that would pass 2^53 - 1 is no longer issued: the policy or audience reports
+  `Ready=False, VersionExhausted` and keeps its last bundle. The previous version is read in part
+  from the `bundle-version` annotation on the published ConfigMap, which anyone who can write
+  ConfigMaps in the namespace can set; a value at the top of the range used to wrap to 0, which
+  every consumer refuses as a downgrade.
+- A request to OpenBao is bounded as a whole: the response body is read within the 10 second
+  limit and capped at 64 KiB. Before, only the response's head was timed, so a body that never
+  ended could stall signing.
 
 ### Changed
 
