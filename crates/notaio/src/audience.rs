@@ -15,6 +15,7 @@ use kube::api::{Api, Patch, PatchParams};
 use kube::runtime::controller::Action;
 use kube::runtime::reflector::Store;
 use kube::{Resource, ResourceExt};
+use notaio::adopt;
 use notaio::events;
 use notaio::guard::{self, Evaluated};
 use notaio::refresh;
@@ -24,7 +25,9 @@ use sandboxpolicy_core::{evaluate_audience, AudienceCatalog, AudienceEvalInput};
 use serde_json::json;
 
 use crate::error::Error;
-use crate::reconcile::{record, std_dur, Ctx, ANN_DIGEST, ANN_VERSION, FIELD_MANAGER};
+use crate::reconcile::{
+    record, std_dur, Ctx, ANN_DIGEST, ANN_VERSION, FIELD_MANAGER, NAME_TAKEN_REQUEUE,
+};
 
 /// The key of the envelope in the audience's ConfigMap (ADR-0020, decision 10).
 pub const AUDIENCE_BUNDLE_KEY: &str = "audience.dsse.json";
@@ -91,6 +94,10 @@ pub async fn reconcile_audience(
     let cms: Api<ConfigMap> = Api::namespaced(ctx.client.clone(), &ns);
     let cm_name = audience_object_name(&name);
     let published = cms.get_opt(&cm_name).await?;
+    // A ConfigMap of that name that is not notaio's is never written, and its annotations are
+    // never read as a published version (ADR-0003, decision 1, amended).
+    let name_taken = adopt::is_foreign(published.as_ref());
+    let published = published.filter(|_| !name_taken);
     let ann = |key: &str| {
         published
             .as_ref()
@@ -162,6 +169,20 @@ pub async fn reconcile_audience(
     }
 
     if let (Some(bundle), Some(signer)) = (&out.bundle, &ctx.signer) {
+        if name_taken {
+            tracing::warn!(audience = %name, configmap = %cm_name, "bundle name taken by a ConfigMap that is not notaio's");
+            refuse(
+                ctx,
+                &audience,
+                &prev,
+                &status,
+                adopt::REASON_NAME_TAKEN,
+                &adopt::name_taken_message(&cm_name),
+                now,
+            )
+            .await?;
+            return Ok(Action::requeue(NAME_TAKEN_REQUEUE));
+        }
         // The guard's independent checks (ADR-0010, decision 4). An audience has no ceiling of its
         // own: the ceiling bounds each granting policy, checked when that policy publishes, so
         // `has_ceiling` is not a question here.
@@ -212,8 +233,8 @@ pub async fn reconcile_audience(
             (ANN_DIGEST.to_string(), bundle.content_digest.clone()),
         ]);
         let labels = BTreeMap::from([(
-            "app.kubernetes.io/managed-by".to_string(),
-            FIELD_MANAGER.to_string(),
+            adopt::MANAGED_BY_LABEL.to_string(),
+            adopt::MANAGED_BY.to_string(),
         )]);
         let cm = ConfigMap {
             metadata: ObjectMeta {

@@ -4,6 +4,7 @@
 - **Date:** 2026-10-16
 - **Deciders:** Erick Bourgeois
 - **Resolves:** [ADR-0002](0002-bundle-contract.md) open decision 1 (distribution)
+- **Amended:** 2026-11-21 (decision 1: notaio writes only a ConfigMap that is its own)
 - **Related:** platform ADR-0081 and ADR-0082 (recorded in banlieue as ADR-0081 and ADR-0082, in
   mediatore as ADR-0009 and ADR-0010); mediatore ADR-0011 (claim watcher)
 
@@ -35,6 +36,18 @@ Because every consumer verifies the signature, the expiry and the version floor 
 1. **notaio publishes to a ConfigMap,** as v0 does: `<policy>-bundle` in the policy's namespace,
    the envelope under `bundle.dsse.json`, version and digest as annotations, owned by the
    policy. notaio stays the only writer. Its RBAC does not change.
+
+   **notaio writes only a ConfigMap that is its own** (amended 2026-11-21). The name is derived
+   from the policy's (or, with ADR-0020, the audience's), so whoever names a policy also names a
+   ConfigMap, and notaio publishes with a forced server-side apply and an owner reference. A
+   policy named `ca` would otherwise take over an existing ConfigMap `ca-bundle` in its namespace,
+   and deleting the policy would garbage-collect it. So before it publishes, notaio looks at the
+   ConfigMap of that name: if one exists without the label `app.kubernetes.io/managed-by: notaio`,
+   it publishes nothing, leaves the object untouched, and reports `Ready=False, BundleNameTaken`
+   on the policy or audience. It also ignores that object's version and digest annotations. Every
+   ConfigMap notaio ever published carries the label, so an upgrade refuses nothing that was its
+   own. The label is not a secret: someone who can write ConfigMaps in the namespace can add it to
+   their own object and hand it over, which harms nobody else.
 2. **mediatore reads the bundles through the Kubernetes API** with read-only access to ConfigMaps
    in the namespaces that hold SandboxPolicy objects, watches them, verifies each new envelope and
    keeps the highest version it has accepted per policy.

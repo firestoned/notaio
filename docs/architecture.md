@@ -281,6 +281,10 @@ re-evaluates the policies that grant it and the audiences it collides with.
   Unsigned bundles are never published.
 - **Monotonic version.** The previous version is the higher of the status and the published
   ConfigMap annotation, so losing status cannot reset it.
+- **Writes only its own ConfigMaps.** A ConfigMap that already holds a bundle's name without the
+  `app.kubernetes.io/managed-by: notaio` label is left untouched: nothing is published and the
+  policy or audience reports `Ready=False, BundleNameTaken`
+  ([ADR-0003](adr/0003-bundle-distribution.md), decision 1).
 - **Checks the bundle twice.** Before signing, a guard independent of the evaluator checks that a
   ceiling exists, the evaluation found no error, every relaxation in the bundle is unexpired, and the
   bundle is not already past `notAfter`. A failure publishes nothing, reports

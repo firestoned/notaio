@@ -10,6 +10,15 @@ a release, the maintainer renames Unreleased to the version and date.
 
 ## Unreleased
 
+### Fixed
+
+- notaio publishes a bundle only to a ConfigMap that is its own. A policy named `ca` used to take
+  over an existing ConfigMap `ca-bundle` in its namespace (and an audience `<name>-audience`), and
+  deleting the policy then deleted it. A ConfigMap of that name without the
+  `app.kubernetes.io/managed-by: notaio` label is now left untouched, and the policy or audience
+  reports `Ready=False, BundleNameTaken`. Every ConfigMap notaio published carries the label, so
+  nothing changes for an existing installation.
+
 ## [0.7.0] - 2026-11-21
 
 Signed audience definitions: a fifth kind, `SandboxAudience`, so the definition of an audience is

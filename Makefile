@@ -480,6 +480,9 @@ kind-deploy: kind-load kind-openbao ## Install CRDs, profiles and the controller
 	@$(KIND_KUBECTL) -n $(E2E_POLICY_NAMESPACE) apply -f deploy/policy-namespace/
 	@$(KIND_KUBECTL) -n $(NAMESPACE) set image deployment/notaio notaio=$(KIND_IMAGE)
 	@$(KIND_KUBECTL) -n $(NAMESPACE) set env deployment/notaio RUST_LOG="$(RUST_LOG)"
+	@# The image tag never changes, so on a cluster that already runs notaio the template is the
+	@# same and nothing restarts: the pods would keep the previous build. Restart them.
+	@$(KIND_KUBECTL) -n $(NAMESPACE) rollout restart deployment/notaio
 	@$(KIND_KUBECTL) -n $(NAMESPACE) rollout status deployment/notaio --timeout=180s
 	@echo "Applying built-in profiles..."
 	@$(KIND_KUBECTL) apply -f deploy/profiles/

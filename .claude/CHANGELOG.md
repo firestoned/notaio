@@ -2,6 +2,36 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-21 19:30] - notaio writes only its own ConfigMaps (ADR-0003 amended, security audit)
+
+**Author:** Erick Bourgeois
+
+### Fixed
+- `crates/notaio/src/adopt.rs` (new): `is_foreign` says whether a ConfigMap holding a bundle's
+  name is not notaio's (no `app.kubernetes.io/managed-by: notaio` label). `reconcile.rs` and
+  `audience.rs` ask it before publishing: a foreign ConfigMap is never applied to, its
+  `bundle-version` and `bundle-digest` annotations are never read, and the object reports
+  `Ready=False, BundleNameTaken`, requeued every 300 seconds. Before, the forced server-side apply
+  and the controller owner reference took over any ConfigMap named `<policy>-bundle` or
+  `<audience>-audience`, and deleting the policy garbage-collected it.
+
+### Changed
+- ADR-0003 amended (decision 1). `docs/architecture.md`, the troubleshooting table.
+- The label key and value are constants in `adopt.rs`, used where the ConfigMaps are built.
+
+- `Makefile` `kind-deploy`: `rollout restart` after the image is set. The tag is always
+  `local-dev`, so on an existing cluster the pods kept the previous build; the new e2e first ran
+  against the old controller that way (and failed, which is the behaviour it exists to catch).
+
+### Tests
+- Five unit tests in `adopt_tests.rs`; `e2e_bundle`:
+  `a_bundle_name_held_by_another_configmap_is_left_alone` (content kept, no owner, no annotation,
+  survives the policy's deletion).
+
+### Threat model pass
+- `docs/threat-model-mapping.md`: one Implemented row added, stamp names ADR-0003 as amended.
+  No other row moves; `docs/air/` unchanged.
+
 ## [2026-11-21 18:30] - Release prep v0.7.0
 
 **Author:** Erick Bourgeois
