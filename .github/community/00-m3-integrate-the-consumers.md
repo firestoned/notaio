@@ -171,15 +171,17 @@ Built behind two switches in the broker's configuration, both `shadow` by defaul
       2026-11-21). No live cluster runs `policy.audiences: enforce` yet.
 - [ ] At every mint: the audience is in the verified bundle, the TTL is the bundle's (which also
       fixes the collapsed per-audience `max_ttl`), and the token carries the policy version (D6).
-      A bundle that expired or was superseded since the claim refuses the mint. *Partly, and one
-      rule differs.* Under `enforce` every mint, `/v1/me` and gateway answer reads the current
-      bundle of the claim's policy: the audience must be granted there, the lifetime is the
-      smallest of the grant's, the audience's and its definition's, and an expired, missing or
-      unverified bundle drops the claim's audiences. A **superseded** bundle is not refused: the
-      newer version is followed (the floor stops a downgrade), so a tightened policy narrows a
-      running claim at its next request. That is mediatore's decision (its ADR-0053, decision 12),
-      and it replaces "refuses the mint" above unless decided otherwise. The token does not carry
-      the policy version (D6, open).
+      A bundle that expired since the claim refuses the mint. A bundle superseded since the claim
+      is followed only while the running sandbox is still inside the new version: the claim would
+      be admitted under it, and nothing the sandbox was rendered with is wider than it allows
+      (with phase 3, its knobs and tools too). Otherwise the mint is refused and the sandbox is
+      claimed again (decided 2026-11-21, replacing both "always refuse" and "always follow").
+      *Partly.* Under `enforce` every mint, `/v1/me` and gateway answer reads the current bundle
+      of the claim's policy: the audience must be granted there, the lifetime is the smallest of
+      the grant's, the audience's and its definition's, and an expired, missing or unverified
+      bundle drops the claim's audiences. A newer version is followed today without the "still
+      inside" check; mediatore builds it, shadow first. The token does not carry the policy
+      version (D6, open).
 - [x] The broker config's `egress` and `rules` are removed, or kept only as a ceiling the bundle
       must fit inside. Done as a ceiling (2026-11-19): under `enforce` the effective grant is the
       bundle's, inside the audience's own endpoints and rules. In `bundles` mode that ceiling is

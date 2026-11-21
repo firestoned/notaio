@@ -2,6 +2,21 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-21 21:30] - Attest without a storage record; roadmap 00's rule for a superseded bundle
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `.github/workflows/build.yaml`: the attest job passes `create-storage-record: false`. Since the
+  provenance action's v4, every release warned that `artifact-metadata: write` was missing and
+  that no storage record could be made. The record is optional org metadata and verifies nothing;
+  the provenance attestation is pushed as before, and the token gains no permission.
+- `.github/community/00-m3-integrate-the-consumers.md`, phase 2, "At every mint": a bundle
+  superseded since the claim is followed only while the running sandbox is still inside the new
+  version (it would be admitted under it, and nothing it was rendered with is wider), otherwise
+  the mint is refused and the sandbox claimed again. Decided 2026-11-21, replacing both the
+  roadmap's "always refuse" and mediatore's "always follow"; mediatore builds it, shadow first.
+
 ## [2026-11-21 21:00] - Roadmap 00 audited against the mediatore tree
 
 **Author:** Erick Bourgeois

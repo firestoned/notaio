@@ -407,6 +407,10 @@ jobs:
           subject-name: ghcr.io/${{ github.repository }}
           subject-digest: ${{ needs.docker.outputs.digest }}
           push-to-registry: true
+          # No artifact metadata storage record: it is optional org-level metadata, needs one more
+          # token permission (`artifact-metadata: write`) and verifies nothing. The provenance
+          # attestation consumers check is pushed either way.
+          create-storage-record: false
 
   # Grype on every published image, with the curated VEX applied and attested (ADR-0012).
   scan:
