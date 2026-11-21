@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-11-20T17:30:12.148Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-11-21T16:36:35.356Z
 > Files: 85 tracked | Anatomy hits: 0 | Misses: 0
 
 > Project structure index. Auto-maintained by OpenWolf hooks and daemon.
@@ -15,7 +15,7 @@
 - `CLAUDE.md` — OpenWolf (~1125 tok)
 - `clippy.toml` (~17 tok)
 - `deny.toml` — cargo-deny configuration. The licence list was derived from `cargo metadata` of the current (~205 tok)
-- `Makefile` (~3747 tok)
+- `Makefile` — SPDX-License-Identifier: Apache-2.0 (~11628 tok)
 - `README.md` — Project documentation (~773 tok)
 - `ROADMAP.md` — Roadmap (~731 tok)
 

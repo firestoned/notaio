@@ -12,6 +12,7 @@ use sandboxpolicy_api::{
     Condition, ExposedAudience, ExposureCeiling, GrantPhase, KnobGrant, MaxExposure, SandboxPolicy,
     SandboxPolicySpec, SandboxPolicyStatus, SandboxProfile, SandboxProfileSpec,
 };
+use sandboxpolicy_bundle::jcs::MAX_SAFE_INTEGER;
 use sandboxpolicy_bundle::{
     BundleContent, BundleError, BundleMeta, BundlePayload, PolicyRef, ProfileRef,
 };
@@ -62,6 +63,21 @@ pub struct EvalOutput {
     pub bundle: Option<BundlePayload>,
     pub findings: Vec<Finding>,
     pub requeue_after: SignedDuration,
+}
+
+/// The `Ready` reason when no further bundle version can be issued.
+pub const REASON_VERSION_EXHAUSTED: &str = "VersionExhausted";
+pub(crate) const VERSION_EXHAUSTED: &str = "the previous bundle version is at the largest a consumer can read exactly;      check the bundle-version annotation on the published ConfigMap";
+
+/// The version after `prev`, or `None` when it would pass [`MAX_SAFE_INTEGER`]: beyond it a JSON
+/// consumer no longer reads the number exactly, and at `u64::MAX` the next one would wrap to 0,
+/// which every consumer's floor refuses as a downgrade. The previous version comes in part from an
+/// annotation on the published ConfigMap, which anyone who can write ConfigMaps in the namespace
+/// can set, so it is never trusted to be small.
+pub(crate) fn next_version(prev: Option<u64>) -> Option<u64> {
+    prev.unwrap_or(0)
+        .checked_add(1)
+        .filter(|v| *v <= MAX_SAFE_INTEGER)
 }
 
 /// `sha256:<hex>` of a profile spec. Maps are ordered, so the bytes are stable.
@@ -450,7 +466,26 @@ pub fn evaluate(input: &EvalInput<'_>) -> EvalOutput {
     };
     let version = match (input.prev_digest, input.prev_version) {
         (Some(d), Some(v)) if d == digest => v,
-        (_, v) => v.unwrap_or(0) + 1,
+        (_, v) => match next_version(v) {
+            Some(next) => next,
+            None => {
+                // Fail closed: nothing is published, and status keeps the last version and
+                // digest, which are what consumers hold.
+                status.max_exposure = Some(exposed);
+                status.conditions = vec![
+                    cond("ProfileResolved", true, "Resolved", "profile is valid"),
+                    cond("Valid", true, "Valid", "policy passes every lint rule"),
+                    cond("Ready", false, REASON_VERSION_EXHAUSTED, VERSION_EXHAUSTED),
+                ];
+                return EvalOutput {
+                    status,
+                    grants,
+                    bundle: None,
+                    findings,
+                    requeue_after: requeue,
+                };
+            }
+        },
     };
     let mut not_after = now + input.bundle_lifetime;
     if let Some(e) = earliest {

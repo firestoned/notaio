@@ -25,7 +25,7 @@ use std::time::Duration;
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use bytes::Bytes;
 use http::{Method, Request, StatusCode};
-use http_body_util::{BodyExt as _, Full};
+use http_body_util::{BodyExt as _, Full, Limited};
 use hyper_rustls::HttpsConnector;
 use hyper_util::client::legacy::{connect::HttpConnector, Client};
 use hyper_util::rt::TokioExecutor;
@@ -60,7 +60,10 @@ const ED25519_SIGNATURE_LEN: usize = 64;
 const MAX_ATTEMPTS: u32 = 3;
 /// First retry delay; doubles each time.
 const FIRST_BACKOFF: Duration = Duration::from_millis(500);
-/// Bound on one request, so a hung OpenBao cannot stall a reconcile.
+/// The most OpenBao may answer with. A login or a signature is a few hundred bytes; an answer
+/// beyond this is refused instead of buffered.
+const MAX_RESPONSE_BYTES: usize = 64 * 1024;
+/// Bound on one request and its response body, so a hung OpenBao cannot stall a reconcile.
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 /// Log in again once this share of the token's lease has passed (four fifths).
 const REFRESH_NUMERATOR: u64 = 4;
@@ -395,17 +398,26 @@ impl TransitSigner {
         let req = req
             .body(Full::new(Bytes::from(payload)))
             .map_err(|e| SignError::Config(e.to_string()))?;
-        let resp = tokio::time::timeout(REQUEST_TIMEOUT, self.http.request(req))
+        // The whole exchange, body included, is bounded in time and the body in size: the future
+        // of `request` resolves at the response head, so a body that never ends would otherwise
+        // stall the reconcile (and, during a login, every other signature behind the token lock).
+        let exchange = async {
+            let resp = self
+                .http
+                .request(req)
+                .await
+                .map_err(|e| SignError::Transport(e.to_string()))?;
+            let status = resp.status();
+            let bytes = Limited::new(resp.into_body(), MAX_RESPONSE_BYTES)
+                .collect()
+                .await
+                .map_err(|e| SignError::Transport(format!("reading the response: {e}")))?
+                .to_bytes();
+            Ok::<_, SignError>((status, bytes))
+        };
+        let (status, bytes) = tokio::time::timeout(REQUEST_TIMEOUT, exchange)
             .await
-            .map_err(|_| SignError::Transport(format!("no answer within {REQUEST_TIMEOUT:?}")))?
-            .map_err(|e| SignError::Transport(e.to_string()))?;
-        let status = resp.status();
-        let bytes = resp
-            .into_body()
-            .collect()
-            .await
-            .map_err(|e| SignError::Transport(e.to_string()))?
-            .to_bytes();
+            .map_err(|_| SignError::Transport(format!("no answer within {REQUEST_TIMEOUT:?}")))??;
         Ok((status, bytes))
     }
 }

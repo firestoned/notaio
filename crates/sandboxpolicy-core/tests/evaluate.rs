@@ -974,3 +974,25 @@ fn a_definition_endpoint_outside_the_ceiling_is_l014_and_publishes_nothing() {
         .iter()
         .any(|f| f.code == "L014" && f.path.contains("definition")));
 }
+
+/// As for an audience: a poisoned or exhausted previous version fails closed.
+#[test]
+fn a_version_at_the_safe_integer_limit_issues_nothing_and_keeps_status() {
+    let po = policy("hardened", vec![audience("internal-git", Access::Read)]);
+    let pr = profile("hardened");
+    for prev in [(1u64 << 53) - 1, u64::MAX] {
+        let o = run(&po, Some(&pr), &[], Some((prev, "sha256:other")));
+        assert!(o.bundle.is_none(), "{prev}");
+        assert_eq!(o.status.bundle_version, Some(prev));
+        let ready = o
+            .status
+            .conditions
+            .iter()
+            .find(|c| c.type_ == "Ready")
+            .unwrap();
+        assert_eq!(
+            (ready.status.as_str(), ready.reason.as_str()),
+            ("False", "VersionExhausted")
+        );
+    }
+}

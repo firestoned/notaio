@@ -2,6 +2,25 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-21 17:00] - Hardening from the security audit: version limit, OpenBao body, release version
+
+**Author:** Erick Bourgeois
+
+### Fixed
+- `crates/sandboxpolicy-core/src/evaluate.rs`, `audience.rs`: `next_version` replaces
+  `prev + 1`. At or past `jcs::MAX_SAFE_INTEGER` nothing is issued (`Ready=False,
+  VersionExhausted`, status keeping the last version and digest). The previous version is the
+  higher of status and the ConfigMap annotation, which is not notaio's alone to write; `u64::MAX`
+  wrapped to 0 in a release build. One test each for a policy and an audience.
+- `crates/notaio/src/openbao.rs`: the request and the reading of its body sit under one
+  `REQUEST_TIMEOUT`, and the body is capped with `http_body_util::Limited` at
+  `MAX_RESPONSE_BYTES` (64 KiB). The timeout used to end at the response head. No new dependency.
+  Not covered by a test: the module's tests have no HTTP server to stall.
+- `.github/workflows/build.yaml`: the release version reaches `make` through `env:`, never
+  interpolated into `run:`. `Makefile`: `check-version` (reads `$VERSION` from the environment)
+  is a prerequisite of `release-version`, `set-version`, `release-manifest` and
+  `release-manifest-sign`; `check-version-test` in the Test job.
+
 ## [2026-11-21 12:00] - ADR-0020 amended: collision standing, header values (security audit)
 
 **Author:** Erick Bourgeois
