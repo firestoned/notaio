@@ -39,7 +39,7 @@ namespace. notaio never reads the Secret; it signs the reference, and the consum
 | L023 | A team audience never reads OpenBao |
 | L024 | A team audience and a platform audience never share a name |
 | L025 | Within what one namespace can see, an endpoint belongs to one audience |
-| L026 | `header` and `extraHeaders` names are lowercase tokens and none of the reserved framing headers |
+| L026 | `header` and `extraHeaders` names are lowercase tokens and none of the reserved framing headers; `extraHeaders` values are printable ASCII with no line break |
 | L029 | A team audience in the proxy is a warning: its credential sits in the pool VM's memory |
 
 And on every policy that grants an audience:
@@ -50,12 +50,24 @@ And on every policy that grants an audience:
 | L028 | The grant's `endpoints` are a subset of the definition's (empty reaches nothing), its `rules` sit inside the definition's (empty means the definition's), its token lifetime is under `maxTtlSeconds` |
 | L014 | The definition's endpoints and `maxTtlSeconds` are approved by the policy's ceiling, so an audience cannot open what Security did not approve |
 
-**Collisions refuse the newcomer** (L024, L025). An audience whose published bundle is its current
-content is *stable*. Of two colliding audiences, the one that is not stable is refused and the
-stable one keeps publishing; when neither or both are stable, both are refused. So a platform
-audience added later never breaks a team's working audience, and an edit that moves an audience
-into a collision is refused while its last bundle serves out its lifetime. `notaio lint` sees no
-status, so in a pull request it reports every collision on both sides.
+**Collisions refuse the newcomer** (L024, L025). notaio reads each audience's standing from its
+status: *new* (never published), *stable* (its published bundle is its current content) or
+*changed* (published, then edited).
+
+- A new audience always loses, and never refuses another. So a platform audience added later
+  never breaks a team's working audience, and a refused audience left in place cannot block the
+  next edit of the audience it collides with.
+- A changed audience gives way to a stable one: an edit that moves an audience into a collision is
+  refused, while its last bundle serves out its lifetime.
+- Between two changed audiences, a platform audience is kept and the team audience refused; two of
+  the same kind are both refused.
+
+At least one side of every collision is refused, so two colliding definitions are never both
+published. `notaio lint` sees no status, so in a pull request it reports every collision on both
+sides.
+
+`extraHeaders` values are published in the bundle as written. Never put a credential in one: that
+is what `source` is for.
 
 ## The signed audience bundle
 

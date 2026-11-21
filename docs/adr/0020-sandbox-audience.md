@@ -1,9 +1,11 @@
 # ADR-0020: SandboxAudience, an audience defined by the platform or by a team, signed like a policy
 
-- **Status:** Accepted. Not implemented.
+- **Status:** Accepted
 - **Date:** 2026-11-20
 - **Proposed:** 2026-11-20
 - **Deciders:** Erick Bourgeois
+- **Amended:** 2026-11-21 (decision 6: an audience that was never published refuses nothing, and
+  the platform wins a tie between two changed audiences; decision 7: header values are checked)
 - **Related:** ADR-0002 (the bundle contract); ADR-0003 (distribution through a ConfigMap);
   ADR-0004 (signing key custody); ADR-0007 (the ExposureCeiling and Security's approval);
   ADR-0008 (the consumer's version floor); ADR-0013 (audiences in v1alpha2, schema v3);
@@ -135,18 +137,44 @@ definition belongs beside them, delivered and signed the same way.
    the platform audiences (`L025`), so a gateway placing a credential for a claim is never choosing
    between two. notaio sees every namespace and enforces both at reconcile; a consumer refuses the
    same collisions on what it reads, never resolving by order (mediatore's ADR-0054 lesson).
-   **The newcomer is refused.** An audience is *stable* when it has a published bundle and its
-   current content is that bundle's (its content digest equals `status.bundleDigest`). Of two
-   colliding audiences, each is refused unless it is stable and the other is not. So a new
-   audience, platform or team, that takes a working audience's name or endpoint is refused and the
-   working one keeps publishing; an edit that moves a published audience into a collision is
-   refused the same way, while its last bundle (without the change) serves until its lifetime ends
-   (decision 11). When neither is stable, or both are, both are refused. `notaio lint` sees no
-   status, so at pull request time every collision is refused on both sides.
+   **The newcomer is refused.** Each audience has a standing, read from its status: *new* (no
+   published bundle), *stable* (a published bundle that is its current content: its content digest
+   equals `status.bundleDigest`), or *changed* (a published bundle, and content that has moved
+   since). Of two colliding audiences:
+
+   | This audience | The other | This audience is |
+   | --- | --- | --- |
+   | new | anything | refused |
+   | stable | new or changed | kept |
+   | stable | stable | refused (both are) |
+   | changed | new | kept |
+   | changed | stable | refused |
+   | changed | changed | a platform audience against a team audience is kept, the team audience refused; two of the same kind are both refused |
+
+   So a new audience, platform or team, that takes a working audience's name or endpoint is
+   refused and the working one keeps publishing; an edit that moves a published audience into a
+   collision is refused the same way, while its last bundle (without the change) serves until its
+   lifetime ends (decision 11). At least one side of every collision is refused, so two colliding
+   definitions are never both published. `notaio lint` sees no status, so at pull request time
+   every audience is new and every collision is refused on both sides.
+
+   **An audience that was never published refuses nothing** (amended 2026-11-21). As first
+   written, the rule refused both sides whenever neither was stable. A published audience stops
+   being stable the moment it is edited, so a refused newcomer left in place would have turned the
+   next edit of the audience it collides with into a finding, and an audience with a finding is no
+   longer re-signed. One team namespace could in that way have withdrawn a platform audience from
+   every namespace. The standing above closes it: a new audience can only lose, and between two
+   changed audiences of different tenants the namespace decides, which no tenant can forge. The
+   standing is read from `status`, so `patch` on `sandboxaudiences/status` stays notaio's alone
+   (`deploy/controller/10-rbac.yaml`).
 
 7. **Headers are checked.** `header` and each `extraHeaders` name are lowercase RFC 9110 tokens
    and none of `host`, `content-length`, `transfer-encoding`, `connection`, `te`, `upgrade`,
-   `trailer`, `keep-alive`, `proxy-authorization` or `proxy-connection` (`L026`).
+   `trailer`, `keep-alive`, `proxy-authorization` or `proxy-connection` (`L026`). Each
+   `extraHeaders` value is printable ASCII, with spaces and tabs inside it only: no carriage
+   return, line feed or other control character, which could end the header and start another
+   (`L026`, amended 2026-11-21; a name alone was checked before). The values are published in the
+   bundle as written, so a credential never belongs in one.
 
 8. **A definition opens nothing on its own; the ceiling still decides.** A policy's exposure for a
    granted audience is now its grant **and** the audience's definition: `L014` compares the
@@ -199,7 +227,7 @@ definition belongs beside them, delivered and signed the same way.
     | L023 | A team audience with an `openbao` source |
     | L024 | A team audience and a platform audience with the same name (on the newcomer, decision 6) |
     | L025 | An endpoint held by two audiences visible from one namespace (on the newcomer, decision 6) |
-    | L026 | A header name that is not a lowercase token, or one of the reserved names |
+    | L026 | A header name that is not a lowercase token or is reserved, or a header value that is not printable ASCII |
     | L027 | A policy grants an audience no definition is visible for, or a team audience from another namespace |
     | L028 | A grant's endpoints, rules or token lifetime wider than its audience's definition |
     | L029 | A team audience placed in the proxy (a warning, `Severity::Warning`; it publishes) |
@@ -214,7 +242,8 @@ definition belongs beside them, delivered and signed the same way.
 | A team audience shadows a platform audience, so a name means different things in different namespaces | S/T | `L024`; the consumer refuses a collision instead of choosing |
 | Two audiences on one endpoint, so the gateway places the wrong credential | I | `L025`; the consumer refuses the overlap |
 | A team uses a minting backend that acts with the platform's keys | E | `L022` |
-| A header injected to smuggle or override framing | T | `L026` |
+| A header injected to smuggle or override framing, by its name or through a line break in its value | T | `L026` |
+| A team withdraws a platform audience by leaving a refused, colliding audience in its own namespace | D | Decision 6: an audience that was never published refuses nothing, and the platform wins a tie between two changed audiences |
 | A policy bundle replayed as an audience bundle, or the reverse | S/T | Distinct DSSE payload types; the signature covers the type |
 | A definition changed in the cluster by someone who can write the object | T | Signed delivery of the source (ADR-0015) and the per-namespace admission requirement (decision 12); the consumer trusts the signature, never the object |
 | An old definition replayed after a tightening | T | The version floor (ADR-0008) per audience |

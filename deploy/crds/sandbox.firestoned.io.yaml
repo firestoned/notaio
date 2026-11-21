@@ -847,7 +847,9 @@ spec:
                           description: The header name, a lowercase token (L026).
                           type: string
                         value:
-                          description: The value, as sent.
+                          description: |-
+                            The value, as sent: printable ASCII, no line break (L026). Published in the bundle as
+                            written, so never a credential.
                           type: string
                       required:
                       - name

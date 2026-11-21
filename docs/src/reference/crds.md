@@ -177,7 +177,7 @@ The definition of one audience (ADR-0020). In the platform audience namespace it
 | `credential.backend` | string: `sts`, `secret`, `delegated`, `entra-obo`, `none` | yes | How the credential is obtained. |
 | `credential.extraHeaders` | array of object |  | Further headers set with fixed values. |
 | `credential.extraHeaders[].name` | string | yes | The header name, a lowercase token (L026). |
-| `credential.extraHeaders[].value` | string | yes | The value, as sent. |
+| `credential.extraHeaders[].value` | string | yes | The value, as sent: printable ASCII, no line break (L026). Published in the bundle as written, so never a credential. |
 | `credential.format` | string: `bearer`, `basic` |  | What it is. Defaults to `bearer`. |
 | `credential.header` | string |  | The header the credential is placed in, a lowercase token. Unset means `authorization`. |
 | `credential.placement` | string: `gateway`, `proxy` | yes | Where it is placed. Required: a misspelling must never fall back to a default. |

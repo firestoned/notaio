@@ -30,6 +30,17 @@ a release, the maintainer renames Unreleased to the version and date.
 - Apply the new CRD, and the updated ClusterRole (read on `sandboxaudiences`, status and finalizers
   writes). `deploy/admission/gitops-only.yaml` now covers `SandboxAudience` too.
 
+### Fixed
+
+- Audiences (ADR-0020, in v0.7.0-rc.1 only): a refused audience left in place could turn the next
+  edit of the audience it collided with into an `L024` or `L025` finding, which stops that audience
+  being re-signed. An audience that was never published now refuses nothing, and between two
+  edited audiences the platform's is kept. If you turned audiences on with rc.1 and teams can
+  write `SandboxAudience` in their own namespaces, upgrade.
+- `L026` now also refuses an `extraHeaders` value that is empty, has leading or trailing
+  whitespace, or holds anything but printable ASCII (a line break above all). rc.1 checked header
+  names only.
+
 ### Changed
 
 - The `sandboxpolicy-*` crates use `jiff` for time instead of `chrono`: `DateTime<Utc>` is

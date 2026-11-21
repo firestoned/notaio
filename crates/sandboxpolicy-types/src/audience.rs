@@ -96,7 +96,8 @@ pub enum CredentialSource {
 pub struct HeaderPair {
     /// The header name, a lowercase token (L026).
     pub name: String,
-    /// The value, as sent.
+    /// The value, as sent: printable ASCII, no line break (L026). Published in the bundle as
+    /// written, so never a credential.
     pub value: String,
 }
 

@@ -239,7 +239,9 @@ checked exactly as before.
 A `SandboxAudience` is evaluated on its own by `sandboxpolicy_core::evaluate_audience`, against
 every other audience: L017 on its endpoints and rules, L022 to L026, and the L029 warning. A name
 or endpoint collision (L024, L025) refuses the newcomer: an audience whose published bundle is its
-current content keeps publishing, and the one that changed or arrived is refused.
+current content keeps publishing, and the one that changed or arrived is refused. An audience that
+was never published refuses nothing, and between two edited audiences the platform's is kept, so a
+team namespace cannot withdraw a platform audience by leaving a colliding one in place.
 
 The lint rules and their codes are documented at the top of
 `crates/sandboxpolicy-core/src/lint.rs`.

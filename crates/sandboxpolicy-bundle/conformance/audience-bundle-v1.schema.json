@@ -339,7 +339,7 @@
           "type": "string"
         },
         "value": {
-          "description": "The value, as sent.",
+          "description": "The value, as sent: printable ASCII, no line break (L026). Published in the bundle as\nwritten, so never a credential.",
           "type": "string"
         }
       },
