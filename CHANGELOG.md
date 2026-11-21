@@ -10,6 +10,15 @@ a release, the maintainer renames Unreleased to the version and date.
 
 ## Unreleased
 
+## [0.7.0] - 2026-11-21
+
+Signed audience definitions: a fifth kind, `SandboxAudience`, so the definition of an audience is
+delivered and signed like the policy that grants it, and a team can bring a credential it owns
+(ADR-0020). It is off until you set `NOTAIO_AUDIENCE_PLATFORM_NAMESPACE`, so upgrading changes
+nothing until then; apply the new CRD and ClusterRole either way. Two checks are stricter for
+everyone: read Fixed before upgrading. The policy bundle format is unchanged, so consumers need
+nothing unless they read audience bundles.
+
 ### Added
 
 - `SandboxAudience`, a fifth kind: the definition of one audience (how the consumer obtains and
@@ -54,6 +63,13 @@ a release, the maintainer renames Unreleased to the version and date.
 - A request to OpenBao is bounded as a whole: the response body is read within the 10 second
   limit and capped at 64 KiB. Before, only the response's head was timed, so a body that never
   ended could stall signing.
+
+## [0.6.0] - 2026-11-17
+
+The `sandboxpolicy-*` crates handle time with `jiff` instead of `chrono`. Nothing changes on a
+cluster: the controller, the CRDs, the bundle format and the configuration are the same, so
+upgrading a cluster is optional. A consumer that links the crates moves its time types with the
+pin.
 
 ### Changed
 

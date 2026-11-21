@@ -2,6 +2,22 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-21 18:30] - Release prep v0.7.0
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `Cargo.toml`, `Cargo.lock`: workspace version 0.7.0 (from 0.5.2; v0.6.0 and the two release
+  candidates were stamped from their tags, with no prep commit).
+- `CHANGELOG.md`: `[0.7.0] - 2026-11-21` (SandboxAudience and the fixes since rc.1) and, late,
+  `[0.6.0] - 2026-11-17` for the jiff change that release shipped.
+- `docs/src/guides/consume-a-bundle.md`: a consumer compares the bundle's signed namespace and
+  name with what it looked up (from the security audit); a section on audience bundles; the
+  example uses `Timestamp::now()`, left at `Utc::now()` by the jiff change. Rustdoc on
+  `floor::accept` says the same.
+- This file and the `cargo-quality` skill no longer name the maintainer's build hosts
+  (`rules/no-real-infrastructure.md`).
+
 ## [2026-11-21 17:00] - Hardening from the security audit: version limit, OpenBao body, release version
 
 **Author:** Erick Bourgeois
@@ -470,7 +486,7 @@ and an author would learn that only from mediatore's `P007`.
 - CHANGELOG.md Unreleased.
 
 ### Why
-Validated on slate: lint, 159 tests, manifests/docs-reference/conformance/bundle-deps/license
+Validated on the build host: lint, 159 tests, manifests/docs-reference/conformance/bundle-deps/license
 checks, `cargo deny`, the release build with an SBOM of 194 Rust crates (kube 5.0.0 among them) and
 all 20 VEX statements holding, and `make kind-e2e-ci E2E_SUITE=all` on a fresh kind cluster: install,
 bundle, rbac, admission, leader, openbao, all passed.
@@ -1106,7 +1122,7 @@ the results without naming the cluster.
   weaker Deployment fails. Holds for the real binary.
 - `Makefile`: `grype-install` and `vexctl-install` (pinned version and SHA-256, into `.tools/bin`,
   idempotent), `vex-evidence`, `vex-evidence-test`, `vex-assemble`, `image-scan`, `image-gate`;
-  `.vex/` is a build-relevant path. All run end to end on slate against the main image: 19
+  `.vex/` is a build-relevant path. All run end to end on the build host against the main image: 19
   statements, 6 SARIF results, gate passes.
 - `build.yaml`: the evidence check after each architecture's build, the checker tests, a `scan`
   job (assemble, Cosign-attest `--type openvex`, scan, SARIF upload, VEX artifact, gate), and the
@@ -1123,7 +1139,7 @@ the results without naming the cluster.
 - Verifying v0.1.0 found its image SBOM listed 14 Debian packages and no Rust crates. `make
   release-binary` now builds with `cargo auditable` 0.7.7 (screened: MIT OR Apache-2.0, Rust Secure
   Code working group; a build tool, nothing new in the image), installed by `make cargo-auditable`
-  in the Build workflow. Proven on slate: the same image's Syft SBOM goes from 0 to 200 crates.
+  in the Build workflow. Proven on the build host: the same image's Syft SBOM goes from 0 to 200 crates.
 - `make sbom-check` (new, in the image job): at least 50 Rust crates, including notaio,
   sandboxpolicy-bundle, sandboxpolicy-core, kube, rustls and tokio. It passes on the new SBOM and
   fails on v0.1.0's.
