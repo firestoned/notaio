@@ -260,3 +260,92 @@ async fn a_policy_without_an_approved_ceiling_publishes_nothing() {
         .await
         .expect("delete SandboxPolicy");
 }
+
+/// A ConfigMap that already holds the bundle's name and is not notaio's is never written
+/// (ADR-0003, decision 1, amended): nothing is published, the object keeps its content and gains
+/// no owner, and the policy says why. Only a cluster shows it: the forced server-side apply and
+/// the owner reference are the API server's doing.
+#[tokio::test]
+#[ignore = "needs a kind cluster: make kind-e2e-bundle"]
+async fn a_bundle_name_held_by_another_configmap_is_left_alone() {
+    let client = client().await;
+    let ns = policy_namespace();
+    let policies: Api<SandboxPolicy> = Api::namespaced(client.clone(), &ns);
+    let ceilings: Api<ExposureCeiling> = Api::namespaced(client.clone(), &ns);
+    let cms: Api<ConfigMap> = Api::namespaced(client.clone(), &ns);
+    let name = unique_name("taken");
+    let cm_name = bundle_object_name(&name);
+
+    let theirs: ConfigMap = serde_json::from_value(serde_json::json!({
+        "metadata": { "name": cm_name, "namespace": ns },
+        "data": { "ca.crt": "somebody else's" }
+    }))
+    .expect("a ConfigMap");
+    cms.create(&PostParams::default(), &theirs)
+        .await
+        .expect("create the ConfigMap that holds the name");
+
+    ceilings
+        .create(
+            &PostParams::default(),
+            &serde_json::from_value(hardened_ceiling(&name, &ns)).expect("fixture"),
+        )
+        .await
+        .expect("create ExposureCeiling");
+    policies
+        .create(
+            &PostParams::default(),
+            &serde_json::from_value(hardened_policy(&name, &ns)).expect("fixture"),
+        )
+        .await
+        .expect("create SandboxPolicy");
+
+    let p = wait_for(&format!("{name} Ready=False, BundleNameTaken"), || async {
+        let p = policies.get(&name).await.ok()?;
+        let ready = p
+            .status
+            .as_ref()?
+            .conditions
+            .iter()
+            .find(|c| c.type_ == "Ready")?
+            .clone();
+        (ready.status == "False" && ready.reason == "BundleNameTaken").then_some(p)
+    })
+    .await;
+    // The policy itself is fine; only publication is refused.
+    let status = p.status.expect("status");
+    assert!(status
+        .conditions
+        .iter()
+        .any(|c| c.type_ == "Valid" && c.status == "True"));
+
+    let after = cms
+        .get(&cm_name)
+        .await
+        .expect("the ConfigMap is still there");
+    let data = after.data.clone().unwrap_or_default();
+    assert_eq!(
+        data.get("ca.crt").map(String::as_str),
+        Some("somebody else's")
+    );
+    assert!(!data.contains_key(BUNDLE_KEY), "notaio wrote into it");
+    assert!(after.owner_references().is_empty(), "notaio took ownership");
+    assert!(after.annotations().get(ANN_VERSION).is_none());
+
+    // Deleting the policy must not take the ConfigMap with it.
+    policies
+        .delete(&name, &DeleteParams::default())
+        .await
+        .expect("delete SandboxPolicy");
+    wait_for(&format!("{name} gone"), || async {
+        policies
+            .get_opt(&name)
+            .await
+            .ok()
+            .and_then(|p| p.is_none().then_some(()))
+    })
+    .await;
+    assert!(cms.get_opt(&cm_name).await.expect("get").is_some());
+    let _ = cms.delete(&cm_name, &DeleteParams::default()).await;
+    let _ = ceilings.delete(&name, &DeleteParams::default()).await;
+}

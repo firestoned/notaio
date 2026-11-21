@@ -12,6 +12,7 @@ use kube::runtime::controller::Action;
 use kube::runtime::events::{Event, EventType, Recorder};
 use kube::runtime::reflector::Store;
 use kube::{Client, Resource, ResourceExt};
+use notaio::adopt;
 use notaio::events::{self, Note};
 use notaio::guard::{self, Evaluated};
 use notaio::metrics::Counters;
@@ -33,6 +34,8 @@ pub const FIELD_MANAGER: &str = "notaio";
 pub const ANN_VERSION: &str = "sandbox.firestoned.io/bundle-version";
 pub const ANN_DIGEST: &str = "sandbox.firestoned.io/bundle-digest";
 pub const BUNDLE_KEY: &str = "bundle.dsse.json";
+/// How long to wait before looking again at a bundle name another ConfigMap holds.
+pub(crate) const NAME_TAKEN_REQUEUE: StdDuration = StdDuration::from_secs(300);
 
 pub struct Ctx {
     pub client: Client,
@@ -142,6 +145,10 @@ pub async fn reconcile_policy(policy: Arc<SandboxPolicy>, ctx: Arc<Ctx>) -> Resu
     let cms: Api<ConfigMap> = Api::namespaced(client.clone(), &ns);
     let cm_name = bundle_object_name(&name);
     let published = cms.get_opt(&cm_name).await?;
+    // A ConfigMap of that name that is not notaio's is never written, and its annotations are
+    // never read as a published version (ADR-0003, decision 1, amended).
+    let name_taken = adopt::is_foreign(published.as_ref());
+    let published = published.filter(|_| !name_taken);
     let ann = |key: &str| {
         published
             .as_ref()
@@ -273,6 +280,20 @@ pub async fn reconcile_policy(policy: Arc<SandboxPolicy>, ctx: Arc<Ctx>) -> Resu
     }
 
     if let (Some(bundle), Some(signer)) = (&out.bundle, &ctx.signer) {
+        if name_taken {
+            tracing::warn!(policy = %name, configmap = %cm_name, "bundle name taken by a ConfigMap that is not notaio's");
+            refuse(
+                &ctx,
+                &policy,
+                &prev,
+                &status,
+                adopt::REASON_NAME_TAKEN,
+                &adopt::name_taken_message(&cm_name),
+                now,
+            )
+            .await?;
+            return Ok(Action::requeue(NAME_TAKEN_REQUEUE));
+        }
         // Check the bundle again, independently of the evaluator, before it can be signed
         // (ADR-0010, decision 4). In a correct build this never refuses anything.
         let active_grant_expiries: Vec<(String, Timestamp)> = out
@@ -336,8 +357,8 @@ pub async fn reconcile_policy(policy: Arc<SandboxPolicy>, ctx: Arc<Ctx>) -> Resu
         annotations.insert(ANN_DIGEST.to_string(), bundle.content_digest.clone());
         let mut labels = BTreeMap::new();
         labels.insert(
-            "app.kubernetes.io/managed-by".to_string(),
-            FIELD_MANAGER.to_string(),
+            adopt::MANAGED_BY_LABEL.to_string(),
+            adopt::MANAGED_BY.to_string(),
         );
         let cm = ConfigMap {
             metadata: ObjectMeta {

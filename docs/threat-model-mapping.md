@@ -1,6 +1,6 @@
 # Mapping to the AgentSandbox threat model
 
-Last full pass 2026-11-21, against ADR-0001 to ADR-0020 (ADR-0020 as amended 2026-11-21).
+Last full pass 2026-11-21, against ADR-0001 to ADR-0020 (ADR-0003 and ADR-0020 as amended 2026-11-21).
 
 What this project implements, what it only supports, and what it does not cover. Identifiers refer
 to the AgentSandbox Threat Model and Security Roadmap. When that document changes, update
@@ -33,6 +33,7 @@ to the AgentSandbox Threat Model and Security Roadmap. When that document change
 | Known vulnerabilities in notaio's image | Grype scans every published image (ADR-0012), its SBOM covering every Rust crate (`cargo auditable`), findings in Code Scanning, the build failing on a fixable High or Critical. Findings that cannot affect notaio are suppressed only by OpenVEX statements in `.vex/`, each backed by a fact about the binary that `make vex-evidence` re-checks on every pull request; the VEX document is attested to the image and attached to each release. cargo-audit and cargo-deny cover the Rust dependencies on every change. |
 | The definition of an audience (how its credential is obtained and placed, where it is reached) is signed like the policy (T5.4, T8.2 applied to definitions) | `SandboxAudience` compiled into a signed audience bundle, published to `<audience>-audience` and owned by the audience, a finding keeping the last valid bundle until it expires (`crates/sandboxpolicy-core/src/audience.rs`, `crates/notaio/src/audience.rs`, ADR-0020; `e2e_audience`). Off until `NOTAIO_AUDIENCE_PLATFORM_NAMESPACE` is set; while it is unset nothing here changes and the definitions stay in the consumer's own configuration. |
 | A team's audience stays within its namespace and its own credential (K5.3, T5.3) | A team audience may not mint, refresh or exchange with the consumer's keys (L022) or read the platform's OpenBao (L023); its `secretRef` and `caRef` carry no namespace, so they resolve in its own; it is granted only from its own namespace (L027); no team name shadows a platform audience (L024); a grant never exceeds its definition (L028); header names cannot reframe a request (L026). Collisions refuse the newcomer, so a platform audience added later cannot break a team's; an audience that was never published refuses nothing and the platform wins a tie between two edited audiences, so a team cannot withdraw a platform audience by parking a colliding one (`refused_in_collision`). Header values cannot carry a line break (L026). All in `notaio lint --platform-audience-namespace` and the controller. |
+| A policy's name used to take over another ConfigMap in its namespace (T8.2: what the controller may write) | notaio publishes only to a ConfigMap that is free or carries its own `managed-by` label; one that is not its own is never written, never owned, and its annotations never read as a version: `Ready=False, BundleNameTaken` (`crates/notaio/src/adopt.rs`, ADR-0003 decision 1 as amended; `e2e_bundle`). |
 | Policy profiles as reviewed bundles of knobs (section 10) | `builtin.rs`, `deploy/profiles/builtin.yaml` |
 
 ## Supported, enforced elsewhere

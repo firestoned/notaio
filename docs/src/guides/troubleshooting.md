@@ -26,6 +26,7 @@ kubectl -n <ns> describe sandboxpolicy <name>     # the same, plus recent Events
 | `NotCanonical` | The content has a number RFC 8785 cannot represent exactly. | Look for a value above 2^53 or a fraction; budgets are the usual place. |
 | `NoSigner` | No signer is configured. | The Deployment has neither `NOTAIO_OPENBAO_ADDR` nor a development key. See [Install](install.md). |
 | `SigningFailed` | OpenBao refused or could not be reached. The previous bundle stays. | See below. |
+| `BundleNameTaken` | A ConfigMap named `<policy>-bundle` (or `<audience>-audience`) already exists and is not notaio's: it has no `app.kubernetes.io/managed-by: notaio` label. notaio leaves it untouched. | Rename the policy or audience, or remove that ConfigMap. |
 | `FailOpenRefused` | The fail-open guard caught a bundle the evaluator should never have produced. | A bug in notaio: [report it](../security/index.md) with the policy, its grants and ceiling. |
 
 ## A grant is not applied

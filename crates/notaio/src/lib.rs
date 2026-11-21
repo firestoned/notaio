@@ -5,6 +5,7 @@
 //! and fail-open guard (ADR-0010), the generated reference pages, and how loudly controller errors
 //! are logged. The controller itself lives in the binary.
 
+pub mod adopt;
 pub mod cli;
 pub mod events;
 pub mod guard;
