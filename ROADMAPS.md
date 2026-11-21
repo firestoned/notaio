@@ -11,7 +11,7 @@ request that changes a roadmap's state.
 
 | # | Roadmap | Status | Detail |
 | --- | --- | --- | --- |
-| 00 | M3: integrate the consumers | In progress: phases 0 and 1 done; phase 4 largely built (mediatore's gateway, D5 decided); phase 2 has its first slice behind a switch (2026-11-05) | [00-m3-integrate-the-consumers.md](https://github.com/firestoned/notaio/blob/main/.github/community/00-m3-integrate-the-consumers.md) |
+| 00 | M3: integrate the consumers | In progress (audited 2026-11-21): phases 0 and 1 done; phase 2 built in mediatore behind switches that default to shadow and proven on kind, not yet enforced live, eligibility by group open; phase 3 (the guest verifies) not started; D4 and D6 open | [00-m3-integrate-the-consumers.md](https://github.com/firestoned/notaio/blob/main/.github/community/00-m3-integrate-the-consumers.md) |
 | 01 | Run notaio for real | Done: phases A to D on the test cluster (2026-10-31) | [01-run-notaio-for-real.md](https://github.com/firestoned/notaio/blob/main/.github/community/01-run-notaio-for-real.md) |
 | 02 | OpenBao unseals itself | Done: the static seal, proven on kind and on the test cluster (2026-11-01) | [02-unseal-the-signer.md](https://github.com/firestoned/notaio/blob/main/.github/community/02-unseal-the-signer.md) |
 | 03 | Policies delivered as signed OCI artifacts | Done: the test cluster on two signed artifacts, every refusal shown; ADR-0015 and a guide (2026-11-02) | [03-signed-policy-artifacts.md](https://github.com/firestoned/notaio/blob/main/.github/community/03-signed-policy-artifacts.md) |
@@ -96,7 +96,17 @@ endpoints and rules per audience, API v1alpha2) are decided and built, and the c
 says what every consumer must accept and refuse. **Phase 1 is done too,** in mediatore
 (2026-11-02, its roadmap 09 and ADR-0026): it reads, verifies and floors every bundle and reports
 every gap between its configuration and the bundle, enforcing nothing. D3 is decided for that
-shadow phase; D4 to D6 are open. Next is phase 2: mediatore enforces the bundle.
+shadow phase.
+
+**Phase 2 is built and switched off by default** (audited 2026-11-21). In mediatore, claims and
+mints follow the verified policy bundle under `policy.audiences: enforce` (its ADR-0053), direct
+egress reaches the gateway under `policy.egress: enforce` (its ADR-0030), and each audience's
+definition comes from notaio's signed `SandboxAudience` bundle in `bundles` mode (its ADR-0055, on
+notaio [ADR-0020](https://github.com/firestoned/notaio/blob/main/docs/adr/0020-sandbox-audience.md)).
+All three are proven on kind against notaio v0.7.0-rc.2; none is the default, and no live cluster
+enforces the first or the third yet. Still open: eligibility by `subjects.groups` (K7.2), the
+guest verifying the bundle itself (phase 3, D4 undecided), and the policy version in the token
+(D6). D5 is decided. Next: the live rollout of phase 2, then phase 3.
 
 Running notaio for real, before any consumer reads it, is planned in
 [roadmap 01](https://github.com/firestoned/notaio/blob/main/.github/community/01-run-notaio-for-real.md):

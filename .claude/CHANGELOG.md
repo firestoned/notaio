@@ -2,6 +2,35 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-21 21:00] - Roadmap 00 audited against the mediatore tree
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `.github/community/00-m3-integrate-the-consumers.md`: status and phases 2 to 4 rewritten from
+  the state of mediatore on 2026-11-21 (its ADR-0030, ADR-0053, ADR-0054, ADR-0055). Not complete:
+  phase 2 is built behind switches that default to shadow and proven on kind, not enforced live;
+  eligibility by group is not built; phase 3 has not started (D4 undecided); D6 is open. One box
+  closes (the broker's egress and rules kept only as a ceiling). A "what is left" list is added.
+- Recorded, not decided here: mediatore follows a superseded bundle's newer version at a mint
+  where this roadmap said the mint is refused.
+- `ROADMAPS.md`: the roadmap 00 row and the M3 paragraph say the same.
+
+## [2026-11-21 20:30] - One changelog: the root CHANGELOG.md is removed
+
+**Author:** Erick Bourgeois
+
+### Removed
+- `CHANGELOG.md` at the repository root. This file is the project's only changelog from now on;
+  release notes are written for each GitHub release from its entries.
+- The documentation site's Changelog page (`docs/src/changelog.md`) and its `nav` entry: it only
+  pulled in the root file.
+
+### Changed
+- `.claude/rules/documentation.md`, `CONTRIBUTING.md`, `GOVERNANCE.md`, `README.md`,
+  `docs/src/developer/index.md`, ADR-0009 (one sentence) and the `release-version` warning in the
+  `Makefile` no longer point at the root file.
+
 ## [2026-11-21 19:30] - notaio writes only its own ConfigMaps (ADR-0003 amended, security audit)
 
 **Author:** Erick Bourgeois

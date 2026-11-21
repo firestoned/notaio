@@ -299,7 +299,7 @@ release-version: check-version ## A release's version from its tag: set-version 
 	@test -n "$(VERSION)" || { echo "set VERSION, e.g. make release-version VERSION=1.2.3"; exit 1; }
 	@was=$(workspace-version); \
 	  if [ "$$was" = "$(VERSION)" ]; then echo "Cargo.toml and Cargo.lock: already $(VERSION)"; exit 0; fi; \
-	  echo "::warning title=Released without release prep::Cargo.toml says $$was at this tag; the release is stamped $(VERSION). Bump Cargo.toml and add CHANGELOG.md's [$(VERSION)] section on main."; \
+	  echo "::warning title=Released without release prep::Cargo.toml says $$was at this tag; the release is stamped $(VERSION). Bump Cargo.toml on main."; \
 	  $(MAKE) --no-print-directory set-version VERSION=$(VERSION) && \
 	  cargo update --workspace -q && \
 	  cargo metadata --locked --format-version 1 >/dev/null && \

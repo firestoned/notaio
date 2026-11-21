@@ -207,6 +207,5 @@ nav:
       - Command Line: reference/cli.md
       - Environment Variables: reference/environment.md
       - Conformance Vectors: reference/conformance.md
-      - Changelog: changelog.md
   - Developer:
       - Local Development: developer/index.md

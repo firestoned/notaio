@@ -18,8 +18,8 @@ configuration, deployment and architecture changes all have a docs half.
 | AIR framework mapping | `docs/air/*.yaml`, generating `docs/framework-mapping.md` (`make air`) |
 | Roadmap | `ROADMAPS.md` (milestones M0 to M5, the status index), detail plans in `.github/community/NN-title.md` |
 | Examples | `examples/*.yaml` |
-| Change log | `.claude/CHANGELOG.md` (detailed, for maintainers) |
-| Release notes | `CHANGELOG.md` (Keep a Changelog: an Unreleased entry for anything a user would notice) |
+| Change log | `.claude/CHANGELOG.md`: the only changelog. There is no `CHANGELOG.md` at the repository root; do not create one |
+| Release notes | written for each GitHub release from the entries in `.claude/CHANGELOG.md` (`gh release create --notes-file`): what a user would notice, and what to do before upgrading |
 | Licence headers | every tracked `.rs`, `.sh`, `.py`, Makefile, Dockerfile and `.github` workflow carries `SPDX-License-Identifier: Apache-2.0` in its first 10 lines (`make license-check`, in CI) |
 | Governance | `GOVERNANCE.md`, `MAINTAINERS.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` (the Contributor Covenant 2.1, verbatim but for the contact) |
 | Generated manifests | `deploy/crds/`, `deploy/profiles/` (`make manifests`, never hand edited) |
