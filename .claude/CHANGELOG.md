@@ -2,6 +2,37 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-22 12:00] - Status is written only by notaio (ADR-0021)
+
+**Author:** Erick Bourgeois
+
+### Added
+- `docs/adr/0021-status-written-only-by-notaio.md`, with its docs-site stub, index row and nav
+  entry. The GitOps-only admission rule named the main resources, which do not match their
+  `/status` subresources, while notaio reads status back as input: the previous bundle version and
+  digest, the refresh time, and an audience's standing in a collision. Any identity with RBAC to
+  patch status could make notaio publish below what consumers hold, or have a platform audience's
+  change refused. Found in a security review on 2026-11-22.
+- `deploy/admission/gitops-only.yaml`: a second ValidatingAdmissionPolicy and binding,
+  `sandbox-status-notaio-only`, matching `UPDATE` of the status of `SandboxProfile`,
+  `SandboxPolicy`, `KnobGrant` and `SandboxAudience` and admitting only
+  `system:serviceaccount:notaio-system:notaio`. Same file, so it is applied and removed with the
+  spec rule.
+- `crates/notaio/tests/e2e_admission.rs`: `status_writes_are_denied_even_for_cluster_admin`, and
+  the GitOps test now waits for both rules, checks the controller still publishes, and checks
+  cluster-admin is refused a status patch on the published policy.
+
+### Changed
+- `docs/threat-model-mapping.md`: full pass, stamped 2026-11-22 against ADR-0001 to ADR-0021. A
+  new "Implemented here" row for status; the T8.2 and collision rows cite ADR-0021. The guest rows
+  now say what the code does: mediatore verifies bundles and keeps the floor with `next_floor`,
+  refusing a bundle whose signed namespace is not the one it was read from; mediatore-guest does
+  not link `sandboxpolicy-bundle` yet (roadmap 00 phase 3). The docs were ahead of the code.
+- `CLAUDE.md`, `CONTRIBUTING.md`, `.claude/rules/rust-style.md`, the `Makefile` comment on
+  `bundle-deps-check`: the guest *will* link the bundle crate, not *does*.
+- `docs/architecture.md`, `docs/src/guides/install.md`: notaio is the only status writer, and the
+  username to change when notaio runs in another namespace.
+
 ## [2026-11-21 21:30] - Attest without a storage record; roadmap 00's rule for a superseded bundle
 
 **Author:** Erick Bourgeois

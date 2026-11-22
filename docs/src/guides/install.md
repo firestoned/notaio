@@ -143,7 +143,10 @@ kubectl apply -f gitops-only.yaml
 ```
 
 From then on only that identity can create, change or delete the five kinds, cluster-admin
-included. notaio's own writes go to the status subresource, which the policy does not match.
+included. The same file holds a second policy, `sandbox-status-notaio-only`: the status of those
+kinds is notaio's own record, which it reads back to number the next bundle, so only notaio's
+ServiceAccount may write it (ADR-0021). If you installed notaio in a namespace other than
+`notaio-system`, change that username too.
 
 ## 6. Check it
 

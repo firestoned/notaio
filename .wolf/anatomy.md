@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-11-21T16:36:35.356Z
-> Files: 85 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-11-22T06:45:05.702Z
+> Files: 87 tracked | Anatomy hits: 0 | Misses: 0
 
 > Project structure index. Auto-maintained by OpenWolf hooks and daemon.
 > Run `openwolf scan` to generate, or wait for the first Claude Code session.
@@ -21,7 +21,7 @@
 
 ## .claude/
 
-- `CHANGELOG.md` — Changelog (~508 tok)
+- `CHANGELOG.md` — Changelog (~25563 tok)
 
 ## .claude/rules/
 
@@ -43,7 +43,7 @@
 
 ## crates/notaio/tests/
 
-- `e2e_admission.rs` — e2e: `deploy/admission/gitops-only.yaml` refuses direct edits to policy objects, lets the GitOps (~1732 tok)
+- `e2e_admission.rs` — e2e: `deploy/admission/gitops-only.yaml` refuses direct edits to policy objects, lets the GitOps (~3270 tok)
 - `e2e_audience.rs` — e2e: a SandboxAudience goes in, a signed audience bundle comes out (ADR-0020). (~2210 tok)
 - `e2e_bundle.rs` — e2e: a policy goes in, a signed bundle comes out, and a consumer can verify it. (~2108 tok)
 - `e2e_rbac.rs` — e2e: the controller's deployed RBAC is read plus status writes, and nothing more. (~1446 tok)
@@ -134,7 +134,7 @@
 
 ## deploy/admission/
 
-- `gitops-only.yaml` — Direct edits to policy objects are refused: changes arrive only through review and GitOps (~355 tok)
+- `gitops-only.yaml` — Direct edits to policy objects are refused: changes arrive only through review and GitOps (~939 tok)
 
 ## deploy/controller/
 
@@ -165,11 +165,16 @@
 - `0018-tightening-latency.md` — ADR-0018: Tightening latency: a shorter, bounded bundle lifetime (~1496 tok)
 - `0019-resource-sizes.md` — ADR-0019: Resource sizes for K2.4 (~1488 tok)
 - `0020-sandbox-audience.md` — ADR-0020: SandboxAudience, an audience defined by the platform or by a team, signed like a policy (~4717 tok)
+- `0021-status-written-only-by-notaio.md` — ADR-0021: Status is written only by notaio (~1031 tok)
 
 ## docs/air/
 
 - `catalogue.yaml` (~1582 tok)
 - `mapping.yaml` — One entry per item in docs/air/catalogue.yaml. Judgments are the author's and need review by (~2822 tok)
+
+## docs/src/adr/
+
+- `index.md` — Architecture Decision Records (~617 tok)
 
 ## docs/src/concepts/
 

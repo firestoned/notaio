@@ -1,6 +1,7 @@
 # Direct edits to policy objects are refused: changes arrive only through review and GitOps
 # (threat model T8.2, scenario S6). Notaio's own writes go to the /status subresource, which
-# this policy does not match. Replace the allowed user with your GitOps reconciler.
+# this policy does not match; the second policy below admits only notaio there (ADR-0021).
+# Replace the allowed user with your GitOps reconciler.
 #
 # One identity for every namespace. Where teams deliver their own SandboxAudience and
 # SandboxPolicy (ADR-0020, decision 12), give each team namespace its own binding that admits only
@@ -32,4 +33,41 @@ metadata:
   name: sandbox-policy-gitops-only
 spec:
   policyName: sandbox-policy-gitops-only
+  validationActions: ["Deny"]
+---
+# Status is written only by notaio (ADR-0021). The rule above names the main resources, which do
+# not match their /status subresources, and notaio reads its earlier status back as input: the
+# previous bundle version and digest, when to refresh, and an audience's standing in a collision.
+# Anyone else who could patch status could make notaio publish below what consumers hold, or have a
+# platform audience's change refused. A patch is an UPDATE to admission. ExposureCeiling has no
+# status. If notaio runs under another namespace or ServiceAccount, change the username to match.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: sandbox-status-notaio-only
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: ["sandbox.firestoned.io"]
+        apiVersions: ["*"]
+        operations: ["UPDATE"]
+        resources:
+          [
+            "sandboxprofiles/status",
+            "sandboxpolicies/status",
+            "knobgrants/status",
+            "sandboxaudiences/status",
+          ]
+  validations:
+    - expression: "request.userInfo.username == 'system:serviceaccount:notaio-system:notaio'"
+      message: "status is written only by notaio: SandboxProfile, SandboxPolicy, KnobGrant and SandboxAudience status is the controller's own record."
+      reason: Forbidden
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: sandbox-status-notaio-only
+spec:
+  policyName: sandbox-status-notaio-only
   validationActions: ["Deny"]

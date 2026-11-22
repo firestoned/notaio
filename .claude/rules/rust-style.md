@@ -10,8 +10,9 @@
 - **`sandboxpolicy-core` is pure**: no I/O, no clock reads, no network. Time
   comes in as `now`.
 - **`sandboxpolicy-types` and `sandboxpolicy-bundle` never depend on `kube` or
-  `k8s-openapi`.** mediatore-guest runs as root in every sandbox VM and links
-  the bundle crate; every dependency there is attack surface in a root process.
+  `k8s-openapi`.** mediatore-guest runs as root in every sandbox VM and will
+  link the bundle crate (roadmap 00 phase 3); every dependency there is attack
+  surface in a root process.
 - **Early returns and guard clauses**, not nesting
 - **No magic numbers**: any numeric literal other than `0` or `1` is a named
   constant
