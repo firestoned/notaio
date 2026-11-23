@@ -2,6 +2,29 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-23 04:30] - Release prep v0.8.0
+
+**Author:** Erick Bourgeois
+
+v0.8.0 is the fixes from the 2026-11-22 security review (#109): status written only by notaio
+(ADR-0021), consumers refusing another policy's bundle and a lifetime over one day (ADR-0008
+decision 7, ADR-0002 decision 5 as amended), the `FileFloor` temporary file, and `notaio lint`
+refusing symlinks. v0.8.0-rc.1 ran on the test cluster first, admission included.
+
+### Changed
+- `Cargo.toml` and `Cargo.lock`: the workspace crates at 0.8.0. Minor, not patch: `floor::accept`
+  and `floor::accept_audience` changed signature.
+- `docs/src/guides/consume-a-bundle.md`: the dependency example pins `v0.8.0` (it said `v0.3.0`,
+  older than the `accept` it documents).
+
+### Added, in #109 without an entry
+- `.github/workflows/docs.yaml` also runs on `.github/requirements/**`, so a change to the
+  hash-locked Poetry runs the job that installs it.
+- `.github/workflows/dependabot-auto-merge.yaml`: a Dependabot pull request for
+  `/.github/requirements` is held for review, not auto-merged, with a comment saying why
+  (`hold-reason`). Dependabot recompiles that lock without its Python 3.11 target (#105), and the
+  e2e gate never installs it. An approval still lets it merge.
+
 ## [2026-11-22 22:30] - Docs CI: the Poetry lock targets Python 3.11 again
 
 **Author:** Erick Bourgeois
