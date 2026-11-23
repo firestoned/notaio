@@ -2,6 +2,19 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-22 22:30] - Docs CI: the Poetry lock targets Python 3.11 again
+
+**Author:** Erick Bourgeois
+
+### Fixed
+- `.github/requirements/poetry.txt`: Dependabot's msgpack bump (#105) regenerated the lock without
+  `--python-version 3.11`, dropping `importlib-metadata` and `zipp`, which `keyring` needs below
+  Python 3.12, so the Documentation workflow's `--require-hashes` install failed on the next pull
+  request that touched the docs. Regenerated with the command in the file's header, keeping the
+  versions the lock held before (`importlib-metadata` 9.0.0, `zipp` 4.1.0) rather than a newer
+  release that adds a dependency. Against the last working lock, only Dependabot's certifi and
+  msgpack bumps differ. Checked with a hash-pinned install in `python:3.11-slim`.
+
 ## [2026-11-22 16:00] - Consumer verification and lint input hardening (ADR-0002, ADR-0008)
 
 **Author:** Erick Bourgeois

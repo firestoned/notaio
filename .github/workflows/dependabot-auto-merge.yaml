@@ -60,6 +60,7 @@ jobs:
       update-type: ${{ steps.meta.outputs.update-type }}
       dependency-names: ${{ steps.meta.outputs.dependency-names }}
       auto-merge: ${{ steps.classify.outputs.auto-merge }}
+      hold-reason: ${{ steps.classify.outputs.hold-reason }}
     steps:
       - name: Fetch metadata
         id: meta
@@ -90,24 +91,36 @@ jobs:
       #                     dumb and dependency-free: every semver contains a
       #                     dot, no commit SHA does.
       #
+      #   Poetry lock    -> no, unless approved. `.github/requirements/poetry.txt`
+      #                     is compiled by uv for Python 3.11 (see docs.yaml);
+      #                     Dependabot recompiles it without that target and
+      #                     drops what 3.11 needs (#105). The e2e gate never
+      #                     installs it, so a green gate says nothing about it:
+      #                     a person checks the Documentation job, which does.
+      #
       #   otherwise      -> no; held for manual review.
       - name: Classify
         id: classify
         env:
           UPDATE_TYPE: ${{ steps.meta.outputs.update-type }}
           NEW_VERSION: ${{ steps.meta.outputs.new-version }}
+          DIRECTORY: ${{ steps.meta.outputs.directory }}
           REVIEW_STATE: ${{ github.event.review.state }}
         run: |
           auto=false
-          if [ "$UPDATE_TYPE" != "version-update:semver-major" ]; then
+          reason="this is a **major** version update"
+          if [ "$REVIEW_STATE" = "approved" ]; then
             auto=true
-          elif [ "$REVIEW_STATE" = "approved" ]; then
+          elif [ "$DIRECTORY" = "/.github/requirements" ]; then
+            reason="it changes the hash-locked Poetry, which e2e never installs: check the **Build Documentation** job, and that the lock still targets Python 3.11"
+          elif [ "$UPDATE_TYPE" != "version-update:semver-major" ]; then
             auto=true
           elif [ -n "$NEW_VERSION" ] && [ "${NEW_VERSION#*.}" = "$NEW_VERSION" ]; then
             auto=true
           fi
           echo "auto-merge=$auto" >> "$GITHUB_OUTPUT"
-          echo "update-type=$UPDATE_TYPE new-version=$NEW_VERSION review=${REVIEW_STATE:-none} -> auto-merge=$auto"
+          echo "hold-reason=$reason" >> "$GITHUB_OUTPUT"
+          echo "update-type=$UPDATE_TYPE directory=$DIRECTORY new-version=$NEW_VERSION review=${REVIEW_STATE:-none} -> auto-merge=$auto"
 
   e2e:
     name: E2E gate
@@ -135,19 +148,21 @@ jobs:
   hold-major:
     name: Hold major update for review
     needs: [metadata, e2e]
-    # e2e passed but it is a major bump, leave open, tell the reviewer.
+    # e2e passed but the update is not one that may merge itself (a major bump,
+    # or the Poetry lock): leave open, tell the reviewer why.
     if: ${{ success() && needs.metadata.outputs.auto-merge != 'true' }}
     runs-on: ubuntu-24.04
     permissions:
       pull-requests: write
     steps:
-      - name: Comment (major held)
+      - name: Comment (held)
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HOLD_REASON: ${{ needs.metadata.outputs.hold-reason }}
         run: |
           gh pr comment "$PR_URL" --body \
-            "✅ e2e passed, but this is a **major** version update, left open for manual review before merge."
+            "✅ e2e passed, but $HOLD_REASON. Left open for manual review before merge."
 
   report-failure:
     name: Report e2e failure
