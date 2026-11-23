@@ -17,7 +17,7 @@ Pin a release tag ([ADR-0014](../adr/0014-consumer-distribution.md)):
 
 ```toml
 [dependencies]
-sandboxpolicy-bundle = { git = "https://github.com/firestoned/notaio", tag = "v0.3.0" }
+sandboxpolicy-bundle = { git = "https://github.com/firestoned/notaio", tag = "v0.8.0" }
 ```
 
 and allow the source in your `deny.toml`:
