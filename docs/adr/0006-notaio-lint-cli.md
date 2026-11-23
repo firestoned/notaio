@@ -31,7 +31,10 @@ code scanning annotations inline; CodeQL and Semgrep already upload SARIF for th
 2. **The same code decides.** `notaio lint` runs `sandboxpolicy_core::evaluate` on every policy,
    with its grants and its profile, under the default ceilings, and `lint_knobs` on every
    profile. Nothing is reimplemented, so the file check and the controller cannot disagree.
-3. **Inputs** are files and directories (recursively, `*.yaml` and `*.yml`), multi-document.
+3. **Inputs** are files and directories (recursively, `*.yaml` and `*.yml`), multi-document. A
+   symlink found inside a directory is an input error: the tree is a pull request, and a link in
+   it could loop the walk or point outside it (2026-11-22). A path named on the command line is
+   followed.
    Documents outside the `sandbox.firestoned.io` group are counted and ignored. A grant belongs to
    the policy its `policyRef` names in the same namespace.
 4. **Profiles come from the files first, then the built-ins.** A profile defined in the inputs

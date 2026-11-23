@@ -351,6 +351,46 @@
         "outcome": "refused",
         "error": "PayloadType"
       }
+    },
+    {
+      "name": "refused-wrong-policy",
+      "description": "A valid bundle for another policy (conformance/other-agent), where the consumer asked for conformance/agent: refused, the floor of neither touched (ADR-0008, decision 7).",
+      "now": "2026-01-01T12:00:00Z",
+      "floor": null,
+      "envelope": {
+        "payloadType": "application/vnd.firestoned.sandboxpolicy.bundle.v3+json",
+        "payload": "eyJzY2hlbWEiOiJzYW5kYm94LmZpcmVzdG9uZWQuaW8vYnVuZGxlL3YzIiwibWV0YSI6eyJ2ZXJzaW9uIjozLCJpc3N1ZWRBdCI6IjIwMjYtMDEtMDFUMTE6MDA6MDBaIiwibm90QWZ0ZXIiOiIyMDI2LTAxLTAxVDEzOjAwOjAwWiJ9LCJjb250ZW50Ijp7InBvbGljeSI6eyJuYW1lc3BhY2UiOiJjb25mb3JtYW5jZSIsIm5hbWUiOiJvdGhlci1hZ2VudCIsInVpZCI6IjAwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSJ9LCJwcm9maWxlIjp7Im5hbWUiOiJoYXJkZW5lZCIsImRpZ2VzdCI6InNoYTI1NjowMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwIn0sImtub2JzIjp7Iks0LjEiOiJSMCIsIks1LjEiOiJSMCIsIks1LjMiOiJSMSJ9LCJhdWRpZW5jZXMiOlt7Im5hbWUiOiJpbnRlcm5hbC1naXQiLCJhY2Nlc3MiOiJSZWFkIiwic2NvcGVzIjpbInJlcG86cmVhZCJdLCJ0dGxTZWNvbmRzIjozMDAsImVuZHBvaW50cyI6WyJnaXQuZm9vLmlvOjQ0MyJdLCJydWxlcyI6W3sibWV0aG9kIjoiR0VUIiwicGF0aCI6Ii9yZXBvcy8qKiJ9XX1dLCJlZ3Jlc3MiOltdLCJ0b29scyI6W10sImxlYXNlIjp7Im1heER1cmF0aW9uU2Vjb25kcyI6MTQ0MDAsIm1heENvbmN1cnJlbnQiOjF9LCJidWRnZXRzIjp7Im1heFRvb2xDYWxscyI6NTAwLCJtYXhXYWxsQ2xvY2tTZWNvbmRzIjoxNDQwMCwibWF4RWdyZXNzQnl0ZXMiOjEwNDg1NzYwfX0sImNvbnRlbnREaWdlc3QiOiJzaGEyNTY6NjVlZmQ3ZjhlMGNhY2U4MmRiMzFmNTIxMDI2Y2ZjNDRmMThhYmQ5ODFmYzgzNDQ2NDFkZmZjMmZkZTI5ODE0ZCJ9",
+        "signatures": [
+          {
+            "keyid": "conformance:v1",
+            "sig": "ZDDiSNCqG1n/fYZqsdhJWFXjxhsHCSDNiJIhn1RAI0CsfzKfXI9N9iEerzzPgcUsbYQNdqOTBV3IN/9Z7neWCA=="
+          }
+        ]
+      },
+      "expect": {
+        "outcome": "refused",
+        "error": "WrongSubject"
+      }
+    },
+    {
+      "name": "refused-lifetime-too-long",
+      "description": "Validly signed and inside its window, but notAfter is 25 hours after issuedAt, past the one-day maximum: refused (ADR-0002, decision 5).",
+      "now": "2026-01-01T12:00:00Z",
+      "floor": null,
+      "envelope": {
+        "payloadType": "application/vnd.firestoned.sandboxpolicy.bundle.v3+json",
+        "payload": "eyJzY2hlbWEiOiJzYW5kYm94LmZpcmVzdG9uZWQuaW8vYnVuZGxlL3YzIiwibWV0YSI6eyJ2ZXJzaW9uIjozLCJpc3N1ZWRBdCI6IjIwMjYtMDEtMDFUMTE6MDA6MDBaIiwibm90QWZ0ZXIiOiIyMDI2LTAxLTAyVDEyOjAwOjAwWiJ9LCJjb250ZW50Ijp7InBvbGljeSI6eyJuYW1lc3BhY2UiOiJjb25mb3JtYW5jZSIsIm5hbWUiOiJhZ2VudCIsInVpZCI6IjAwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSJ9LCJwcm9maWxlIjp7Im5hbWUiOiJoYXJkZW5lZCIsImRpZ2VzdCI6InNoYTI1NjowMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwIn0sImtub2JzIjp7Iks0LjEiOiJSMCIsIks1LjEiOiJSMCIsIks1LjMiOiJSMSJ9LCJhdWRpZW5jZXMiOlt7Im5hbWUiOiJpbnRlcm5hbC1naXQiLCJhY2Nlc3MiOiJSZWFkIiwic2NvcGVzIjpbInJlcG86cmVhZCJdLCJ0dGxTZWNvbmRzIjozMDAsImVuZHBvaW50cyI6WyJnaXQuZm9vLmlvOjQ0MyJdLCJydWxlcyI6W3sibWV0aG9kIjoiR0VUIiwicGF0aCI6Ii9yZXBvcy8qKiJ9XX1dLCJlZ3Jlc3MiOltdLCJ0b29scyI6W10sImxlYXNlIjp7Im1heER1cmF0aW9uU2Vjb25kcyI6MTQ0MDAsIm1heENvbmN1cnJlbnQiOjF9LCJidWRnZXRzIjp7Im1heFRvb2xDYWxscyI6NTAwLCJtYXhXYWxsQ2xvY2tTZWNvbmRzIjoxNDQwMCwibWF4RWdyZXNzQnl0ZXMiOjEwNDg1NzYwfX0sImNvbnRlbnREaWdlc3QiOiJzaGEyNTY6NWQ2YmNkZGZmMDlhYWVlNTY2ZGMzMDhmMzA3YTQ1ZDFmZTk4MzM5ODM5MjY4ZGY0ZTdmZjIwZmQ2OGFlNzgxOCJ9",
+        "signatures": [
+          {
+            "keyid": "conformance:v1",
+            "sig": "FEOWUpESJKsR57EuJcNo+mmqzw/miAZgAcAMlspTYL1XnbVZsirlSoLw4vBhsCqGvV9Q15hL7zLBKlaGLW1wDw=="
+          }
+        ]
+      },
+      "expect": {
+        "outcome": "refused",
+        "error": "LifetimeTooLong"
+      }
     }
   ]
 }

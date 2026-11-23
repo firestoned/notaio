@@ -2,6 +2,55 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-22 16:00] - Consumer verification and lint input hardening (ADR-0002, ADR-0008)
+
+**Author:** Erick Bourgeois
+
+The Low findings of the 2026-11-22 security review, in the same pull request as ADR-0021.
+
+### Added
+- `sandboxpolicy-bundle`: `VerifyOptions::max_lifetime`, defaulting to the new
+  `MAX_BUNDLE_LIFETIME_SECONDS` (one day), and `BundleError::LifetimeTooLong`. A consumer refuses
+  a bundle whose `notAfter` is more than that after its `issuedAt`, for policy and audience
+  bundles alike (`check_window`). ADR-0002 decision 5, amended.
+- `sandboxpolicy-bundle`: `floor::check_policy`, `floor::check_audience` and
+  `BundleError::WrongSubject`. ADR-0008 decision 7 (new).
+- Conformance vectors: `refused-wrong-policy`, `refused-wrong-audience` and
+  `refused-lifetime-too-long` (both kinds), now 17 per suite; existing vectors are byte for byte
+  unchanged. `docs/src/reference/conformance.md` regenerated.
+- Tests: the lifetime cap (`tests/bundle.rs`, `tests/audience.rs`), the subject check
+  (`tests/floor.rs`, `tests/audience.rs`), the file floor's temporary file (a planted symlink, a
+  leftover from a crash, mode `0600`), and lint inputs with symlinks (`crates/notaio/tests/lint.rs`,
+  red before the fix).
+
+### Changed
+- **Breaking (crate API):** `floor::accept` and `floor::accept_audience` take the namespace and
+  name the consumer asked for, and refuse any other bundle before the floor is read. No consumer
+  called them (mediatore uses `next_floor`). `conformance::run` and `run_audience` ask for the
+  suite's own subject. The `verify_and_record` example takes `<namespace> <policy>`.
+- `FileFloor` creates its temporary file exclusively (`create_new`, never through an existing file
+  or symlink) with mode `0600`, unlinking a leftover from a crashed process with the same pid and
+  trying once more. mediatore-guest will run it as root (ADR-0008 decision 5, amended).
+- `crates/notaio/src/cli.rs`: `MAX_BUNDLE_LIFETIME_SECONDS` is the bundle crate's constant, so the
+  controller's maximum and the consumers' cannot drift.
+- `notaio lint` refuses a symlink found while walking a directory (an input error), instead of
+  following it: a pull request could loop the walk or have it read outside the tree. A path named
+  on the command line is still followed. ADR-0006 decision 3 notes it.
+- `docs/src/guides/consume-a-bundle.md`, `docs/src/concepts/bundle.md`,
+  `docs/src/developer/index.md`: the new `accept` signature, the two refusals, the floor file's
+  permissions, the example's arguments, the vector count.
+- `docs/threat-model-mapping.md`: full pass, stamp now also names ADR-0002, ADR-0006 and ADR-0008
+  as amended 2026-11-22. T5.4, the lint row and consumer downgrade protection updated; no other
+  row changed.
+- `docs/src/adr/index.md`: removed a duplicated ADR-0021 row.
+
+### Not changed, by decision
+- The Deployment's `:latest` image: release installs use the digest-pinned manifest (ADR-0009).
+- NetworkPolicy egress on 443 and 6443: narrowing it to the control plane is a per-site step the
+  manifest header and the install guide already require.
+- Watching bundle ConfigMaps to republish a deleted one at once: it would widen what the
+  controller reads (T8.2) to shorten an outage already bounded by the refresh.
+
 ## [2026-11-22 12:00] - Status is written only by notaio (ADR-0021)
 
 **Author:** Erick Bourgeois

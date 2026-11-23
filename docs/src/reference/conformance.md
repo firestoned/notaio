@@ -27,6 +27,8 @@ Bundle schema `sandbox.firestoned.io/bundle/v3`. Trusted key, for these vectors 
 | `refused-payload-type` | none | refused: `PayloadType` | The envelope's payload type is v2: refused before anything else is read. |
 | `refused-malformed` | none | refused: `Malformed` | The payload is not base64: refused. |
 | `refused-audience-envelope` | none | refused: `PayloadType` | A valid audience bundle (ADR-0020), signed by the trusted key: refused by its payload type, never read as a policy. |
+| `refused-wrong-policy` | none | refused: `WrongSubject` | A valid bundle for another policy (conformance/other-agent), where the consumer asked for conformance/agent: refused, the floor of neither touched (ADR-0008, decision 7). |
+| `refused-lifetime-too-long` | none | refused: `LifetimeTooLong` | Validly signed and inside its window, but notAfter is 25 hours after issuedAt, past the one-day maximum: refused (ADR-0002, decision 5). |
 
 ## Audience bundles
 
@@ -49,3 +51,5 @@ In `audience-vectors.json`, with `audience-bundle-v1.schema.json`, through `conf
 | `refused-not-yet-valid` | none | refused: `NotYetValid` | Issued five minutes after the consumer's clock, beyond the 60 seconds of skew: refused. |
 | `refused-below-min-version` | none | refused: `Downgrade` | Version 3 against a consumer demanding at least 4, with no floor: refused. |
 | `refused-malformed` | none | refused: `Malformed` | The payload is not base64: refused. |
+| `refused-wrong-audience` | none | refused: `WrongSubject` | A valid bundle for another audience (conformance/nexus), where the consumer asked for conformance/artifactory: refused (ADR-0008, decision 7). |
+| `refused-lifetime-too-long` | none | refused: `LifetimeTooLong` | Validly signed and inside its window, but notAfter is 25 hours after issuedAt, past the one-day maximum: refused (ADR-0002, decision 5). |

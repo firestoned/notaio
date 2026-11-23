@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 
 use jiff::{SignedDuration, Timestamp};
 use sandboxpolicy_bundle::floor::{
-    accept, next_floor, FileFloor, FloorEntry, MemoryFloor, VersionFloor,
+    accept, check_policy, next_floor, FileFloor, FloorEntry, MemoryFloor, VersionFloor,
 };
 use sandboxpolicy_bundle::*;
 use sandboxpolicy_types::{Access, AudienceGrant, Budgets, KnobId, Lease, Step};
@@ -90,7 +90,15 @@ fn dir(name: &str) -> PathBuf {
 #[test]
 fn the_first_bundle_is_accepted_and_recorded() {
     let mut floor = MemoryFloor::default();
-    let p = accept(&bundle("uid-1", 3, t(1)), &keys(), t(2), &mut floor).unwrap();
+    let p = accept(
+        &bundle("uid-1", 3, t(1)),
+        &keys(),
+        t(2),
+        NS,
+        NAME,
+        &mut floor,
+    )
+    .unwrap();
     assert_eq!(p.meta.version, 3);
     let e = floor.get(NS, NAME).expect("recorded");
     assert_eq!((e.uid.as_str(), e.version, e.issued_at), ("uid-1", 3, t(1)));
@@ -99,8 +107,24 @@ fn the_first_bundle_is_accepted_and_recorded() {
 #[test]
 fn same_incarnation_lower_version_is_a_downgrade() {
     let mut floor = MemoryFloor::default();
-    accept(&bundle("uid-1", 3, t(1)), &keys(), t(2), &mut floor).unwrap();
-    let err = accept(&bundle("uid-1", 2, t(1)), &keys(), t(3), &mut floor).unwrap_err();
+    accept(
+        &bundle("uid-1", 3, t(1)),
+        &keys(),
+        t(2),
+        NS,
+        NAME,
+        &mut floor,
+    )
+    .unwrap();
+    let err = accept(
+        &bundle("uid-1", 2, t(1)),
+        &keys(),
+        t(3),
+        NS,
+        NAME,
+        &mut floor,
+    )
+    .unwrap_err();
     assert_eq!(err, BundleError::Downgrade { got: 2, min: 3 });
     assert_eq!(
         floor.get(NS, NAME).unwrap().version,
@@ -112,16 +136,48 @@ fn same_incarnation_lower_version_is_a_downgrade() {
 #[test]
 fn same_incarnation_same_version_is_a_redelivery() {
     let mut floor = MemoryFloor::default();
-    accept(&bundle("uid-1", 3, t(1)), &keys(), t(2), &mut floor).unwrap();
-    accept(&bundle("uid-1", 3, t(2)), &keys(), t(3), &mut floor).unwrap();
+    accept(
+        &bundle("uid-1", 3, t(1)),
+        &keys(),
+        t(2),
+        NS,
+        NAME,
+        &mut floor,
+    )
+    .unwrap();
+    accept(
+        &bundle("uid-1", 3, t(2)),
+        &keys(),
+        t(3),
+        NS,
+        NAME,
+        &mut floor,
+    )
+    .unwrap();
     assert_eq!(floor.get(NS, NAME).unwrap().version, 3);
 }
 
 #[test]
 fn same_incarnation_higher_version_raises_the_floor() {
     let mut floor = MemoryFloor::default();
-    accept(&bundle("uid-1", 3, t(1)), &keys(), t(2), &mut floor).unwrap();
-    accept(&bundle("uid-1", 4, t(3)), &keys(), t(4), &mut floor).unwrap();
+    accept(
+        &bundle("uid-1", 3, t(1)),
+        &keys(),
+        t(2),
+        NS,
+        NAME,
+        &mut floor,
+    )
+    .unwrap();
+    accept(
+        &bundle("uid-1", 4, t(3)),
+        &keys(),
+        t(4),
+        NS,
+        NAME,
+        &mut floor,
+    )
+    .unwrap();
     let e = floor.get(NS, NAME).unwrap();
     assert_eq!((e.version, e.issued_at), (4, t(3)));
 }
@@ -130,8 +186,24 @@ fn same_incarnation_higher_version_raises_the_floor() {
 fn a_newer_incarnation_resets_the_floor() {
     // The policy was deleted and recreated: new uid, versions restart at 1.
     let mut floor = MemoryFloor::default();
-    accept(&bundle("uid-1", 7, t(1)), &keys(), t(2), &mut floor).unwrap();
-    accept(&bundle("uid-2", 1, t(3)), &keys(), t(4), &mut floor).unwrap();
+    accept(
+        &bundle("uid-1", 7, t(1)),
+        &keys(),
+        t(2),
+        NS,
+        NAME,
+        &mut floor,
+    )
+    .unwrap();
+    accept(
+        &bundle("uid-2", 1, t(3)),
+        &keys(),
+        t(4),
+        NS,
+        NAME,
+        &mut floor,
+    )
+    .unwrap();
     let e = floor.get(NS, NAME).unwrap();
     assert_eq!((e.uid.as_str(), e.version), ("uid-2", 1));
 }
@@ -139,9 +211,25 @@ fn a_newer_incarnation_resets_the_floor() {
 #[test]
 fn an_older_incarnation_is_a_replay() {
     let mut floor = MemoryFloor::default();
-    accept(&bundle("uid-2", 1, t(3)), &keys(), t(4), &mut floor).unwrap();
+    accept(
+        &bundle("uid-2", 1, t(3)),
+        &keys(),
+        t(4),
+        NS,
+        NAME,
+        &mut floor,
+    )
+    .unwrap();
     // Still signed and still inside its validity window, but from before the recreation.
-    let err = accept(&bundle("uid-1", 7, t(1)), &keys(), t(4), &mut floor).unwrap_err();
+    let err = accept(
+        &bundle("uid-1", 7, t(1)),
+        &keys(),
+        t(4),
+        NS,
+        NAME,
+        &mut floor,
+    )
+    .unwrap_err();
     assert!(
         matches!(err, BundleError::StaleIncarnation { .. }),
         "{err:?}"
@@ -154,7 +242,7 @@ fn a_bundle_that_fails_verification_never_touches_the_floor() {
     let mut floor = MemoryFloor::default();
     let mut env = bundle("uid-1", 3, t(1));
     env.signatures[0].keyid = "someone-else".into();
-    assert!(accept(&env, &keys(), t(2), &mut floor).is_err());
+    assert!(accept(&env, &keys(), t(2), NS, NAME, &mut floor).is_err());
     assert!(floor.get(NS, NAME).is_none());
 }
 
@@ -163,11 +251,27 @@ fn the_file_floor_survives_a_restart() {
     let path = dir("floor-restart").join("floor.json");
     {
         let mut floor = FileFloor::open(&path).unwrap();
-        accept(&bundle("uid-1", 3, t(1)), &keys(), t(2), &mut floor).unwrap();
+        accept(
+            &bundle("uid-1", 3, t(1)),
+            &keys(),
+            t(2),
+            NS,
+            NAME,
+            &mut floor,
+        )
+        .unwrap();
     }
     // A new process: the floor comes back from disk and still refuses the downgrade.
     let mut floor = FileFloor::open(&path).unwrap();
-    let err = accept(&bundle("uid-1", 2, t(1)), &keys(), t(3), &mut floor).unwrap_err();
+    let err = accept(
+        &bundle("uid-1", 2, t(1)),
+        &keys(),
+        t(3),
+        NS,
+        NAME,
+        &mut floor,
+    )
+    .unwrap_err();
     assert_eq!(err, BundleError::Downgrade { got: 2, min: 3 });
 }
 
@@ -192,7 +296,15 @@ fn a_floor_that_cannot_be_written_refuses_the_bundle() {
         .join("no-such-dir")
         .join("floor.json");
     let mut floor = FileFloor::open(&path).unwrap();
-    let err = accept(&bundle("uid-1", 3, t(1)), &keys(), t(2), &mut floor).unwrap_err();
+    let err = accept(
+        &bundle("uid-1", 3, t(1)),
+        &keys(),
+        t(2),
+        NS,
+        NAME,
+        &mut floor,
+    )
+    .unwrap_err();
     assert!(matches!(err, BundleError::Floor(_)), "{err:?}");
 }
 
@@ -201,8 +313,24 @@ fn the_write_is_atomic_and_leaves_no_temporary_file() {
     let d = dir("floor-atomic");
     let path = d.join("floor.json");
     let mut floor = FileFloor::open(&path).unwrap();
-    accept(&bundle("uid-1", 3, t(1)), &keys(), t(2), &mut floor).unwrap();
-    accept(&bundle("uid-1", 4, t(2)), &keys(), t(3), &mut floor).unwrap();
+    accept(
+        &bundle("uid-1", 3, t(1)),
+        &keys(),
+        t(2),
+        NS,
+        NAME,
+        &mut floor,
+    )
+    .unwrap();
+    accept(
+        &bundle("uid-1", 4, t(2)),
+        &keys(),
+        t(3),
+        NS,
+        NAME,
+        &mut floor,
+    )
+    .unwrap();
     let names: Vec<String> = std::fs::read_dir(&d)
         .unwrap()
         .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
@@ -256,4 +384,140 @@ fn next_floor_is_the_rule_accept_applies() {
         next_floor(Some(&entry("uid-2", 1, t(1))), &p),
         Err(BundleError::StaleIncarnation { .. })
     ));
+}
+
+#[test]
+fn another_policys_bundle_is_refused_and_never_touches_the_floor() {
+    // ADR-0008, decision 7: whoever can write the ConfigMap can put another policy's valid bundle
+    // there. The consumer asked for `other`; the bundle is signed for NAME.
+    let mut floor = MemoryFloor::default();
+    let err = accept(
+        &bundle("uid-1", 3, t(1)),
+        &keys(),
+        t(2),
+        NS,
+        "other",
+        &mut floor,
+    )
+    .unwrap_err();
+    assert_eq!(
+        err,
+        BundleError::WrongSubject {
+            expected: format!("{NS}/other"),
+            got: format!("{NS}/{NAME}"),
+        }
+    );
+    assert!(floor.get(NS, "other").is_none());
+    assert!(floor.get(NS, NAME).is_none());
+
+    // Another namespace with the same name is another policy too.
+    let err = accept(
+        &bundle("uid-1", 3, t(1)),
+        &keys(),
+        t(2),
+        "elsewhere",
+        NAME,
+        &mut floor,
+    )
+    .unwrap_err();
+    assert!(matches!(err, BundleError::WrongSubject { .. }), "{err:?}");
+}
+
+#[test]
+fn check_policy_is_the_same_rule_for_consumers_that_keep_their_own_floor() {
+    let p = verified("uid-1", 3, t(1));
+    check_policy(&p, NS, NAME).unwrap();
+    assert!(matches!(
+        check_policy(&p, NS, "other"),
+        Err(BundleError::WrongSubject { .. })
+    ));
+}
+
+/// The temporary file a [`FileFloor`] write goes through, as `FileFloor` names it.
+#[cfg(unix)]
+fn tmp_path(dir: &Path) -> PathBuf {
+    dir.join(format!(".floor.json.tmp-{}", std::process::id()))
+}
+
+#[cfg(unix)]
+#[test]
+fn a_symlink_planted_at_the_temporary_path_is_never_written_through() {
+    // mediatore-guest runs as root: a write through a planted symlink would overwrite any file.
+    let d = dir("floor-symlink");
+    let path = d.join("floor.json");
+    let target = d.join("victim");
+    std::fs::write(&target, "untouched").unwrap();
+    std::os::unix::fs::symlink(&target, tmp_path(&d)).unwrap();
+
+    let mut floor = FileFloor::open(&path).unwrap();
+    accept(
+        &bundle("uid-1", 3, t(1)),
+        &keys(),
+        t(2),
+        NS,
+        NAME,
+        &mut floor,
+    )
+    .unwrap();
+
+    assert_eq!(std::fs::read_to_string(&target).unwrap(), "untouched");
+    assert!(!std::fs::symlink_metadata(&path)
+        .unwrap()
+        .file_type()
+        .is_symlink());
+    assert_eq!(
+        FileFloor::open(&path)
+            .unwrap()
+            .get(NS, NAME)
+            .unwrap()
+            .version,
+        3
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn a_leftover_temporary_file_from_a_crash_does_not_block_the_floor() {
+    // A restarted consumer often has the same pid (pid 1 in a container or a VM's init).
+    let d = dir("floor-leftover");
+    let path = d.join("floor.json");
+    std::fs::write(tmp_path(&d), "half a floor").unwrap();
+
+    let mut floor = FileFloor::open(&path).unwrap();
+    accept(
+        &bundle("uid-1", 3, t(1)),
+        &keys(),
+        t(2),
+        NS,
+        NAME,
+        &mut floor,
+    )
+    .unwrap();
+    assert_eq!(
+        FileFloor::open(&path)
+            .unwrap()
+            .get(NS, NAME)
+            .unwrap()
+            .version,
+        3
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn the_floor_file_is_readable_by_its_owner_only() {
+    use std::os::unix::fs::PermissionsExt as _;
+    let path = dir("floor-mode").join("floor.json");
+    let mut floor = FileFloor::open(&path).unwrap();
+    accept(
+        &bundle("uid-1", 3, t(1)),
+        &keys(),
+        t(2),
+        NS,
+        NAME,
+        &mut floor,
+    )
+    .unwrap();
+    let mode = std::fs::metadata(&path).unwrap().permissions().mode();
+    assert_eq!(mode & 0o777, 0o600, "mode {mode:o}");
 }

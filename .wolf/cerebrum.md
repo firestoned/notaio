@@ -29,3 +29,4 @@ budget_tokens: 2000
 ## Decision Log
 
 <!-- Significant technical decisions with rationale. Why X was chosen over Y. -->
+- [2026-11-22] `git commit -S` from the agent shell can fail with "gpg: signing failed: Timeout" when the key needs pinentry. Stage the files and hand Erick the exact commit command (or a script) instead of retrying.

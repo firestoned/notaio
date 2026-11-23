@@ -49,12 +49,25 @@ impl std::fmt::Debug for TrustedKeys {
     }
 }
 
+/// The longest bundle lifetime a consumer accepts by default: one day, the upper bound of the
+/// controller's own `NOTAIO_BUNDLE_LIFETIME_SECONDS` (ADR-0018), so every bundle notaio can sign
+/// passes, and a bundle signed to outlive that is refused (ADR-0002, decision 5).
+pub const MAX_BUNDLE_LIFETIME_SECONDS: i64 = 86_400;
+
+/// How far a bundle's `issuedAt` may run ahead of the consumer's clock by default.
+const DEFAULT_MAX_CLOCK_SKEW_SECONDS: i64 = 60;
+
 pub struct VerifyOptions {
     pub now: Timestamp,
     /// Reject anything older than this version. Consumers persist the highest version they have
     /// accepted, which is what stops a downgrade to a looser bundle.
     pub min_version: Option<u64>,
     pub max_clock_skew: SignedDuration,
+    /// Reject a bundle whose `notAfter` is further than this from its `issuedAt`. Expiry is what
+    /// ends a relaxation on its own (ADR-0002, decision 4); a bundle signed with a far `notAfter`,
+    /// by a compromised or misconfigured signer, would otherwise stay valid for as long as it says.
+    /// A consumer may lower it, never usefully raise it past what notaio signs.
+    pub max_lifetime: SignedDuration,
 }
 
 impl VerifyOptions {
@@ -62,12 +75,18 @@ impl VerifyOptions {
         VerifyOptions {
             now,
             min_version: None,
-            max_clock_skew: SignedDuration::from_secs(60),
+            max_clock_skew: SignedDuration::from_secs(DEFAULT_MAX_CLOCK_SKEW_SECONDS),
+            max_lifetime: SignedDuration::from_secs(MAX_BUNDLE_LIFETIME_SECONDS),
         }
     }
 }
 
 /// Verify an envelope and return the payload. Fails closed on every check.
+///
+/// # Errors
+/// `BundleError` for a wrong payload type, no signature from a trusted key, a wrong schema, a
+/// digest that does not match the content, a lifetime over `opts.max_lifetime`, a bundle not yet
+/// valid or expired, or a version below `opts.min_version` (ADR-0002, decision 5; T5.4).
 pub fn verify_bundle(
     env: &Envelope,
     keys: &TrustedKeys,
@@ -119,8 +138,15 @@ pub(crate) fn check_signature(
     Ok(())
 }
 
-/// The validity window and the minimum version, shared by every bundle kind.
+/// The lifetime, the validity window and the minimum version, shared by every bundle kind.
 pub(crate) fn check_window(meta: &BundleMeta, opts: &VerifyOptions) -> Result<(), BundleError> {
+    let lifetime = meta.not_after.duration_since(meta.issued_at);
+    if lifetime > opts.max_lifetime {
+        return Err(BundleError::LifetimeTooLong {
+            lifetime_seconds: lifetime.as_secs(),
+            max_seconds: opts.max_lifetime.as_secs(),
+        });
+    }
     if meta.issued_at > opts.now + opts.max_clock_skew {
         return Err(BundleError::NotYetValid(meta.issued_at.to_string()));
     }

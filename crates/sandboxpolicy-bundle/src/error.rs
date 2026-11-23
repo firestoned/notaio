@@ -30,4 +30,15 @@ pub enum BundleError {
     StaleIncarnation { uid: String },
     #[error("version floor: {0}")]
     Floor(String),
+    /// The signed content names another policy or audience than the one the consumer asked for
+    /// (ADR-0008, decision 7): a valid bundle substituted in transit.
+    #[error("bundle is for {got}, not {expected}")]
+    WrongSubject { expected: String, got: String },
+    /// `notAfter` is further from `issuedAt` than the consumer allows (ADR-0002, decision
+    /// 5): a bundle signed to outlive the controller's own maximum.
+    #[error("bundle lifetime of {lifetime_seconds}s exceeds the maximum of {max_seconds}s")]
+    LifetimeTooLong {
+        lifetime_seconds: i64,
+        max_seconds: i64,
+    },
 }

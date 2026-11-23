@@ -174,8 +174,14 @@ pub struct InputError {
 /// Reads `paths`: files as given, directories searched recursively for `*.yaml` and `*.yml`, in
 /// a stable order.
 ///
+/// A path named here is followed even if it is a symlink: the caller chose it. A symlink found
+/// while walking a directory is an input error. The tree is usually a pull request under review,
+/// and a link in it could loop the walk or have the linter read a file outside the tree; skipping
+/// it instead would leave a policy unchecked.
+///
 /// # Errors
-/// `InputError` for a path that does not exist or a file that cannot be read.
+/// `InputError` for a path that does not exist, a file that cannot be read, or a symlink inside
+/// a directory.
 pub fn load(paths: &[PathBuf]) -> Result<Vec<Source>, InputError> {
     let mut files = Vec::new();
     for p in paths {
@@ -209,7 +215,20 @@ fn collect(path: &Path, out: &mut Vec<PathBuf>) -> Result<(), InputError> {
         .collect();
     entries.sort();
     for entry in entries {
-        if entry.is_dir() {
+        // Not `entry.is_dir()`: that follows a link. `symlink_metadata` never does.
+        let kind = std::fs::symlink_metadata(&entry)
+            .map_err(|e| InputError {
+                path: entry.clone(),
+                message: e.to_string(),
+            })?
+            .file_type();
+        if kind.is_symlink() {
+            return Err(InputError {
+                path: entry,
+                message: "a symlink inside a linted directory; name its target instead".into(),
+            });
+        }
+        if kind.is_dir() {
             collect(&entry, out)?;
             continue;
         }

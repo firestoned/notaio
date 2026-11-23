@@ -76,6 +76,10 @@ struct FloorFile {
 
 /// A floor in one JSON file. Each write goes to a temporary file in the same directory, is
 /// synced, and is renamed over the old file, so a crash leaves either the old floor or the new one.
+///
+/// The temporary file is created exclusively, never through an existing path or symlink, and is
+/// readable and writable by its owner only (ADR-0008, decision 5). Keep the floor in a directory
+/// only the consumer can write: anyone who can replace the file can lower the floor.
 #[derive(Debug)]
 pub struct FileFloor {
     path: PathBuf,
@@ -133,7 +137,7 @@ impl FileFloor {
             .unwrap_or_default();
         let tmp = dir.join(format!(".{name}.tmp-{}", std::process::id()));
         let result = (|| {
-            let mut f = std::fs::File::create(&tmp)?;
+            let mut f = create_exclusive(&tmp)?;
             f.write_all(&bytes)?;
             f.sync_all()?;
             std::fs::rename(&tmp, &self.path)?;
@@ -146,6 +150,36 @@ impl FileFloor {
         }
         Ok(())
     }
+}
+
+/// Mode of the floor's temporary file, and so of the floor: owner read and write only.
+#[cfg(unix)]
+const FLOOR_FILE_MODE: u32 = 0o600;
+
+/// Creates `tmp` exclusively: `O_CREAT | O_EXCL`, which never opens an existing file and never
+/// follows a symlink, even a dangling one. Whatever is already at `tmp`, a leftover from a crashed
+/// process with the same pid or something planted there, is unlinked (the link itself, never its
+/// target) and the create tried once more. If something reappears in between, the write fails and
+/// the bundle is refused.
+fn create_exclusive(tmp: &Path) -> std::io::Result<std::fs::File> {
+    match exclusive_options().open(tmp) {
+        Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
+            std::fs::remove_file(tmp)?;
+            exclusive_options().open(tmp)
+        }
+        other => other,
+    }
+}
+
+fn exclusive_options() -> std::fs::OpenOptions {
+    let mut options = std::fs::OpenOptions::new();
+    options.write(true).create_new(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt as _;
+        options.mode(FLOOR_FILE_MODE);
+    }
+    options
 }
 
 fn floor_err(path: &Path, e: &std::io::Error) -> BundleError {
@@ -238,24 +272,71 @@ fn next_floor_for(
     }
 }
 
-/// Verifies `env`, checks it against the floor, records the new floor durably, and only then
-/// returns the payload (ADR-0008, decision 4).
+/// Refuses a policy bundle whose signed content names another policy than `namespace`/`name`,
+/// the one the consumer asked for (ADR-0008, decision 7). A bundle is whichever policy its signed
+/// content names: whoever can write the ConfigMap a bundle travels in can put another policy's
+/// valid bundle there. Pure, for consumers that apply [`next_floor`] themselves; [`accept`] calls
+/// it.
 ///
-/// The bundle is whichever policy its signed content names, not the one the caller went looking
-/// for: compare `payload.content.policy` with what was asked for, and refuse a mismatch. Whoever
-/// can write the ConfigMap a bundle travels in can put another policy's valid bundle there.
+/// # Errors
+/// `BundleError::WrongSubject` on a mismatch.
+pub fn check_policy(
+    payload: &BundlePayload,
+    namespace: &str,
+    name: &str,
+) -> Result<(), BundleError> {
+    let policy = &payload.content.policy;
+    check_subject(&policy.namespace, &policy.name, namespace, name)
+}
+
+/// [`check_policy`] for an audience bundle.
+///
+/// # Errors
+/// `BundleError::WrongSubject` on a mismatch.
+pub fn check_audience(
+    payload: &AudienceBundlePayload,
+    namespace: &str,
+    name: &str,
+) -> Result<(), BundleError> {
+    let audience = &payload.content.audience;
+    check_subject(&audience.namespace, &audience.name, namespace, name)
+}
+
+fn check_subject(
+    got_namespace: &str,
+    got_name: &str,
+    namespace: &str,
+    name: &str,
+) -> Result<(), BundleError> {
+    if got_namespace == namespace && got_name == name {
+        return Ok(());
+    }
+    Err(BundleError::WrongSubject {
+        expected: key(namespace, name),
+        got: key(got_namespace, got_name),
+    })
+}
+
+/// Verifies `env`, checks that it is the bundle of policy `namespace`/`name`, checks it against
+/// the floor, records the new floor durably, and only then returns the payload (ADR-0008,
+/// decisions 4 and 7).
 ///
 /// # Errors
 /// - any error from [`verify_bundle`]: the floor is not touched;
+/// - `BundleError::WrongSubject` for another policy's bundle ([`check_policy`]): the floor is
+///   not touched;
 /// - any error from [`next_floor`];
 /// - `BundleError::Floor` when the new floor cannot be stored: the bundle is refused.
 pub fn accept(
     env: &Envelope,
     keys: &TrustedKeys,
     now: Timestamp,
+    namespace: &str,
+    name: &str,
     floor: &mut dyn VersionFloor,
 ) -> Result<BundlePayload, BundleError> {
     let payload = verify_bundle(env, keys, &VerifyOptions::at(now))?;
+    check_policy(&payload, namespace, name)?;
     let policy = &payload.content.policy;
     let next = next_floor(
         floor.get(&policy.namespace, &policy.name).as_ref(),
@@ -274,9 +355,9 @@ pub fn audience_floor_name(name: &str) -> String {
 /// Prefix of an audience's name in a floor (see [`audience_floor_name`]).
 const AUDIENCE_FLOOR_PREFIX: &str = "audience/";
 
-/// [`accept`] for an audience bundle: verifies `env`, checks it against the audience's floor
-/// (per namespace and name, ADR-0008), records the new floor durably, and only then returns the
-/// payload.
+/// [`accept`] for an audience bundle: verifies `env`, checks that it is the bundle of audience
+/// `namespace`/`name` ([`check_audience`]), checks it against the audience's floor (per namespace
+/// and name, ADR-0008), records the new floor durably, and only then returns the payload.
 ///
 /// # Errors
 /// As [`accept`], with [`verify_audience_bundle`] in place of [`verify_bundle`].
@@ -284,9 +365,12 @@ pub fn accept_audience(
     env: &Envelope,
     keys: &TrustedKeys,
     now: Timestamp,
+    namespace: &str,
+    name: &str,
     floor: &mut dyn VersionFloor,
 ) -> Result<AudienceBundlePayload, BundleError> {
     let payload = verify_audience_bundle(env, keys, &VerifyOptions::at(now))?;
+    check_audience(&payload, namespace, name)?;
     let audience = &payload.content.audience;
     let name = audience_floor_name(&audience.name);
     let next = next_audience_floor(floor.get(&audience.namespace, &name).as_ref(), &payload)?;

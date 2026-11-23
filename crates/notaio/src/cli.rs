@@ -16,8 +16,10 @@ pub const ENV_BUNDLE_LIFETIME: &str = "NOTAIO_BUNDLE_LIFETIME_SECONDS";
 pub const DEFAULT_BUNDLE_LIFETIME_SECONDS: i64 = 900;
 /// Below 5 minutes a brief signer restart already expires bundles (ADR-0018, decision 2).
 pub const MIN_BUNDLE_LIFETIME_SECONDS: i64 = 300;
-/// Above a day an invalid policy stays honoured long after anyone watches for it (ADR-0018).
-pub const MAX_BUNDLE_LIFETIME_SECONDS: i64 = 86_400;
+/// Above a day an invalid policy stays honoured long after anyone watches for it (ADR-0018). The
+/// same constant consumers refuse a longer lifetime by (ADR-0002, decision 5), so the two cannot
+/// drift apart.
+pub const MAX_BUNDLE_LIFETIME_SECONDS: i64 = sandboxpolicy_bundle::MAX_BUNDLE_LIFETIME_SECONDS;
 
 /// The bundle lifetime from the raw value of [`ENV_BUNDLE_LIFETIME`], or the default when unset.
 ///
