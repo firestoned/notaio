@@ -1,0 +1,1 @@
+--8<-- "adr/0021-status-written-only-by-notaio.md"

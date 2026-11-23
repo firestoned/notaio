@@ -56,7 +56,8 @@ write the ADR.
 
 - `sandboxpolicy-core` is pure. No I/O, no clock reads, no network. Time comes in as `now`.
 - `sandboxpolicy-types` and `sandboxpolicy-bundle` must never depend on `kube` or `k8s-openapi`.
-  mediatore-guest runs as root in every sandbox VM and depends on the bundle crate.
+  mediatore-guest runs as root in every sandbox VM and will link the bundle crate when it verifies
+  bundles itself (roadmap 00 phase 3; today mediatore verifies them).
   `make bundle-deps-check` enforces it, and keeps schemars, async, networking and TLS out too
   (ADR-0014).
 - No `unwrap` or `expect` outside tests. No `unsafe`.

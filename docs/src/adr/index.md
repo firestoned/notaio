@@ -26,6 +26,7 @@ code that implements it, and every implemented ADR ends with a full pass over th
 | [ADR-0018](0018-tightening-latency.md) | Tightening latency: a shorter, bounded bundle lifetime |
 | [ADR-0019](0019-resource-sizes.md) | Resource sizes for K2.4 (proposed) |
 | [ADR-0020](0020-sandbox-audience.md) | SandboxAudience, an audience defined by the platform or by a team, signed like a policy |
+| [ADR-0021](0021-status-written-only-by-notaio.md) | Status is written only by notaio |
 
 ADRs live in [`docs/adr/`](https://github.com/firestoned/notaio/tree/main/docs/adr) in the
 repository and are never renumbered.

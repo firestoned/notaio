@@ -152,9 +152,9 @@ RELEASE_DIR   ?= $(CURDIR)/dist
 IMAGE_DIGEST  ?=
 RELEASE_IMAGE  = ghcr.io/$(ORG)/$(BINARY)
 
-# What a consumer of sandboxpolicy-bundle compiles (ADR-0014). mediatore-guest runs it as root in
-# every sandbox VM, and mediatore bans ring outright, so its own dependency tree stays free of
-# Kubernetes, schema generation, async runtimes, networking and TLS.
+# What a consumer of sandboxpolicy-bundle compiles (ADR-0014). mediatore-guest will run it as root
+# in every sandbox VM (roadmap 00 phase 3), and mediatore bans ring outright, so its own
+# dependency tree stays free of Kubernetes, schema generation, async runtimes, networking and TLS.
 BUNDLE_FORBIDDEN_DEPS = schemars schemars_derive kube kube-client kube-core kube-runtime k8s-openapi \
 	tokio hyper hyper-util reqwest rustls ring openssl openssl-sys
 

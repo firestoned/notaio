@@ -129,7 +129,7 @@ The consumer loop, with `sandboxpolicy_bundle::floor`, is in
 
 ```sh
 cargo run -p sandboxpolicy-bundle --example verify_and_record -- \
-    bundle.dsse.json <key-id> <public-key-base64> floor.json
+    bundle.dsse.json <key-id> <public-key-base64> floor.json <namespace> <policy>
 ```
 
 ## Verifying a release

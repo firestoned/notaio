@@ -17,7 +17,8 @@ use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
 
 use crate::floor::{
-    accept, audience_floor_name, next_audience_floor, FloorEntry, MemoryFloor, VersionFloor,
+    accept, audience_floor_name, check_audience, next_audience_floor, FloorEntry, MemoryFloor,
+    VersionFloor,
 };
 use crate::{verify_audience_bundle, BundleError, Envelope, TrustedKeys, VerifyOptions};
 
@@ -44,7 +45,8 @@ pub struct Suite {
     pub bundle_schema: String,
     /// The keys a consumer trusts for these vectors: key id and standard base64 public key.
     pub trusted_keys: Vec<TrustedKey>,
-    /// The policy every vector is about, where its floor is kept.
+    /// The policy every vector is about: the one the consumer asks for, and where its floor is
+    /// kept. A vector signed for another policy is refused (`WrongSubject`).
     pub policy: PolicyCoordinates,
     pub vectors: Vec<Vector>,
 }
@@ -73,7 +75,7 @@ pub struct AudienceSuite {
     pub bundle_schema: String,
     /// The keys a consumer trusts for these vectors.
     pub trusted_keys: Vec<TrustedKey>,
-    /// The audience every vector is about. Its floor is kept under
+    /// The audience every vector is about, the one the consumer asks for. Its floor is kept under
     /// [`audience_floor_name`]`(name)` in this namespace.
     pub audience: PolicyCoordinates,
     pub vectors: Vec<Vector>,
@@ -176,11 +178,13 @@ pub fn error_name(e: &BundleError) -> &'static str {
         BundleError::NonCanonical(_) => "NonCanonical",
         BundleError::StaleIncarnation { .. } => "StaleIncarnation",
         BundleError::Floor(_) => "Floor",
+        BundleError::WrongSubject { .. } => "WrongSubject",
+        BundleError::LifetimeTooLong { .. } => "LifetimeTooLong",
     }
 }
 
-/// Checks `vector` with this crate's [`accept`] and a fresh in-memory floor: what any consumer's
-/// verifier must reproduce. A vector with a `minVersion` is first verified with it.
+/// Checks `vector` with this crate's [`accept`], asking for the suite's policy, and a fresh
+/// in-memory floor: what any consumer's verifier must reproduce. A vector with a `minVersion` is first verified with it.
 ///
 /// # Errors
 /// A description of how the outcome differs from [`Vector::expect`].
@@ -189,15 +193,16 @@ pub fn run(suite: &Suite, vector: &Vector, keys: &TrustedKeys) -> Result<(), Str
     let mut floor = seeded(ns, name, vector)?;
     let outcome = match vector.min_version {
         Some(min) => crate::verify_bundle(&vector.envelope, keys, &with_min(vector.now, min))
-            .and_then(|_| accept(&vector.envelope, keys, vector.now, &mut floor)),
-        None => accept(&vector.envelope, keys, vector.now, &mut floor),
+            .and_then(|_| accept(&vector.envelope, keys, vector.now, ns, name, &mut floor)),
+        None => accept(&vector.envelope, keys, vector.now, ns, name, &mut floor),
     };
     judge(vector, outcome.map(|p| p.meta.version), &floor, ns, name)
 }
 
 /// [`run`] for an audience vector: [`verify_audience_bundle`] (with the vector's `minVersion`),
-/// then the floor rule under [`audience_floor_name`], recorded only on acceptance. The same steps
-/// as [`crate::floor::accept_audience`], which takes no minimum version.
+/// then [`check_audience`] against the suite's audience, then the floor rule under
+/// [`audience_floor_name`], recorded only on acceptance. The same steps as
+/// [`crate::floor::accept_audience`], which takes no minimum version.
 ///
 /// # Errors
 /// A description of how the outcome differs from [`Vector::expect`].
@@ -214,6 +219,7 @@ pub fn run_audience(
         None => VerifyOptions::at(vector.now),
     };
     let outcome = verify_audience_bundle(&vector.envelope, keys, &opts).and_then(|payload| {
+        check_audience(&payload, ns, &suite.audience.name)?;
         let next = next_audience_floor(floor.get(ns, &name).as_ref(), &payload)?;
         floor.set(ns, &name, next)?;
         Ok(payload.meta.version)

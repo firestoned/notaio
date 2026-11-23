@@ -6,10 +6,12 @@
 //!
 //! ```sh
 //! cargo run -p sandboxpolicy-bundle --example verify_and_record -- \
-//!     bundle.dsse.json <key-id> <public-key-base64> /var/lib/consumer/floor.json
+//!     bundle.dsse.json <key-id> <public-key-base64> /var/lib/consumer/floor.json <namespace> <policy>
 //! ```
 //!
-//! `bundle.dsse.json` is the `bundle.dsse.json` key of a published `<policy>-bundle` ConfigMap.
+//! `bundle.dsse.json` is the `bundle.dsse.json` key of a published `<policy>-bundle` ConfigMap,
+//! and `<namespace>` and `<policy>` name the policy you asked for: a bundle signed for any other
+//! policy is refused (ADR-0008, decision 7).
 //! Exit codes: 0 accepted, 1 refused, 2 bad arguments or unreadable input.
 
 use std::path::Path;
@@ -25,13 +27,14 @@ const EXIT_USAGE: u8 = 2;
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    let [envelope, key_id, public_key, floor] = args.as_slice() else {
+    let [envelope, key_id, public_key, floor, namespace, name] = args.as_slice() else {
         eprintln!(
-            "usage: verify_and_record <envelope.json> <key-id> <public-key-base64> <floor.json>"
+            "usage: verify_and_record <envelope.json> <key-id> <public-key-base64> <floor.json> \
+             <namespace> <policy>"
         );
         return ExitCode::from(EXIT_USAGE);
     };
-    match run(envelope, key_id, public_key, floor) {
+    match run(envelope, key_id, public_key, floor, (namespace, name)) {
         Ok(Ok(summary)) => {
             println!("accepted: {summary}");
             ExitCode::SUCCESS
@@ -54,6 +57,7 @@ fn run(
     key_id: &str,
     public_key: &str,
     floor: &str,
+    (namespace, name): (&str, &str),
 ) -> Result<Result<String, String>, String> {
     let text = std::fs::read_to_string(envelope).map_err(|e| format!("{envelope}: {e}"))?;
     let env: Envelope = serde_json::from_str(&text).map_err(|e| format!("{envelope}: {e}"))?;
@@ -67,16 +71,18 @@ fn run(
     keys.insert(key_id, public).map_err(|e| e.to_string())?;
     let mut floor = FileFloor::open(Path::new(floor)).map_err(|e| e.to_string())?;
 
-    Ok(accept(&env, &keys, Timestamp::now(), &mut floor)
-        .map(|p| {
-            format!(
-                "{}/{} version {} (uid {}), valid until {}",
-                p.content.policy.namespace,
-                p.content.policy.name,
-                p.meta.version,
-                p.content.policy.uid,
-                p.meta.not_after
-            )
-        })
-        .map_err(|e| e.to_string()))
+    Ok(
+        accept(&env, &keys, Timestamp::now(), namespace, name, &mut floor)
+            .map(|p| {
+                format!(
+                    "{}/{} version {} (uid {}), valid until {}",
+                    p.content.policy.namespace,
+                    p.content.policy.name,
+                    p.meta.version,
+                    p.content.policy.uid,
+                    p.meta.not_after
+                )
+            })
+            .map_err(|e| e.to_string()),
+    )
 }

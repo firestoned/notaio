@@ -26,7 +26,7 @@ use sandboxpolicy_bundle::floor::FloorEntry;
 use sandboxpolicy_bundle::{
     sign_audience_bundle, sign_bundle, AudienceBundleContent, AudienceBundlePayload, AudienceRef,
     BundleContent, BundleMeta, BundlePayload, Ed25519Signer, Envelope, PolicyRef, ProfileRef,
-    AUDIENCE_SCHEMA, SCHEMA,
+    AUDIENCE_SCHEMA, MAX_BUNDLE_LIFETIME_SECONDS, SCHEMA,
 };
 use sandboxpolicy_types::{
     Access, AudienceCredential, AudienceDefinition, AudienceGrant, Backend, Budgets,
@@ -99,6 +99,39 @@ fn payload(uid: &str, version: u64, issued_at: Timestamp) -> Result<BundlePayloa
             not_after: issued_at + SignedDuration::from_hours(2),
         },
         content(uid),
+    )
+    .map_err(|e| e.to_string())
+}
+
+/// One hour past the longest lifetime a consumer accepts: a bundle signed to outlive it.
+const OVERLONG: SignedDuration =
+    SignedDuration::from_secs(MAX_BUNDLE_LIFETIME_SECONDS + SECONDS_PER_HOUR);
+const SECONDS_PER_HOUR: i64 = 3600;
+
+/// The first incarnation's version 3 at 11:00, signed for another policy in the same namespace.
+fn other_policy() -> Result<BundlePayload, String> {
+    let mut c = content(UID);
+    c.policy.name = "other-agent".into();
+    BundlePayload::new(
+        BundleMeta {
+            version: 3,
+            issued_at: at(11, 0),
+            not_after: at(13, 0),
+        },
+        c,
+    )
+    .map_err(|e| e.to_string())
+}
+
+/// Version 3 at 11:00, valid for longer than any consumer accepts.
+fn overlong() -> Result<BundlePayload, String> {
+    BundlePayload::new(
+        BundleMeta {
+            version: 3,
+            issued_at: at(11, 0),
+            not_after: at(11, 0) + OVERLONG,
+        },
+        content(UID),
     )
     .map_err(|e| e.to_string())
 }
@@ -210,6 +243,10 @@ fn suite() -> Result<Suite, String> {
             at(12, 0), None, malformed, "Malformed"),
         refused("refused-audience-envelope", "A valid audience bundle (ADR-0020), signed by the trusted key: refused by its payload type, never read as a policy.",
             at(12, 0), None, sign_audience(&audience_payload(AUDIENCE_UID, 3, at(11, 0))?, TRUSTED_SEED)?, "PayloadType"),
+        refused("refused-wrong-policy", "A valid bundle for another policy (conformance/other-agent), where the consumer asked for conformance/agent: refused, the floor of neither touched (ADR-0008, decision 7).",
+            at(12, 0), None, sign(&other_policy()?, TRUSTED_SEED)?, "WrongSubject"),
+        refused("refused-lifetime-too-long", "Validly signed and inside its window, but notAfter is 25 hours after issuedAt, past the one-day maximum: refused (ADR-0002, decision 5).",
+            at(12, 0), None, sign(&overlong()?, TRUSTED_SEED)?, "LifetimeTooLong"),
     ];
     Ok(Suite {
         schema: "sandbox.firestoned.io/conformance/v1".into(),
@@ -312,6 +349,19 @@ fn audience_suite() -> Result<AudienceSuite, String> {
         "Downgrade",
     );
     below_min.min_version = Some(4);
+    let mut other = audience_content(uid);
+    other.audience.name = "nexus".into();
+    let other_audience =
+        AudienceBundlePayload::new(good.meta.clone(), other).map_err(|e| e.to_string())?;
+    let overlong_audience = AudienceBundlePayload::new(
+        BundleMeta {
+            version: 3,
+            issued_at: at(11, 0),
+            not_after: at(11, 0) + OVERLONG,
+        },
+        audience_content(uid),
+    )
+    .map_err(|e| e.to_string())?;
 
     let vectors = vec![
         accepted("accepted-first-sight", "No floor yet: a valid audience bundle is accepted and becomes the floor.",
@@ -343,6 +393,10 @@ fn audience_suite() -> Result<AudienceSuite, String> {
         below_min,
         refused("refused-malformed", "The payload is not base64: refused.",
             at(12, 0), None, malformed, "Malformed"),
+        refused("refused-wrong-audience", "A valid bundle for another audience (conformance/nexus), where the consumer asked for conformance/artifactory: refused (ADR-0008, decision 7).",
+            at(12, 0), None, sign_audience(&other_audience, TRUSTED_SEED)?, "WrongSubject"),
+        refused("refused-lifetime-too-long", "Validly signed and inside its window, but notAfter is 25 hours after issuedAt, past the one-day maximum: refused (ADR-0002, decision 5).",
+            at(12, 0), None, sign_audience(&overlong_audience, TRUSTED_SEED)?, "LifetimeTooLong"),
     ];
     Ok(AudienceSuite {
         schema: "sandbox.firestoned.io/conformance/v1".into(),

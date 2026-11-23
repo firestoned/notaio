@@ -2,6 +2,99 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-22 22:30] - Docs CI: the Poetry lock targets Python 3.11 again
+
+**Author:** Erick Bourgeois
+
+### Fixed
+- `.github/requirements/poetry.txt`: Dependabot's msgpack bump (#105) regenerated the lock without
+  `--python-version 3.11`, dropping `importlib-metadata` and `zipp`, which `keyring` needs below
+  Python 3.12, so the Documentation workflow's `--require-hashes` install failed on the next pull
+  request that touched the docs. Regenerated with the command in the file's header, keeping the
+  versions the lock held before (`importlib-metadata` 9.0.0, `zipp` 4.1.0) rather than a newer
+  release that adds a dependency. Against the last working lock, only Dependabot's certifi and
+  msgpack bumps differ. Checked with a hash-pinned install in `python:3.11-slim`.
+
+## [2026-11-22 16:00] - Consumer verification and lint input hardening (ADR-0002, ADR-0008)
+
+**Author:** Erick Bourgeois
+
+The Low findings of the 2026-11-22 security review, in the same pull request as ADR-0021.
+
+### Added
+- `sandboxpolicy-bundle`: `VerifyOptions::max_lifetime`, defaulting to the new
+  `MAX_BUNDLE_LIFETIME_SECONDS` (one day), and `BundleError::LifetimeTooLong`. A consumer refuses
+  a bundle whose `notAfter` is more than that after its `issuedAt`, for policy and audience
+  bundles alike (`check_window`). ADR-0002 decision 5, amended.
+- `sandboxpolicy-bundle`: `floor::check_policy`, `floor::check_audience` and
+  `BundleError::WrongSubject`. ADR-0008 decision 7 (new).
+- Conformance vectors: `refused-wrong-policy`, `refused-wrong-audience` and
+  `refused-lifetime-too-long` (both kinds), now 17 per suite; existing vectors are byte for byte
+  unchanged. `docs/src/reference/conformance.md` regenerated.
+- Tests: the lifetime cap (`tests/bundle.rs`, `tests/audience.rs`), the subject check
+  (`tests/floor.rs`, `tests/audience.rs`), the file floor's temporary file (a planted symlink, a
+  leftover from a crash, mode `0600`), and lint inputs with symlinks (`crates/notaio/tests/lint.rs`,
+  red before the fix).
+
+### Changed
+- **Breaking (crate API):** `floor::accept` and `floor::accept_audience` take the namespace and
+  name the consumer asked for, and refuse any other bundle before the floor is read. No consumer
+  called them (mediatore uses `next_floor`). `conformance::run` and `run_audience` ask for the
+  suite's own subject. The `verify_and_record` example takes `<namespace> <policy>`.
+- `FileFloor` creates its temporary file exclusively (`create_new`, never through an existing file
+  or symlink) with mode `0600`, unlinking a leftover from a crashed process with the same pid and
+  trying once more. mediatore-guest will run it as root (ADR-0008 decision 5, amended).
+- `crates/notaio/src/cli.rs`: `MAX_BUNDLE_LIFETIME_SECONDS` is the bundle crate's constant, so the
+  controller's maximum and the consumers' cannot drift.
+- `notaio lint` refuses a symlink found while walking a directory (an input error), instead of
+  following it: a pull request could loop the walk or have it read outside the tree. A path named
+  on the command line is still followed. ADR-0006 decision 3 notes it.
+- `docs/src/guides/consume-a-bundle.md`, `docs/src/concepts/bundle.md`,
+  `docs/src/developer/index.md`: the new `accept` signature, the two refusals, the floor file's
+  permissions, the example's arguments, the vector count.
+- `docs/threat-model-mapping.md`: full pass, stamp now also names ADR-0002, ADR-0006 and ADR-0008
+  as amended 2026-11-22. T5.4, the lint row and consumer downgrade protection updated; no other
+  row changed.
+- `docs/src/adr/index.md`: removed a duplicated ADR-0021 row.
+
+### Not changed, by decision
+- The Deployment's `:latest` image: release installs use the digest-pinned manifest (ADR-0009).
+- NetworkPolicy egress on 443 and 6443: narrowing it to the control plane is a per-site step the
+  manifest header and the install guide already require.
+- Watching bundle ConfigMaps to republish a deleted one at once: it would widen what the
+  controller reads (T8.2) to shorten an outage already bounded by the refresh.
+
+## [2026-11-22 12:00] - Status is written only by notaio (ADR-0021)
+
+**Author:** Erick Bourgeois
+
+### Added
+- `docs/adr/0021-status-written-only-by-notaio.md`, with its docs-site stub, index row and nav
+  entry. The GitOps-only admission rule named the main resources, which do not match their
+  `/status` subresources, while notaio reads status back as input: the previous bundle version and
+  digest, the refresh time, and an audience's standing in a collision. Any identity with RBAC to
+  patch status could make notaio publish below what consumers hold, or have a platform audience's
+  change refused. Found in a security review on 2026-11-22.
+- `deploy/admission/gitops-only.yaml`: a second ValidatingAdmissionPolicy and binding,
+  `sandbox-status-notaio-only`, matching `UPDATE` of the status of `SandboxProfile`,
+  `SandboxPolicy`, `KnobGrant` and `SandboxAudience` and admitting only
+  `system:serviceaccount:notaio-system:notaio`. Same file, so it is applied and removed with the
+  spec rule.
+- `crates/notaio/tests/e2e_admission.rs`: `status_writes_are_denied_even_for_cluster_admin`, and
+  the GitOps test now waits for both rules, checks the controller still publishes, and checks
+  cluster-admin is refused a status patch on the published policy.
+
+### Changed
+- `docs/threat-model-mapping.md`: full pass, stamped 2026-11-22 against ADR-0001 to ADR-0021. A
+  new "Implemented here" row for status; the T8.2 and collision rows cite ADR-0021. The guest rows
+  now say what the code does: mediatore verifies bundles and keeps the floor with `next_floor`,
+  refusing a bundle whose signed namespace is not the one it was read from; mediatore-guest does
+  not link `sandboxpolicy-bundle` yet (roadmap 00 phase 3). The docs were ahead of the code.
+- `CLAUDE.md`, `CONTRIBUTING.md`, `.claude/rules/rust-style.md`, the `Makefile` comment on
+  `bundle-deps-check`: the guest *will* link the bundle crate, not *does*.
+- `docs/architecture.md`, `docs/src/guides/install.md`: notaio is the only status writer, and the
+  username to change when notaio runs in another namespace.
+
 ## [2026-11-21 21:30] - Attest without a storage record; roadmap 00's rule for a superseded bundle
 
 **Author:** Erick Bourgeois

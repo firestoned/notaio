@@ -178,16 +178,17 @@ async fn policy_compiles_to_a_signed_verifiable_bundle_that_never_goes_back() {
     let _ = std::fs::remove_file(&floor_path);
     {
         let mut floor = FileFloor::open(&floor_path).expect("open floor");
-        accept(&env1, &keys, Timestamp::now(), &mut floor).expect("v1 accepted first");
-        accept(&env2, &keys, Timestamp::now(), &mut floor).expect("v2 accepted after v1");
+        accept(&env1, &keys, Timestamp::now(), &ns, &name, &mut floor).expect("v1 accepted first");
+        accept(&env2, &keys, Timestamp::now(), &ns, &name, &mut floor)
+            .expect("v2 accepted after v1");
     }
     let mut restarted = FileFloor::open(&floor_path).expect("reopen floor");
     assert_eq!(
-        accept(&env1, &keys, Timestamp::now(), &mut restarted).unwrap_err(),
+        accept(&env1, &keys, Timestamp::now(), &ns, &name, &mut restarted).unwrap_err(),
         BundleError::Downgrade { got: v1, min: v2 },
         "a restarted consumer at version {v2} accepted version {v1}"
     );
-    accept(&env2, &keys, Timestamp::now(), &mut restarted)
+    accept(&env2, &keys, Timestamp::now(), &ns, &name, &mut restarted)
         .expect("the current bundle passes the floor");
     let _ = std::fs::remove_file(&floor_path);
 

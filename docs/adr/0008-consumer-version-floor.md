@@ -3,6 +3,8 @@
 - **Status:** Accepted
 - **Date:** 2026-10-21
 - **Deciders:** Erick Bourgeois
+- **Amended:** 2026-11-01 (decision 5, `next_floor`); 2026-11-22 (decision 5, the temporary file;
+  decision 6, the example's arguments; decision 7, new)
 - **Related:** [ADR-0002](0002-bundle-contract.md) decision 5 (verification refuses a version below
   the highest accepted); threat model T5.4 (bundle downgrade); ROADMAP M1 ("example verifier for
   mediatore and mediatore-guest, with persisted highest version accepted")
@@ -50,8 +52,28 @@ would bypass the floor.
    `VersionFloor` (mediatore keeps it in an async database, read and written in one transaction,
    mediatore ADR-0026) applies the same rule without re-implementing it. Decision 4 still holds:
    the entry is used only after it is stored.
+
+   *Amended 2026-11-22:* the temporary file is created exclusively (`O_CREAT | O_EXCL`), which
+   never opens an existing file and never follows a symlink, with mode `0600`. A leftover at the
+   same path (a crashed process with the same pid, common for pid 1 in a container or a VM) is
+   unlinked, never its target, and the create tried once more; anything that reappears in between
+   fails the write, and so refuses the bundle. mediatore-guest runs as root: a write through a
+   planted symlink would have overwritten any file on the VM. The directory must still be
+   writable by the consumer alone, because whoever can replace the file can lower the floor.
 6. **A runnable example** shows the whole consumer loop: read an envelope, verify it against a
-   trusted key, check and record the floor, report the result.
+   trusted key, check and record the floor, report the result. *Amended 2026-11-22:* it takes the
+   namespace and name of the policy asked for (decision 7).
+7. **A bundle is accepted only for the policy the consumer asked for** (added 2026-11-22).
+   `accept` and `accept_audience` take the namespace and name the consumer looked up and refuse a
+   bundle whose signed content names any other (`WrongSubject`), after verification and before
+   the floor is read, so neither floor moves. The ConfigMap is only how a bundle travels:
+   whoever can write ConfigMaps in a namespace can put another policy's valid bundle there.
+   Before this, `accept` keyed the floor by the signed name and left the comparison to the
+   caller, which a caller could forget. `check_policy` and `check_audience` are the same check
+   alone, for a consumer that applies `next_floor` itself. The conformance vectors gain
+   `refused-wrong-policy` and `refused-wrong-audience`, and `run` asks for the suite's own
+   policy. This changes the signatures of `accept` and `accept_audience`; no consumer called
+   them when it landed (mediatore uses `next_floor`).
 
 ## Consequences
 

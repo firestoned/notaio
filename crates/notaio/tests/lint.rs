@@ -8,7 +8,7 @@
 use std::path::PathBuf;
 
 use jiff::Timestamp;
-use notaio::lint::{lint_sources, lint_sources_with, Level, Report, Source};
+use notaio::lint::{lint_sources, lint_sources_with, load, Level, Report, Source};
 use sandboxpolicy_core::ceilings::Ceilings;
 
 fn now() -> Timestamp {
@@ -530,4 +530,55 @@ fn i011_audiences_without_the_platform_namespace_warn_and_policies_are_unchanged
 fn an_invalid_sandbox_audience_is_i001() {
     let text = sandbox_audience("x", "team-a", "telepathy", "x.example.com:443");
     assert_eq!(codes(&lint_with_platform(&text)), ["I001"]);
+}
+
+/// A fresh directory for one test.
+fn tree(name: &str) -> PathBuf {
+    let d = std::path::Path::new(env!("CARGO_TARGET_TMPDIR")).join(name);
+    let _ = std::fs::remove_dir_all(&d);
+    std::fs::create_dir_all(&d).unwrap();
+    d
+}
+
+#[cfg(unix)]
+#[test]
+fn a_symlink_loop_in_a_pull_request_is_an_input_error() {
+    // The tree comes from the pull request under review. Following a link back to its own
+    // directory recursed until the kernel's symlink limit, reading the tree forty times over.
+    let d = tree("lint-symlink-loop");
+    std::fs::write(d.join("policy.yaml"), "kind: ConfigMap\n").unwrap();
+    std::os::unix::fs::symlink(&d, d.join("again")).unwrap();
+    let Err(err) = load(std::slice::from_ref(&d)) else {
+        panic!("a tree with a symlink in it was loaded");
+    };
+    assert_eq!(err.path, d.join("again"));
+    assert!(err.message.contains("symlink"), "{}", err.message);
+}
+
+#[cfg(unix)]
+#[test]
+fn a_symlinked_file_in_the_tree_is_an_input_error() {
+    // Never read a file outside the tree on a pull request's say-so, and never skip one quietly:
+    // a policy the linter did not read is a policy it did not check.
+    let d = tree("lint-symlink-file");
+    let outside = tree("lint-symlink-file-outside").join("secret.yaml");
+    std::fs::write(&outside, "kind: ConfigMap\n").unwrap();
+    std::os::unix::fs::symlink(&outside, d.join("policy.yaml")).unwrap();
+    let Err(err) = load(std::slice::from_ref(&d)) else {
+        panic!("a tree with a symlink in it was loaded");
+    };
+    assert_eq!(err.path, d.join("policy.yaml"));
+}
+
+#[cfg(unix)]
+#[test]
+fn a_path_named_on_the_command_line_is_followed() {
+    // The operator chose it: only links found while walking are refused.
+    let real = tree("lint-named-real");
+    std::fs::write(real.join("policy.yaml"), "kind: ConfigMap\n").unwrap();
+    let link = tree("lint-named").join("link");
+    std::os::unix::fs::symlink(&real, &link).unwrap();
+    let sources = load(std::slice::from_ref(&link)).unwrap();
+    assert_eq!(sources.len(), 1);
+    assert_eq!(sources[0].path, link.join("policy.yaml"));
 }

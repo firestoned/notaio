@@ -51,15 +51,18 @@ JSON payload:
 2. At least one signature verifies (ed25519) against a key the consumer trusts, by key id.
 3. The schema is exactly `sandbox.firestoned.io/bundle/v3`.
 4. The recomputed content digest matches `contentDigest`.
-5. `issuedAt` is not in the future, allowing 60 seconds of clock skew.
-6. `notAfter` has not passed.
-7. The version is not below the consumer's floor.
+5. `notAfter` is at most one day after `issuedAt`, the longest lifetime notaio signs. A consumer
+   may demand less (`VerifyOptions::max_lifetime`).
+6. `issuedAt` is not in the future, allowing 60 seconds of clock skew.
+7. `notAfter` has not passed.
+8. The version is not below the consumer's floor.
 
 The floor is the highest version the consumer has accepted for that policy, persisted before the
 bundle is acted on, so a restart cannot reopen a downgrade
 ([ADR-0008](../adr/0008-consumer-version-floor.md)). It is keyed by namespace and name, with the
 policy's `uid` ordered by `issuedAt`, so a recreated policy is accepted and a replay from its old
-incarnation is refused. `sandboxpolicy_bundle::floor` implements it.
+incarnation is refused. `sandboxpolicy_bundle::floor` implements it, and refuses a bundle whose
+signed content names another policy than the one the consumer asked for, before the floor is read.
 
 ## How a consumer proves it gets this right: the conformance vectors
 
@@ -70,10 +73,11 @@ exactly what notaio refuses**.
 
 The conformance vectors are that test, as data. Each vector is a real, signed envelope plus
 everything needed to judge it: the consumer's clock, the floor it holds before, and the verdict it
-must reach, with the floor it must be left holding. Fourteen of them cover first sight, a newer
+must reach, with the floor it must be left holding. Seventeen of them cover first sight, a newer
 version, a recreated policy, and every way to be refused: a downgrade, a stale incarnation, a
 forged signature, an untrusted key, expiry, a bundle from the future, a digest mismatch, an old
-schema, an old payload type and a malformed payload. They are signed with a test-only key that is
+schema, an old payload type, a malformed payload, an audience bundle in place of a policy's,
+another policy's bundle, and a lifetime past the maximum. They are signed with a test-only key that is
 published with them, so anyone can run them, and generated from fixed seeds and clocks, so they
 never change unless the contract does.
 

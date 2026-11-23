@@ -10,7 +10,10 @@
 #     ship on merge to main. Add the chain with the release pipeline (M2).
 #
 # The site pulls in canonical files from outside docs/ (ROADMAPS.md, the
-# generated profiles), hence the extra paths below.
+# generated profiles), hence the extra paths below. `.github/requirements/` is
+# the hash-locked Poetry this job installs: a change to the lock has to run the
+# install, or a broken lock surfaces on the next unrelated docs PR (Dependabot's
+# msgpack bump, #105, dropped packages Python 3.11 needs and nothing ran).
 
 name: Documentation
 
@@ -22,12 +25,14 @@ on:
       - 'docs/**'
       - 'ROADMAPS.md'
       - 'deploy/profiles/**'
+      - '.github/requirements/**'
       - '.github/workflows/docs.yaml'
   pull_request:
     paths:
       - 'docs/**'
       - 'ROADMAPS.md'
       - 'deploy/profiles/**'
+      - '.github/requirements/**'
       - '.github/workflows/docs.yaml'
   workflow_dispatch:
 

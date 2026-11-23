@@ -78,7 +78,7 @@ change, which is why they sit in small crates with their own ADR.
 
 | Contract | Written by | Read by | Defined in | State |
 | --- | --- | --- | --- | --- |
-| `SandboxProfile`, `SandboxPolicy`, `KnobGrant`, `ExposureCeiling`, `SandboxAudience` (`sandbox.firestoned.io/v1alpha2`) | GitOps reconciler (spec), notaio (status only) | notaio; banlieue admission (M3) | `crates/sandboxpolicy-api`, `deploy/crds/` | v1alpha2 |
+| `SandboxProfile`, `SandboxPolicy`, `KnobGrant`, `ExposureCeiling`, `SandboxAudience` (`sandbox.firestoned.io/v1alpha2`) | GitOps reconciler (spec), notaio (status only; the only status writer, by admission, ADR-0021) | notaio; banlieue admission (M3) | `crates/sandboxpolicy-api`, `deploy/crds/` | v1alpha2 |
 | Signed bundle: a DSSE envelope over the compiled content, canonicalised with RFC 8785 | notaio, and only notaio | mediatore, mediatore-guest, gateway | `crates/sandboxpolicy-bundle`, [ADR-0002](adr/0002-bundle-contract.md), [ADR-0005](adr/0005-canonical-form-rfc-8785.md) | implemented; schema v2, frozen |
 | Bundle location | notaio | mediatore through the API; guests through mediatore's relay | ConfigMap `<policy>-bundle` beside the policy, with version and digest annotations ([ADR-0003](adr/0003-bundle-distribution.md)) | published today; the relay is M3 |
 | Signed audience bundle: one `SandboxAudience`'s definition, its own DSSE payload type and schema `audience-bundle/v1`, so it never verifies as a policy bundle | notaio, and only notaio, when the platform audience namespace is set | mediatore | `crates/sandboxpolicy-bundle/src/audience.rs`, [ADR-0020](adr/0020-sandbox-audience.md) | implemented; mediatore adopts it in its ADR-0055 |

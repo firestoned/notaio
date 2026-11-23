@@ -57,7 +57,8 @@ the project's one changelog, saying what a user would notice.
 
 - **`sandboxpolicy-core` is pure.** No I/O, no clock reads, no network: time comes in as `now`.
 - **`sandboxpolicy-types` and `sandboxpolicy-bundle` never depend on `kube` or `k8s-openapi`.**
-  mediatore-guest runs as root in every sandbox VM and depends on the bundle crate.
+  mediatore-guest runs as root in every sandbox VM and will link the bundle crate when it verifies
+  bundles itself (roadmap 00 phase 3).
 - **No `unwrap` or `expect` outside tests, and no `unsafe`.**
 - **Every lint rule has a stable code, a documented meaning, and a test that fails when the rule
   is weakened.** Add the test with the rule.

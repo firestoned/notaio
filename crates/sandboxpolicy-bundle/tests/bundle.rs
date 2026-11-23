@@ -167,6 +167,56 @@ fn expired_bundle_is_rejected() {
     ));
 }
 
+/// A signed bundle issued at `now()` that lasts `lifetime`.
+fn lasting(lifetime: SignedDuration) -> Envelope {
+    let p = BundlePayload::new(
+        BundleMeta {
+            version: 3,
+            issued_at: now(),
+            not_after: now() + lifetime,
+        },
+        content(),
+    )
+    .unwrap();
+    sign_bundle(&p, &signer()).unwrap()
+}
+
+#[test]
+fn a_bundle_signed_to_outlive_the_maximum_lifetime_is_rejected() {
+    // ADR-0002, decision 5: expiry is what ends a relaxation, so a far notAfter is refused even
+    // with a valid signature, and while the consumer's clock is well inside the window.
+    let max = SignedDuration::from_secs(MAX_BUNDLE_LIFETIME_SECONDS);
+    let env = lasting(max + SignedDuration::from_secs(1));
+    assert_eq!(
+        verify_bundle(&env, &trusted(&signer()), &VerifyOptions::at(now())).unwrap_err(),
+        BundleError::LifetimeTooLong {
+            lifetime_seconds: MAX_BUNDLE_LIFETIME_SECONDS + 1,
+            max_seconds: MAX_BUNDLE_LIFETIME_SECONDS,
+        }
+    );
+}
+
+#[test]
+fn the_longest_lifetime_notaio_signs_is_accepted() {
+    // The default maximum is the controller's own upper bound (ADR-0018), never below it.
+    assert_eq!(MAX_BUNDLE_LIFETIME_SECONDS, 86_400);
+    let env = lasting(SignedDuration::from_secs(MAX_BUNDLE_LIFETIME_SECONDS));
+    verify_bundle(&env, &trusted(&signer()), &VerifyOptions::at(now())).unwrap();
+}
+
+#[test]
+fn a_consumer_may_lower_the_maximum_lifetime() {
+    let env = lasting(SignedDuration::from_hours(1));
+    let opts = VerifyOptions {
+        max_lifetime: SignedDuration::from_mins(30),
+        ..VerifyOptions::at(now())
+    };
+    assert!(matches!(
+        verify_bundle(&env, &trusted(&signer()), &opts).unwrap_err(),
+        BundleError::LifetimeTooLong { .. }
+    ));
+}
+
 #[test]
 fn future_bundle_is_rejected() {
     let s = signer();

@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 use base64::engine::general_purpose::STANDARD as STANDARD_SIG;
 use base64::Engine as _;
 use jiff::{SignedDuration, Timestamp};
-use sandboxpolicy_bundle::floor::MemoryFloor;
+use sandboxpolicy_bundle::floor::{MemoryFloor, VersionFloor};
 use sandboxpolicy_bundle::*;
 use sandboxpolicy_types::{
     AudienceCredential, AudienceDefinition, Backend, Budgets, CredentialFormat, CredentialSource,
@@ -234,15 +234,16 @@ fn the_floor_refuses_an_older_audience_bundle_and_is_apart_from_policies() {
     let mut floor = MemoryFloor::default();
 
     let v2 = sign_audience_bundle(&payload(2), &s).unwrap();
-    floor::accept_audience(&v2, &keys, now(), &mut floor).unwrap();
+    floor::accept_audience(&v2, &keys, now(), "team-a", "artifactory", &mut floor).unwrap();
 
     let v1 = sign_audience_bundle(&payload(1), &s).unwrap();
-    let err = floor::accept_audience(&v1, &keys, now(), &mut floor).unwrap_err();
+    let err =
+        floor::accept_audience(&v1, &keys, now(), "team-a", "artifactory", &mut floor).unwrap_err();
     assert_eq!(err, BundleError::Downgrade { got: 1, min: 2 });
 
     // A policy named like the audience starts from its own floor.
     let policy = sign_bundle(&policy_payload(), &s).unwrap();
-    floor::accept(&policy, &keys, now(), &mut floor).unwrap();
+    floor::accept(&policy, &keys, now(), "team-a", "artifactory", &mut floor).unwrap();
 }
 
 #[test]
@@ -251,16 +252,62 @@ fn a_recreated_audience_restarts_its_floor() {
     let keys = trusted(&s);
     let mut floor = MemoryFloor::default();
     let v5 = sign_audience_bundle(&payload(5), &s).unwrap();
-    floor::accept_audience(&v5, &keys, now(), &mut floor).unwrap();
+    floor::accept_audience(&v5, &keys, now(), "team-a", "artifactory", &mut floor).unwrap();
 
     let mut c = content();
     c.audience.uid = "uid-a2".into();
     let later = now() + SignedDuration::from_mins(1);
     let recreated = AudienceBundlePayload::new(meta(1, later), c).unwrap();
     let env = sign_audience_bundle(&recreated, &s).unwrap();
-    floor::accept_audience(&env, &keys, later, &mut floor).unwrap();
+    floor::accept_audience(&env, &keys, later, "team-a", "artifactory", &mut floor).unwrap();
 
     // The old incarnation is now a replay.
-    let err = floor::accept_audience(&v5, &keys, later, &mut floor).unwrap_err();
+    let err =
+        floor::accept_audience(&v5, &keys, later, "team-a", "artifactory", &mut floor).unwrap_err();
     assert!(matches!(err, BundleError::StaleIncarnation { .. }), "{err}");
+}
+
+#[test]
+fn another_audiences_bundle_is_refused_and_never_touches_the_floor() {
+    // ADR-0008, decision 7, for audiences: the consumer asked for team-a/nexus.
+    let s = signer();
+    let keys = trusted(&s);
+    let mut floor = MemoryFloor::default();
+    let env = sign_audience_bundle(&payload(2), &s).unwrap();
+    let err =
+        floor::accept_audience(&env, &keys, now(), "team-a", "nexus", &mut floor).unwrap_err();
+    assert_eq!(
+        err,
+        BundleError::WrongSubject {
+            expected: "team-a/nexus".into(),
+            got: "team-a/artifactory".into(),
+        }
+    );
+    assert!(floor
+        .get("team-a", &floor::audience_floor_name("nexus"))
+        .is_none());
+    assert!(floor
+        .get("team-a", &floor::audience_floor_name("artifactory"))
+        .is_none());
+}
+
+#[test]
+fn an_audience_bundle_signed_to_outlive_the_maximum_lifetime_is_rejected() {
+    let s = signer();
+    let max = SignedDuration::from_secs(MAX_BUNDLE_LIFETIME_SECONDS);
+    let p = AudienceBundlePayload::new(
+        BundleMeta {
+            version: 1,
+            issued_at: now(),
+            not_after: now() + max + SignedDuration::from_secs(1),
+        },
+        content(),
+    )
+    .unwrap();
+    let env = sign_audience_bundle(&p, &s).unwrap();
+    let err = verify_audience_bundle(&env, &trusted(&s), &VerifyOptions::at(now())).unwrap_err();
+    assert!(
+        matches!(err, BundleError::LifetimeTooLong { .. }),
+        "{err:?}"
+    );
 }

@@ -40,6 +40,20 @@
         "bundle",
         "lifetime"
       ]
+    },
+    {
+      "id": "bug-004",
+      "date": "2026-11-22",
+      "file": ".github/requirements/poetry.txt",
+      "error_message": "In --require-hashes mode, all requirements must have their versions pinned with ==: importlib-metadata>=4.11.4 (from keyring)",
+      "root_cause": "Dependabot regenerated the uv lock without --python-version 3.11, dropping importlib-metadata and zipp (keyring needs them below 3.12); docs CI only runs on docs changes, so main did not show it",
+      "fix": "uv pip compile with the header's command, constraining importlib-metadata==9.0.0 and zipp==4.1.0; verify with pip install --require-hashes in python:3.11-slim",
+      "tags": [
+        "ci",
+        "docs",
+        "dependabot",
+        "python"
+      ]
     }
   ]
 }

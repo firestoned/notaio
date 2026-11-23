@@ -4,6 +4,7 @@
 - Date: 2026-09-30
 - Amended: 2026-10-16 (open decisions 1, 2 and 4 resolved by ADR-0003, ADR-0004 and ADR-0005)
 - Amended: 2026-10-20 (decisions 1 and 2: RFC 8785 canonical form and schema v2, from ADR-0005)
+- Amended: 2026-11-22 (decision 5: a consumer refuses a lifetime over one day)
 
 ## Context
 
@@ -31,6 +32,16 @@ loosen a running sandbox.
    that the content digest matches the content, that `issuedAt` is not in the future beyond a small
    skew, that `notAfter` has not passed, and that the version is not below the highest it has already
    accepted. Any failure is a refusal.
+
+   *Amended 2026-11-22:* a consumer also refuses a bundle whose `notAfter` is more than one day
+   after its `issuedAt` (`LifetimeTooLong`). Decision 4 bounds the lifetime on the signing side
+   only: a bundle signed with a far `notAfter`, by a misconfigured or compromised signer, would
+   otherwise stay valid for as long as it says, and expiry is what ends a relaxation. One day is
+   the upper bound of `NOTAIO_BUNDLE_LIFETIME_SECONDS` ([ADR-0018](0018-tightening-latency.md)),
+   and the controller takes its bound from the same constant, `MAX_BUNDLE_LIFETIME_SECONDS` in
+   `sandboxpolicy-bundle`, so every bundle notaio can sign passes. `VerifyOptions::max_lifetime`
+   lets a consumer demand less. No schema change: the fields are the same, only the rule is new.
+   The conformance vectors gain `refused-lifetime-too-long` for both bundle kinds.
 
 ## Open decisions
 

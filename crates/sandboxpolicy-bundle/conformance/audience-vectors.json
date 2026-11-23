@@ -352,6 +352,46 @@
         "outcome": "refused",
         "error": "Malformed"
       }
+    },
+    {
+      "name": "refused-wrong-audience",
+      "description": "A valid bundle for another audience (conformance/nexus), where the consumer asked for conformance/artifactory: refused (ADR-0008, decision 7).",
+      "now": "2026-01-01T12:00:00Z",
+      "floor": null,
+      "envelope": {
+        "payloadType": "application/vnd.firestoned.sandboxaudience.bundle.v1+json",
+        "payload": "eyJzY2hlbWEiOiJzYW5kYm94LmZpcmVzdG9uZWQuaW8vYXVkaWVuY2UtYnVuZGxlL3YxIiwibWV0YSI6eyJ2ZXJzaW9uIjozLCJpc3N1ZWRBdCI6IjIwMjYtMDEtMDFUMTE6MDA6MDBaIiwibm90QWZ0ZXIiOiIyMDI2LTAxLTAxVDEzOjAwOjAwWiJ9LCJjb250ZW50Ijp7ImF1ZGllbmNlIjp7Im5hbWVzcGFjZSI6ImNvbmZvcm1hbmNlIiwibmFtZSI6Im5leHVzIiwidWlkIjoiMDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDExIn0sImRlZmluaXRpb24iOnsiY3JlZGVudGlhbCI6eyJiYWNrZW5kIjoic2VjcmV0IiwicGxhY2VtZW50IjoiZ2F0ZXdheSIsImZvcm1hdCI6ImJhc2ljIiwic291cmNlIjp7InNlY3JldFJlZiI6eyJuYW1lIjoiYWYtc3ZjIiwidG9rZW5LZXkiOiJ0b2tlbiIsInVzZXJuYW1lS2V5IjoidXNlcm5hbWUifX0sImV4dHJhSGVhZGVycyI6W119LCJlbmRwb2ludHMiOlsiYXJ0aWZhY3RvcnkuZm9vLmlvOjQ0MyJdLCJydWxlcyI6W3sibWV0aG9kIjoiR0VUIiwicGF0aCI6Ii92Mi8qKiJ9XSwibWF4VHRsU2Vjb25kcyI6OTAwfX0sImNvbnRlbnREaWdlc3QiOiJzaGEyNTY6ZGY5NzRhYjBkNGY0ZGM0ZmQ0YzRkZWE0MDQyYjRhNDZiNTYxOGI0NGE5YTBlYThiNGU2Y2RjMDQ0OWE3MWYyOCJ9",
+        "signatures": [
+          {
+            "keyid": "conformance:v1",
+            "sig": "TLkWPwSycZUyLJsKX09uLHzl+FRIMzNzH3LvyEMto8bfNriYutlh5GTpu4o0ePXfZWIzWd79XuwZtx1imTeADA=="
+          }
+        ]
+      },
+      "expect": {
+        "outcome": "refused",
+        "error": "WrongSubject"
+      }
+    },
+    {
+      "name": "refused-lifetime-too-long",
+      "description": "Validly signed and inside its window, but notAfter is 25 hours after issuedAt, past the one-day maximum: refused (ADR-0002, decision 5).",
+      "now": "2026-01-01T12:00:00Z",
+      "floor": null,
+      "envelope": {
+        "payloadType": "application/vnd.firestoned.sandboxaudience.bundle.v1+json",
+        "payload": "eyJzY2hlbWEiOiJzYW5kYm94LmZpcmVzdG9uZWQuaW8vYXVkaWVuY2UtYnVuZGxlL3YxIiwibWV0YSI6eyJ2ZXJzaW9uIjozLCJpc3N1ZWRBdCI6IjIwMjYtMDEtMDFUMTE6MDA6MDBaIiwibm90QWZ0ZXIiOiIyMDI2LTAxLTAyVDEyOjAwOjAwWiJ9LCJjb250ZW50Ijp7ImF1ZGllbmNlIjp7Im5hbWVzcGFjZSI6ImNvbmZvcm1hbmNlIiwibmFtZSI6ImFydGlmYWN0b3J5IiwidWlkIjoiMDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDExIn0sImRlZmluaXRpb24iOnsiY3JlZGVudGlhbCI6eyJiYWNrZW5kIjoic2VjcmV0IiwicGxhY2VtZW50IjoiZ2F0ZXdheSIsImZvcm1hdCI6ImJhc2ljIiwic291cmNlIjp7InNlY3JldFJlZiI6eyJuYW1lIjoiYWYtc3ZjIiwidG9rZW5LZXkiOiJ0b2tlbiIsInVzZXJuYW1lS2V5IjoidXNlcm5hbWUifX0sImV4dHJhSGVhZGVycyI6W119LCJlbmRwb2ludHMiOlsiYXJ0aWZhY3RvcnkuZm9vLmlvOjQ0MyJdLCJydWxlcyI6W3sibWV0aG9kIjoiR0VUIiwicGF0aCI6Ii92Mi8qKiJ9XSwibWF4VHRsU2Vjb25kcyI6OTAwfX0sImNvbnRlbnREaWdlc3QiOiJzaGEyNTY6NzRlNWZkZTJmMWIxZjgyODFmNDY3NzM1MDNmNTQ4NDQwMjE0ZTcwM2I1OWQ0MjY0ZjE0ZWJmYTA2Nzk1ZDBjMSJ9",
+        "signatures": [
+          {
+            "keyid": "conformance:v1",
+            "sig": "QtwwZae043uVooboq+IHNOoPdjQebLwgyPZPZRy2sT4vxI8knVUV/DY5/5poPR0Inp/MV9L7RVvRk1YL8QZRBw=="
+          }
+        ]
+      },
+      "expect": {
+        "outcome": "refused",
+        "error": "LifetimeTooLong"
+      }
     }
   ]
 }

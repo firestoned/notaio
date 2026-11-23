@@ -60,40 +60,40 @@ a bundle ([ADR-0008](../adr/0008-consumer-version-floor.md)):
 use sandboxpolicy_bundle::floor::{accept, FileFloor};
 
 let mut floor = FileFloor::open(Path::new("/var/lib/consumer/floor.json"))?;
-match accept(&envelope, &keys, Timestamp::now(), &mut floor) {
+match accept(&envelope, &keys, Timestamp::now(), &wanted_namespace, &wanted_name, &mut floor) {
     Ok(payload) => enforce(payload),          // verified, and the floor is already on disk
-    Err(refusal) => keep_last_good(refusal),  // forged, expired, a downgrade, or a stale replay
+    Err(refusal) => keep_last_good(refusal),  // forged, expired, substituted, a downgrade, a replay
 }
 ```
 
 `accept` runs every check of [`verify_bundle`](../concepts/bundle.md#how-a-consumer-decides-to-trust-it),
-then compares with the floor:
+checks the bundle is the policy you asked for, then compares with the floor:
 
 | Refusal | Cause |
 | --- | --- |
 | `NoValidSignature` | No signature verifies against a trusted key |
 | `DigestMismatch`, `Schema`, `PayloadType`, `Malformed` | The payload is not what notaio produces |
+| `LifetimeTooLong` | `notAfter` is more than one day after `issuedAt`, longer than notaio ever signs |
 | `NotYetValid`, `Expired` | Outside its validity window (60 seconds of skew allowed) |
+| `WrongSubject` | Validly signed, but for another policy than the one you asked for |
 | `Downgrade` | A lower version than the floor, for the same incarnation of the policy |
 | `StaleIncarnation` | A bundle from an earlier incarnation of a recreated policy |
 | `Floor` | The floor could not be read or stored. The bundle is refused, never accepted unrecorded. |
 
 `FileFloor` writes atomically (a temporary file, synced, renamed), and a damaged file is an error,
-never an empty floor. Implement `VersionFloor` for another store if a file does not suit you.
+never an empty floor. The temporary file is created exclusively, never through an existing file
+or symlink, and the floor is readable by its owner only. Keep it in a directory only the consumer
+can write: whoever can replace the file can lower the floor. Implement `VersionFloor` for another
+store if a file does not suit you.
 
 ## Check it is the bundle you asked for
 
 A valid signature says notaio compiled the bundle, not that it is the one for your sandbox. The
 ConfigMap is only where the bundle travels: anyone who can write ConfigMaps in a namespace can put
-another policy's bundle there, validly signed. After `accept`, compare what the bundle says it is
-with what you looked up, and refuse a mismatch:
-
-```rust
-let policy = &payload.content.policy;
-if policy.namespace != wanted_namespace || policy.name != wanted_name {
-    return refuse("a bundle for another policy");
-}
-```
+another policy's bundle there, validly signed. `accept` takes the namespace and name you looked
+up and refuses any other (`WrongSubject`), before the floor is read
+([ADR-0008](../adr/0008-consumer-version-floor.md), decision 7). If you keep the floor yourself,
+call the same check, `floor::check_policy(&payload, namespace, name)`.
 
 Key everything you keep (the floor, a cache) by the namespace and name inside the signed payload,
 never by the ConfigMap's own.
@@ -103,7 +103,8 @@ never by the ConfigMap's own.
 With audience definitions on ([ADR-0020](../adr/0020-sandbox-audience.md)), each
 [SandboxAudience](../concepts/audiences.md) is published the same way: ConfigMap
 `<audience>-audience`, key `audience.dsse.json`. Verify it with `verify_audience_bundle` and keep
-its floor with `floor::accept_audience`; a policy bundle never verifies as an audience bundle, nor
+its floor with `floor::accept_audience` (or `floor::check_audience` and `next_audience_floor`); a
+policy bundle never verifies as an audience bundle, nor
 the reverse. The same check applies: use `payload.content.audience.namespace` and `name`, and
 decide platform or team from that signed namespace and your own configuration.
 
@@ -111,12 +112,13 @@ If your store is async, or the floor lives in a database row you read and write 
 transaction, call the decision on its own and keep the order: verify, decide, store, then act.
 
 ```rust
-use sandboxpolicy_bundle::floor::next_floor;
+use sandboxpolicy_bundle::floor::{check_policy, next_floor};
 
-let payload = verify_bundle(&envelope, &keys, &VerifyOptions::at(Utc::now()))?;
-let held = store.floor(&policy.namespace, &policy.name).await?;    // in your transaction
+let payload = verify_bundle(&envelope, &keys, &VerifyOptions::at(Timestamp::now()))?;
+check_policy(&payload, &wanted_namespace, &wanted_name)?;           // WrongSubject
+let held = store.floor(&wanted_namespace, &wanted_name).await?;      // in your transaction
 let next = next_floor(held.as_ref(), &payload)?;                   // Downgrade, StaleIncarnation
-store.set_floor(&policy.namespace, &policy.name, &next).await?;    // commit, then
+store.set_floor(&wanted_namespace, &wanted_name, &next).await?;      // commit, then
 enforce(payload);
 ```
 
@@ -126,7 +128,7 @@ enforce(payload);
 kubectl -n team-docs get configmap docs-agent-bundle \
   -o jsonpath='{.data.bundle\.dsse\.json}' > bundle.dsse.json
 cargo run -p sandboxpolicy-bundle --example verify_and_record -- \
-    bundle.dsse.json notaio:v1 <public-key-base64> floor.json
+    bundle.dsse.json notaio:v1 <public-key-base64> floor.json team-docs docs-agent
 # accepted: team-docs/docs-agent version 1 (uid ...), valid until ...
 ```
 

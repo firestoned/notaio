@@ -35,4 +35,4 @@ pub use dsse::{
     PAYLOAD_TYPE,
 };
 pub use error::BundleError;
-pub use verify::{verify_bundle, TrustedKeys, VerifyOptions};
+pub use verify::{verify_bundle, TrustedKeys, VerifyOptions, MAX_BUNDLE_LIFETIME_SECONDS};
