@@ -15,6 +15,7 @@ request that changes a roadmap's state.
 | 01 | Run notaio for real | Done: phases A to D on the test cluster (2026-10-31) | [01-run-notaio-for-real.md](https://github.com/firestoned/notaio/blob/main/.github/community/01-run-notaio-for-real.md) |
 | 02 | OpenBao unseals itself | Done: the static seal, proven on kind and on the test cluster (2026-11-01) | [02-unseal-the-signer.md](https://github.com/firestoned/notaio/blob/main/.github/community/02-unseal-the-signer.md) |
 | 03 | Policies delivered as signed OCI artifacts | Done: the test cluster on two signed artifacts, every refusal shown; ADR-0015 and a guide (2026-11-02) | [03-signed-policy-artifacts.md](https://github.com/firestoned/notaio/blob/main/.github/community/03-signed-policy-artifacts.md) |
+| 04 | A policy composed of others, signed as one bundle | Not started (opened 2026-11-24): `spec.includes`, one ceiling over the composite; replaces mediatore roadmap 16 | [04-composed-policies.md](https://github.com/firestoned/notaio/blob/main/.github/community/04-composed-policies.md) |
 
 ## M0: scaffold and contracts (this repository state)
 
@@ -153,6 +154,10 @@ notaio computes in the cluster.
   `SandboxAudience`, platform and team audiences by namespace, its own signed bundle, lint `L022`
   to `L029`, opt-in with `NOTAIO_AUDIENCE_PLATFORM_NAMESPACE`. mediatore's consumer side is its
   ADR-0055.
+- Policies composed of others, signed as one bundle. Planned in
+  [roadmap 04](https://github.com/firestoned/notaio/blob/main/.github/community/04-composed-policies.md):
+  `spec.includes`, the composite under its own ceiling, so a sandbox that needs several
+  policies' grants still names one policy and reads one bundle.
 - Knob dashboard over `KnobGrant`. Done 2026-11-07: a Grafana dashboard in `deploy/monitoring/`
   (health, policies, bundles, and every active grant by expiry and age), in
   [Observe notaio](https://firestoned.github.io/notaio/guides/observability/#dashboard).
