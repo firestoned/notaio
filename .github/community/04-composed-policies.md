@@ -3,7 +3,7 @@
 
 # Roadmap 04: a policy composed of others, signed as one bundle
 
-- **Status:** Not started (opened 2026-11-24). Replaces mediatore roadmap 16 and its ADR-0065
+- **Status:** In progress: phase 0 decided in ADR-0022 (2026-11-24); opened 2026-11-24. Replaces mediatore roadmap 16 and its ADR-0065
   (several `policyRefs` per sandbox, composed by the broker), which are withdrawn in favour of this.
 - **Milestone:** M4 in [`ROADMAPS.md`](../../ROADMAPS.md)
 - **Related:** ADR-0002 and ADR-0013 (the bundle); ADR-0007 (the ExposureCeiling and Security's
@@ -87,14 +87,12 @@ its origin (`from: <include name>`, absent for the composite's own), added in bu
 with ADR-0016's `sources` and ADR-0019's `resources`, so there is one migration. Any change to an
 include is a new version of every composite that includes it. Until v4 ships, the controller
 re-signs on an include's change and records the includes in the policy's status only.
-*Open:* whether a consumer must refuse a v4 bundle whose includes it cannot see, or treat them as
-audit data only. *Recommendation:* audit data only; the signature covers the effective content.
+*Decided (ADR-0022 decision 7):* audit data only; the signature covers the effective content.
 
 **D7. A policy that exists only to be included.** Such a policy has no ceiling of its own and
-today reports `Ready=False` with `L015`, which reads as an alarm. *Open:* a `spec.publish: false`
-(lint it, never publish it, report `Ready=True` as an include) or leave `L015` as is.
-*Recommendation:* `spec.publish: false`; a sandbox naming such a policy is refused by the consumer
-as `NotFound`, because no bundle exists.
+today reports `Ready=False` with `L015`, which reads as an alarm. *Decided (ADR-0022 decision 8):* `spec.publish: false`: lint it, never publish it, report
+`Ready=True` (`NotPublished`); a sandbox naming such a policy is refused by the consumer as
+`NotFound`, because no bundle exists.
 
 ## 4. Work, in order
 
@@ -102,13 +100,15 @@ Each phase is shippable and leaves the system no looser than before.
 
 ### Phase 0: design
 
-- [ ] ADR-0023 (a policy composed of others), D1 to D7 decided.
+- [x] ADR-0022 (a policy composed of others), D1 to D7 decided (2026-11-24). D6: includes are
+      audit data only. D7: `spec.publish: false`.
 - [ ] mediatore ADR-0065 marked rejected, pointing here; mediatore roadmap 16 removed.
 
 ### Phase 1: the composition, pure (`sandboxpolicy-core`)
 
-- [ ] `spec.includes` in `sandboxpolicy-types` (v1alpha2), with the CEL rule for one to four
-      unique names; the CRD regenerated (`make crds`).
+- [ ] `spec.includes` and `spec.publish` in `sandboxpolicy-api` (v1alpha2), with the CEL rules
+      for one to four unique names and for `publish: false` without `includes`; the CRD
+      regenerated (`make manifests`).
 - [ ] `compose(policy, includes) -> EffectivePolicy`, with the origin of every named entry. Tests
       first: a union without collisions; the composite's own entry replacing an include's; two
       includes colliding refused (`L031`); an include with includes refused (`L032`); subjects
@@ -117,8 +117,7 @@ Each phase is shippable and leaves the system no looser than before.
 
 ### Phase 2: `notaio lint`
 
-- [ ] Includes resolved across the files given; a missing include is an input error (next free
-      `I0xx`). Text and SARIF name the include a finding is about.
+- [ ] Includes resolved across the files given; a missing include is an input error (`I012`). Text and SARIF name the include a finding is about.
 - [ ] `examples/`: a composite of two policies, with its ceiling.
 
 ### Phase 3: the controller

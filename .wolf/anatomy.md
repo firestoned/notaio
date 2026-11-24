@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-11-23T14:15:21.107Z
-> Files: 87 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-11-24T05:11:26.415Z
+> Files: 88 tracked | Anatomy hits: 0 | Misses: 0
 
 > Project structure index. Auto-maintained by OpenWolf hooks and daemon.
 > Run `openwolf scan` to generate, or wait for the first Claude Code session.
@@ -153,7 +153,7 @@
 
 ## docs/
 
-- `architecture.md` — Architecture (~1331 tok)
+- `architecture.md` — Architecture (~6317 tok)
 - `framework-mapping.md` — Mapping to the FINOS AI Governance Framework (~4117 tok)
 - `threat-model-mapping.md` — Mapping to the AgentSandbox threat model (~683 tok)
 
@@ -166,6 +166,7 @@
 - `0019-resource-sizes.md` — ADR-0019: Resource sizes for K2.4 (~1488 tok)
 - `0020-sandbox-audience.md` — ADR-0020: SandboxAudience, an audience defined by the platform or by a team, signed like a policy (~4717 tok)
 - `0021-status-written-only-by-notaio.md` — ADR-0021: Status is written only by notaio (~1031 tok)
+- `0022-composed-policies.md` — ADR-0022: A policy composed of others, signed as one bundle (~2712 tok)
 
 ## docs/air/
 

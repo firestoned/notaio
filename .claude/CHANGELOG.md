@@ -2,6 +2,40 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-24 00:11] - ADR-0022: a policy composed of others (roadmap 04 phase 0)
+
+**Author:** Erick Bourgeois
+
+### Added
+- `docs/adr/0022-composed-policies.md`: `SandboxPolicy.spec.includes` (one to four policies in the
+  same namespace, one level), named parts only, the composite's own entry replacing an include's,
+  collisions refused (L031), no nested includes (L032), subjects no wider than every include's
+  (L033), L014 to L016 on the effective content against the composite's own ceiling,
+  `spec.publish: false` for a policy that exists only to be included, and in bundle v4
+  `includes` and per-entry `from` as audit data only. notaio gains no
+  `delete` on ConfigMaps: a policy that stops publishing has its old bundle expire (ADR-0018).
+- `docs/src/adr/0022-composed-policies.md`, `docs/src/adr/index.md`, `docs/mkdocs.yml`: the site
+  stub, index row and nav entry.
+
+### Changed
+- `docs/architecture.md`: a "Composed policies" section under Evaluation (the CALM step,
+  deferred until the model is bootstrapped).
+- `.github/community/04-composed-policies.md`, `ROADMAPS.md`: roadmap 04 in progress, phase 0's
+  ADR item done, D6 and D7 decided, the ADR number (0022, not 0023), `I012` for a missing
+  include, and phase 1's field in `sandboxpolicy-api` with `make manifests`.
+
+### Why
+A sandbox names one policy, and a workload needing several policies' grants had only a copied
+policy with no ceiling. Composing in notaio keeps one ceiling approved by Security over the
+combination and one signed bundle per sandbox (ADR-0007, T5.4, objective O3), where mediatore
+ADR-0065's composition at the broker left the union unbounded.
+
+### Impact
+- [ ] Breaking change (CRD schema, bundle schema, public API)
+- [ ] Requires cluster rollout (CRDs, profiles or controller)
+- [ ] Config or examples change only
+- [x] Documentation only
+
 ## [2026-11-23 04:30] - Release prep v0.8.0
 
 **Author:** Erick Bourgeois
