@@ -54,6 +54,21 @@
         "dependabot",
         "python"
       ]
+    },
+    {
+      "id": "bug-005",
+      "date": "2026-11-26",
+      "file": ".github/requirements/poetry.txt",
+      "error_message": "In --require-hashes mode, all requirements must have their versions pinned with ==: typing_extensions>=4.16.0 (from anyio)",
+      "root_cause": "Recurrence of bug-004: Dependabot's poetry 2.3.4 bump (#113) recompiled the lock without --python-version 3.11, dropping eight packages 3.11 needs (typing-extensions, importlib-metadata, zipp, cachecontrol, backports-tarfile, backports-zstd, lazy-importer, pbs-installer). The docs job failed on #113, #114 and #115, but approving a held lock PR turns auto-merge on and the main ruleset does not require the docs check, so all three merged red",
+      "fix": "Recompile with the header's uv command in python:3.11-slim and verify pip install --require-hashes there. The gap that let it merge is the approval path in dependabot-auto-merge.yaml, not the lock",
+      "tags": [
+        "ci",
+        "docs",
+        "dependabot",
+        "python",
+        "recurrence"
+      ]
     }
   ]
 }
