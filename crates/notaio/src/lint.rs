@@ -105,7 +105,7 @@ pub enum Level {
 /// One finding, attributed to a file and an object.
 #[derive(Debug, Clone)]
 pub struct Diagnostic {
-    /// A lint rule (`L001` to `L029`) or an input code (`I001` to `I011`).
+    /// A lint rule (`L001` and up) or an input code (`I001` and up).
     pub code: String,
     pub level: Level,
     pub path: PathBuf,

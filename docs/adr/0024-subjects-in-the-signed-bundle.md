@@ -15,7 +15,8 @@
   subjects are its own, bounded by `L033`); threat model K7.2; mediatore ADR-0054 decision 7
   (eligibility by subject waits on this change)
 
-Not implemented: roadmap 05 carries the work, under ADR-0026.
+Partly implemented (2026-11-26): `L034` (decision 3), in the controller and `notaio lint`. The
+bundle member (decisions 1, 2, 4 to 6) is roadmap 05's, under ADR-0026.
 
 ## Context
 

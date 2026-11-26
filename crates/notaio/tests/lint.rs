@@ -676,3 +676,20 @@ fn a_finding_on_an_included_entry_names_the_include() {
         .unwrap_or_else(|| panic!("{:#?}", r.diagnostics));
     assert!(d.message.starts_with("from include git: "), "{}", d.message);
 }
+
+#[test]
+fn l034_a_repeated_group_is_an_error_at_pull_request_time() {
+    let text = policy("agent-default", "hardened", "Read").replace(
+        r#"groups: ["00000000-0000-0000-0000-000000000000"]"#,
+        r#"groups: ["00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000"]"#,
+    );
+    let r = lint_sources(&[src("p.yaml", &text)], now()).unwrap();
+    let d = r
+        .diagnostics
+        .iter()
+        .find(|d| d.code == "L034")
+        .expect("an L034 finding");
+    assert_eq!(d.level, Level::Error);
+    assert_eq!(d.field, "subjects.groups[1]");
+    assert!(r.has_errors());
+}

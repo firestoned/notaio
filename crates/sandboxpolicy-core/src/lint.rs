@@ -36,11 +36,12 @@
 //! | L031 | Two included policies supply the same audience, egress endpoint or tool, and the including policy does not declare it |
 //! | L032 | An include that has includes of its own, more than four includes, one named twice, or includes on a policy with `publish: false` |
 //! | L033 | The including policy's groups are not all in an included policy's groups |
+//! | L034 | A subject group that is empty, has leading or trailing whitespace, holds a pattern character (`*?[]{}`), or repeats another |
 //!
 //! L022 to L029 and the definition half of L014 are ADR-0020's, and apply only once the platform
 //! audience namespace is configured (`crate::audience`). L031 to L033 are ADR-0023's and are found
-//! by `crate::compose`. Reserved by proposed ADRs, not implemented: L030 (ADR-0019), L034
-//! (ADR-0024), L035 and L036 (ADR-0025), L037 (ADR-0022). The next free code is L038.
+//! by `crate::compose`. L034 is ADR-0024's. Reserved by proposed ADRs, not implemented: L030
+//! (ADR-0019), L035 and L036 (ADR-0025), L037 (ADR-0022). The next free code is L038.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -160,6 +161,10 @@ pub const RULES: &[(&str, &str)] = &[
     (
         "L033",
         "The including policy's groups are not all in an included policy's groups",
+    ),
+    (
+        "L034",
+        "A subject group that is empty, has leading or trailing whitespace, holds a pattern character (`*?[]{}`), or repeats another",
     ),
 ];
 
@@ -390,7 +395,48 @@ fn valid_digest(d: &str) -> bool {
         .is_some_and(|h| h.len() == 64 && h.bytes().all(|b| b.is_ascii_hexdigit()))
 }
 
-/// Policy level rules against the effective knobs: L005 to L010.
+/// Characters a group matcher would read as a pattern. Groups are matched exactly (ADR-0024), so
+/// an author who writes one means something the consumer will never do.
+const GROUP_PATTERN_CHARS: &[char] = &['*', '?', '[', ']', '{', '}'];
+
+/// L034 (ADR-0024 decision 3): every group is a literal a consumer can match exactly, once. A group
+/// is opaque, so nothing is normalised: case and prefixes are the identity provider's spelling.
+fn lint_subject_groups(groups: &[String]) -> Vec<Finding> {
+    let mut out = Vec::new();
+    let mut first_seen: BTreeMap<&str, usize> = BTreeMap::new();
+    for (i, g) in groups.iter().enumerate() {
+        let earlier = first_seen.get(g.as_str()).copied();
+        first_seen.entry(g.as_str()).or_insert(i);
+        let Some(message) = group_problem(g, earlier) else {
+            continue;
+        };
+        out.push(Finding::err(
+            "L034",
+            format!("subjects.groups[{i}]"),
+            message,
+        ));
+    }
+    out
+}
+
+/// What is wrong with one group, if anything; `earlier` is the index of an identical group before
+/// it.
+fn group_problem(g: &str, earlier: Option<usize>) -> Option<String> {
+    if g.is_empty() {
+        return Some("an empty group name".to_string());
+    }
+    if g.trim() != g {
+        return Some(format!("{g:?} has leading or trailing whitespace"));
+    }
+    if g.contains(GROUP_PATTERN_CHARS) {
+        return Some(format!(
+            "{g:?} holds a pattern character; groups are matched exactly"
+        ));
+    }
+    earlier.map(|first| format!("{g:?} repeats subjects.groups[{first}]"))
+}
+
+/// Policy level rules against the effective knobs: L005 to L010, and L034 on the subjects.
 pub fn lint_policy(
     effective: &BTreeMap<KnobId, Step>,
     spec: &SandboxPolicySpec,
@@ -405,6 +451,7 @@ pub fn lint_policy(
             "no groups bound: nobody can claim a sandbox under this policy",
         ));
     }
+    out.extend(lint_subject_groups(&spec.subjects.groups));
 
     // Audiences (K5.3, K5.2, K5.1).
     let k53 = step_of(effective, "K5.3");

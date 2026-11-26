@@ -3,8 +3,8 @@
 
 # Roadmap 05: bundle schema v4, one migration, consumers first
 
-- **Status:** Phase 0 decided (ADR-0026, ADR-0024 accepted, 2026-11-26); nothing built. Opened
-  2026-11-26.
+- **Status:** Phase 0 decided (ADR-0026, ADR-0024 accepted) and phase 1 (`L034`) done, 2026-11-26.
+  Opened 2026-11-26.
 - **Milestone:** M4 in [`ROADMAPS.md`](../../ROADMAPS.md)
 - **Related:** ADR-0002 (the bundle contract, amended by this), ADR-0005 (canonical form),
   ADR-0008 (the consumer's floor), ADR-0013 (the last schema change, v2 to v3), ADR-0014 (how
@@ -147,9 +147,9 @@ N; phase 6 is N+1; phase 7 is N+2.
 
 ### Phase 1: `L034`, alone
 
-- [ ] `L034` (ADR-0024 decision 3): a group entry that is empty, padded, holds `*?[]{}` or repeats
+- [x] `L034` (ADR-0024 decision 3): a group entry that is empty, padded, holds `*?[]{}` or repeats
       another. In the controller and `notaio lint`, on the effective spec; tests first; the
-      reference regenerated. It only adds findings and needs no schema.
+      reference regenerated. It only adds findings and needs no schema. Done 2026-11-26.
 
 ### Phase 2: the bundle crate verifies v3 and v4
 
