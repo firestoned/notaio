@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-11-24T05:11:26.415Z
-> Files: 88 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-11-24T13:04:27.929Z
+> Files: 91 tracked | Anatomy hits: 0 | Misses: 0
 
 > Project structure index. Auto-maintained by OpenWolf hooks and daemon.
 > Run `openwolf scan` to generate, or wait for the first Claude Code session.
@@ -46,6 +46,7 @@
 - `e2e_admission.rs` — e2e: `deploy/admission/gitops-only.yaml` refuses direct edits to policy objects, lets the GitOps (~3270 tok)
 - `e2e_audience.rs` — e2e: a SandboxAudience goes in, a signed audience bundle comes out (ADR-0020). (~2210 tok)
 - `e2e_bundle.rs` — e2e: a policy goes in, a signed bundle comes out, and a consumer can verify it. (~2108 tok)
+- `e2e_compose.rs` — e2e: a policy composed of others (ADR-0022), through the deployed controller. (~2707 tok)
 - `e2e_rbac.rs` — e2e: the controller's deployed RBAC is read plus status writes, and nothing more. (~1446 tok)
 
 ## crates/notaio/tests/common/
@@ -93,6 +94,8 @@
 - `audience.rs` — Audience definitions (ADR-0020): the lint rules on a `SandboxAudience` (L017 on its endpoints (~3983 tok)
 - `builtin.rs` — The four built-in profiles, transcribed from the profile matrix in section 10 of the threat (~708 tok)
 - `ceilings.rs` — Numeric ceilings that hang off knob steps. (~590 tok)
+- `compose_tests.rs` — A composite on `agent` for `devs`, with the given includes and named parts. (~2787 tok)
+- `compose.rs` — A policy composed of others (ADR-0022): `compose` turns a policy and the policies it includes (~3196 tok)
 - `evaluate.rs` — `evaluate` is the whole decision: given a policy, its profile and its grants at an instant, say (~3678 tok)
 - `lib.rs` — Pure policy logic: the knob register, the built-in profiles, the lint rules, the ceilings and the (~163 tok)
 - `lint.rs` — Lint rules. Every rule has a stable code so findings can be documented, tested and alerted on. (~4466 tok)

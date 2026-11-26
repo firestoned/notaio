@@ -52,6 +52,7 @@ fn examples_are_valid_and_compile() {
         bundle_lifetime: SignedDuration::from_hours(1),
         ceilings: &ceilings,
         audiences: None,
+        includes: &[],
     });
     assert!(out.bundle.is_some(), "{:?}", out.findings);
     assert_eq!(

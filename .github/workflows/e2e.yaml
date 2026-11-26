@@ -98,6 +98,8 @@ jobs:
             name: GitOps-only admission
           - suite: leader
             name: Leader election
+          - suite: compose
+            name: Composed policies
           - suite: audience
             name: Audience definitions
           - suite: openbao

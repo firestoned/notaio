@@ -14,7 +14,7 @@ RUST_LOG         ?= info
 .PHONY: help build test lint fmt fmt-check clippy deny manifests manifests-check air air-check \
         ci-code-changed kind-install kind-create kind-delete kind-kubeconfig kind-load \
         kind-deploy kind-e2e kind-e2e-ci kind-e2e-logs \
-        kind-e2e-install kind-e2e-bundle kind-e2e-rbac kind-e2e-admission kind-e2e-leader kind-e2e-openbao \
+        kind-e2e-install kind-e2e-bundle kind-e2e-rbac kind-e2e-admission kind-e2e-leader kind-e2e-compose kind-e2e-openbao \
         kind-cert-manager kind-openbao cluster-deploy cluster-undeploy cluster-smoke openbao-e2e \
         docs docs-serve docs-clean docs-linkcheck docs-reference docs-reference-check policy-lint openbao-dev openbao-dev-check \
         license-check bundle-deps-check conformance conformance-check cargo-auditable release-binary release-version sbom-check grype-install vexctl-install vex-evidence vex-evidence-test vex-assemble image-scan image-gate release-manifest release-manifest-sign release-manifest-test release-binary-assets release-binary-sign release-binary-assets-test set-version set-version-test
@@ -510,6 +510,9 @@ kind-deploy: kind-load kind-openbao ## Install CRDs, profiles and the controller
 #                       when the leader's pod goes, and publishes
 #   kind-e2e-openbao    bundles signed by the OpenBao transit key verify against
 #                       its public key; without OpenBao nothing is published
+#   kind-e2e-compose    a policy composed of others (ADR-0022): one bundle with
+#                       its includes' grants under its own ceiling; an include
+#                       widened past it or deleted stops the re-sign
 #   kind-e2e-audience   audiences turned on (ADR-0020): a SandboxAudience is
 #                       published, verified, kept on a finding and deleted with
 #                       its object; an undefined grant publishes nothing (L027)
@@ -517,7 +520,7 @@ kind-deploy: kind-load kind-openbao ## Install CRDs, profiles and the controller
 # Keep in sync with the matrix in .github/workflows/e2e.yaml. audience and openbao
 # run last in `make kind-e2e`: each changes the controller's configuration and
 # restores it afterwards.
-E2E_SUITES = install bundle rbac admission leader audience openbao
+E2E_SUITES = install bundle rbac admission leader compose audience openbao
 
 # The platform audience namespace the audience suite turns on (ADR-0020).
 E2E_PLATFORM_NAMESPACE ?= notaio-e2e-platform
@@ -549,6 +552,9 @@ kind-e2e-rbac: kind-deploy ## e2e: controller RBAC is read plus status writes on
 
 kind-e2e-leader: kind-deploy ## e2e: one leader by Lease; a follower takes over and publishes
 	$(call run-e2e-suite,e2e_leader)
+
+kind-e2e-compose: kind-deploy ## e2e: a composite of two policies, one bundle under its own ceiling; include widened or deleted
+	$(call run-e2e-suite,e2e_compose)
 
 kind-e2e-audience: kind-deploy ## e2e: SandboxAudience published, verified, kept on a finding, deleted with its object
 	@$(KIND_KUBECTL) create namespace $(E2E_PLATFORM_NAMESPACE) --dry-run=client -o yaml | $(KIND_KUBECTL) apply -f -

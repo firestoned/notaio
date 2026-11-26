@@ -2,6 +2,80 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-24 08:15] - Composed policies in the controller: the watch, includedBy, e2e (roadmap 04 phase 3)
+
+**Author:** Erick Bourgeois
+
+### Added
+- `crates/notaio/src/include.rs` and `include_tests.rs`: `included_by` and `related`, the pure
+  relations between composites and includes (ADR-0022).
+- `crates/notaio/tests/e2e_compose.rs`, `make kind-e2e-compose`, `E2E_SUITES` and the
+  `.github/workflows/e2e.yaml` matrix row: a composite of two `publish: false` policies published
+  and verified; the includes publish nothing and report `includedBy`; reordering `includes` keeps
+  the digest and version; an include widened past the composite's ceiling stops the re-sign with
+  the last bundle kept; a deleted include reports `IncludeNotFound`.
+
+### Changed
+- `crates/notaio/src/main.rs`: a second watch on `SandboxPolicy` re-evaluates the policies that
+  include the changed one, and the ones it includes now or last included. Deletions included.
+- `crates/notaio/src/reconcile.rs`: lists the namespace's policies once per reconcile, from the
+  API, to resolve includes and to write `status.includedBy`. Replaces the per-name reads.
+- `crates/sandboxpolicy-api/src/policy.rs`: `status.includes` and `status.includedBy` always
+  serialized: status is written as a JSON merge patch, so an omitted empty list would never clear.
+- `deploy/crds/`, `docs/src/reference/`: regenerated.
+- ADR-0022, `docs/architecture.md`, roadmap 04 and `ROADMAPS.md`: phase 3 marked done.
+
+### Why
+ADR-0022 decision 6: a change to an include must reach every composite promptly, not at the next
+half-life refresh, so a widening past a composite's ceiling stops its re-signing at once.
+
+### Impact
+- [ ] Breaking change (CRD schema, bundle schema, public API)
+- [x] Requires cluster rollout (CRDs, profiles or controller)
+- [ ] Config or examples change only
+- [ ] Documentation only
+
+## [2026-11-24 01:30] - Composed policies: spec.includes, L031 to L033 (roadmap 04 phases 1 and 2)
+
+**Author:** Erick Bourgeois
+
+### Added
+- `crates/sandboxpolicy-api/src/policy.rs`: `spec.includes` (at most `MAX_INCLUDES`, four, a
+  list-map keyed by `name`), `spec.publish` (default `true`), a CEL rule refusing `includes` with
+  `publish: false`, and `status.includes` (`name`, `uid`, `contentDigest`) and
+  `status.includedBy` (ADR-0022).
+- `crates/sandboxpolicy-core/src/compose.rs` and `compose_tests.rs`: `compose`, the effective
+  policy with the origin of every named entry, `content_digest` of what an include contributes,
+  and L031 (two includes supply one key), L032 (nested includes, and the list's shape for
+  `notaio lint`) and L033 (subjects wider than an include's). Findings on an included entry name
+  the include.
+- `crates/notaio/src/lint.rs`: includes resolved across the input files; `I012` for an include
+  not in the inputs.
+- `examples/sandboxpolicy-composite.yaml`, `examples/exposureceiling-build-agent.yaml`: a
+  composite of two `publish: false` policies under its own ceiling.
+
+### Changed
+- `crates/sandboxpolicy-core/src/evaluate.rs`: `EvalInput.includes`. Lint, the ceiling checks
+  (L014 to L016) and compilation run on the effective spec; `IncludeNotFound` (retried every
+  minute) and `NotPublished` (Ready, no bundle, no ceiling needed) reasons.
+- `crates/notaio/src/reconcile.rs`: fetches a composite's includes by name in its namespace. No
+  watch on includes yet (phase 3): an include's change reaches a composite at its next refresh.
+- `crates/sandboxpolicy-core/src/lint.rs`: L031 to L033 in `RULES` and the table; L030 stays
+  reserved for ADR-0019.
+- `deploy/crds/`, `docs/src/reference/`: regenerated (`make manifests`).
+- ADR-0022, `docs/architecture.md`, roadmap 04 and `ROADMAPS.md`: phases 1 and 2 marked done.
+
+### Why
+ADR-0022: a sandbox that needs several policies' grants names one policy, and one ceiling
+approved by Security bounds the combination (ADR-0007, objective O3). The threat model pass is
+roadmap 04 phase 5, once the controller watch and the e2e suite land.
+
+### Impact
+- [ ] Breaking change (CRD schema, bundle schema, public API)
+- [x] Requires cluster rollout (CRDs, profiles or controller)
+- [ ] Config or examples change only
+- [ ] Documentation only
+
 ## [2026-11-24 00:11] - ADR-0022: a policy composed of others (roadmap 04 phase 0)
 
 **Author:** Erick Bourgeois

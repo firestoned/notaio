@@ -3,7 +3,8 @@
 
 # Roadmap 04: a policy composed of others, signed as one bundle
 
-- **Status:** In progress: phase 0 decided in ADR-0022 (2026-11-24); opened 2026-11-24. Replaces mediatore roadmap 16 and its ADR-0065
+- **Status:** In progress: phase 0 decided in ADR-0022, phases 1 to 3 done (2026-11-24); opened
+  2026-11-24. Replaces mediatore roadmap 16 and its ADR-0065
   (several `policyRefs` per sandbox, composed by the broker), which are withdrawn in favour of this.
 - **Milestone:** M4 in [`ROADMAPS.md`](../../ROADMAPS.md)
 - **Related:** ADR-0002 and ADR-0013 (the bundle); ADR-0007 (the ExposureCeiling and Security's
@@ -106,29 +107,32 @@ Each phase is shippable and leaves the system no looser than before.
 
 ### Phase 1: the composition, pure (`sandboxpolicy-core`)
 
-- [ ] `spec.includes` and `spec.publish` in `sandboxpolicy-api` (v1alpha2), with the CEL rules
+- [x] `spec.includes` and `spec.publish` in `sandboxpolicy-api` (v1alpha2), with the CEL rules
       for one to four unique names and for `publish: false` without `includes`; the CRD
       regenerated (`make manifests`).
-- [ ] `compose(policy, includes) -> EffectivePolicy`, with the origin of every named entry. Tests
+- [x] `compose(policy, includes) -> EffectivePolicy`, with the origin of every named entry. Tests
       first: a union without collisions; the composite's own entry replacing an include's; two
       includes colliding refused (`L031`); an include with includes refused (`L032`); subjects
       wider than an include's refused (`L033`); a list of none equal to the policy itself.
-- [ ] `evaluate` and `L014` to `L016` run on the `EffectivePolicy`.
+- [x] `evaluate` and `L014` to `L016` run on the `EffectivePolicy`. `publish: false` is linted and
+      reports `Ready=True` (`NotPublished`) with no bundle and no ceiling.
 
 ### Phase 2: `notaio lint`
 
-- [ ] Includes resolved across the files given; a missing include is an input error (`I012`). Text and SARIF name the include a finding is about.
-- [ ] `examples/`: a composite of two policies, with its ceiling.
+- [x] Includes resolved across the files given; a missing include is an input error (`I012`). Text and SARIF name the include a finding is about.
+- [x] `examples/`: a composite of two policies, with its ceiling (`sandboxpolicy-composite.yaml`,
+      `exposureceiling-build-agent.yaml`).
 
 ### Phase 3: the controller
 
-- [ ] An index from include name to the policies that include it; a change, deletion or
-      re-signing of an include requeues every composite.
-- [ ] A missing or failing include: the composite reports `Ready=False` with the include's name
+- [x] An index from include name to the policies that include it; a change, deletion or
+      re-signing of an include requeues every composite (`include.rs`, a second watch on
+      `SandboxPolicy` mapped through the controller's store).
+- [x] A missing or failing include: the composite reports `Ready=False` with the include's name
       and keeps its last bundle until expiry.
-- [ ] Status: `includes` with each one's `uid` and content digest; on the include,
-      `includedBy`.
-- [ ] e2e: a composite published; an include widened past the composite's ceiling stops the
+- [x] Status: `includes` with each one's `uid` and content digest; on the include,
+      `includedBy`. Both always written, so the status merge patch clears an emptied list.
+- [x] e2e (`e2e_compose`): a composite published; an include widened past the composite's ceiling stops the
       re-sign; an include deleted; a reordering of `includes` produces the same bundle digest.
 
 ### Phase 4: the bundle (with schema v4)
@@ -142,7 +146,10 @@ Each phase is shippable and leaves the system no looser than before.
 
 - [ ] In the policy repository: `pypi`, `claude-downloads` and `mirror` as policies of their own
       (`publish: false` under D7), and `claude-dev-agent` including `claude-agent`, `git-agent`
-      and those three, with one ceiling approved by Security. `claude-git-agent` deleted.
+      and those three, with one ceiling approved by Security. `claude-git-agent` deleted. Five
+      audiences need K5.3 at R2 on `claude-dev-agent`'s own profile (every built-in profile but
+      `lab` allows one): a K5.3 KnobGrant on the composite, since an include's grants do not reach
+      it.
 - [ ] Live: the Claude Code workload of the opening section runs under `claude-dev-agent` with
       `PolicyConformant=True` in shadow, then refused nothing under `policy.audiences: enforce`.
 - [ ] A guide page (composing policies) and the reference for `includes` and `L031` to `L033`.

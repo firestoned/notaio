@@ -16,7 +16,8 @@ pub use audience::{SandboxAudience, SandboxAudienceSpec, SandboxAudienceStatus};
 pub use ceiling::{CeilingAudience, ExposureCeiling, ExposureCeilingSpec};
 pub use grant::{Approval, GrantPhase, KnobGrant, KnobGrantSpec, KnobGrantStatus};
 pub use policy::{
-    ExposedAudience, MaxExposure, SandboxPolicy, SandboxPolicySpec, SandboxPolicyStatus, Subjects,
+    ExposedAudience, IncludeStatus, MaxExposure, PolicyInclude, SandboxPolicy, SandboxPolicySpec,
+    SandboxPolicyStatus, Subjects, MAX_INCLUDES,
 };
 pub use profile::{SandboxProfile, SandboxProfileSpec, SandboxProfileStatus};
 pub use status::Condition;

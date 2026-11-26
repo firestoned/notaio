@@ -582,3 +582,97 @@ fn a_path_named_on_the_command_line_is_followed() {
     assert_eq!(sources.len(), 1);
     assert_eq!(sources[0].path, link.join("policy.yaml"));
 }
+
+// ADR-0022: a policy composed of others, resolved across the files given.
+
+/// A composite on `hardened` with no grants of its own, including `includes`.
+fn composite(name: &str, includes: &[&str]) -> String {
+    let list: Vec<String> = includes
+        .iter()
+        .map(|n| format!("{{ name: {n} }}"))
+        .collect();
+    format!(
+        r#"apiVersion: sandbox.firestoned.io/v1alpha2
+kind: SandboxPolicy
+metadata:
+  name: {name}
+  namespace: sandboxes
+spec:
+  profileRef: hardened
+  subjects:
+    groups: ["00000000-0000-0000-0000-000000000000"]
+  includes: [{}]
+"#,
+        list.join(", ")
+    )
+}
+
+/// `policy`, marked as existing only to be included.
+fn unpublished(name: &str, access: &str) -> String {
+    format!("{}  publish: false\n", policy(name, "hardened", access))
+}
+
+#[test]
+fn i012_an_include_not_in_the_inputs() {
+    let r = lint_sources(
+        &[
+            src("dev.yaml", &composite("dev", &["gone"])),
+            src("c.yaml", &ceiling("dev", 3600)),
+        ],
+        now(),
+    )
+    .unwrap();
+    assert_eq!(errors(&r), vec!["I012"], "{:#?}", r.diagnostics);
+    let d = r.diagnostics.iter().find(|d| d.code == "I012").unwrap();
+    assert!(d.message.contains("gone"), "{}", d.message);
+}
+
+#[test]
+fn a_composite_resolves_its_include_from_another_file() {
+    let r = lint_sources(
+        &[
+            src("dev.yaml", &composite("dev", &["git"])),
+            src("git.yaml", &unpublished("git", "Read")),
+            src("c.yaml", &ceiling("dev", 3600)),
+        ],
+        now(),
+    )
+    .unwrap();
+    // The include needs no ceiling of its own (publish: false), and the composite's covers it.
+    assert!(errors(&r).is_empty(), "{:#?}", r.diagnostics);
+}
+
+#[test]
+fn the_composite_ceiling_is_checked_on_what_it_includes() {
+    // No ceiling for dev: its exposure comes only from the include, and still needs one.
+    let r = lint_sources(
+        &[
+            src("dev.yaml", &composite("dev", &["git"])),
+            src("git.yaml", &unpublished("git", "Read")),
+        ],
+        now(),
+    )
+    .unwrap();
+    assert_eq!(errors(&r), vec!["L015"], "{:#?}", r.diagnostics);
+}
+
+#[test]
+fn a_finding_on_an_included_entry_names_the_include() {
+    // Write on hardened needs K5.2 above R0 (L006): the entry is git's, the finding dev's.
+    let r = lint_sources(
+        &[
+            src("dev.yaml", &composite("dev", &["git"])),
+            src("git.yaml", &policy("git", "standard", "Write")),
+            src("c.yaml", &ceiling("dev", 3600)),
+            src("cg.yaml", &ceiling("git", 3600)),
+        ],
+        now(),
+    )
+    .unwrap();
+    let d = r
+        .diagnostics
+        .iter()
+        .find(|d| d.code == "L006" && d.object == "SandboxPolicy sandboxes/dev")
+        .unwrap_or_else(|| panic!("{:#?}", r.diagnostics));
+    assert!(d.message.starts_with("from include git: "), "{}", d.message);
+}

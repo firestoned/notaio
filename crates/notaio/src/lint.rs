@@ -19,6 +19,7 @@
 //! | I009 | An object uses an API version notaio no longer serves: write it as `v1alpha2` (ADR-0013) |
 //! | I010 | A SandboxAudience has no namespace: the namespace decides whether it is a platform or a team audience (ADR-0020) |
 //! | I011 | SandboxAudience objects in the inputs, but no platform audience namespace: their rules were not checked (a warning) |
+//! | I012 | A policy includes a policy that is not in the inputs, in its namespace (ADR-0022) |
 //!
 //! With `--platform-audience-namespace`, every SandboxAudience is linted (L017, L022 to L029)
 //! and every policy's grants are checked against the definitions (L027, L028, and the definition
@@ -35,6 +36,7 @@ use sandboxpolicy_api::{
 };
 use sandboxpolicy_core::audience::lint_audience;
 use sandboxpolicy_core::ceilings::Ceilings;
+use sandboxpolicy_core::evaluate::REASON_INCLUDE_NOT_FOUND;
 use sandboxpolicy_core::lint::{lint_classifications, lint_knobs, Finding, Severity, RULES};
 use sandboxpolicy_core::{builtin, evaluate, AudienceCatalog, EvalInput};
 use serde_json::{json, Value};
@@ -81,6 +83,10 @@ pub const INPUT_RULES: &[(&str, &str)] = &[
     (
         "I011",
         "SandboxAudience objects in the inputs, but no platform audience namespace: their rules were not checked",
+    ),
+    (
+        "I012",
+        "A policy includes a policy that is not in the inputs, in its namespace (ADR-0022)",
     ),
 ];
 
@@ -459,6 +465,7 @@ pub fn lint_sources_for(
         }
     }
 
+    let all_policies: Vec<SandboxPolicy> = policies.iter().map(|(_, p)| p.clone()).collect();
     for (path, policy) in &policies {
         let key = (
             policy.metadata.namespace.clone(),
@@ -469,6 +476,7 @@ pub fn lint_sources_for(
             profiles: &profiles,
             grants: &grants,
             exposure_ceiling,
+            policies: &all_policies,
         };
         lint_policy(
             &mut report,
@@ -488,6 +496,8 @@ struct PolicyRefs<'a> {
     profiles: &'a BTreeMap<String, (PathBuf, SandboxProfile)>,
     grants: &'a [(PathBuf, KnobGrant)],
     exposure_ceiling: Option<&'a ExposureCeiling>,
+    /// Every policy in the inputs, from which includes are resolved (ADR-0022).
+    policies: &'a [SandboxPolicy],
 }
 
 fn lint_policy(
@@ -503,6 +513,7 @@ fn lint_policy(
         profiles,
         grants,
         exposure_ceiling,
+        policies,
     } = *refs;
     let name = policy.metadata.name.clone().unwrap_or_default();
     let object = describe("SandboxPolicy", policy.metadata.namespace.as_deref(), &name);
@@ -541,6 +552,7 @@ fn lint_policy(
         bundle_lifetime: SignedDuration::from_secs(crate::cli::DEFAULT_BUNDLE_LIFETIME_SECONDS),
         ceilings,
         audiences,
+        includes: policies,
     });
 
     let condition = |t: &str| out.status.conditions.iter().find(|c| c.type_ == t);
@@ -557,6 +569,9 @@ fn lint_policy(
     }
     for f in &out.findings {
         report.push_finding(f, path, &object);
+    }
+    if let Some(c) = condition("Ready").filter(|c| c.reason == REASON_INCLUDE_NOT_FOUND) {
+        report.push("I012", path, &object, "includes", c.message.clone());
     }
     if let Some(c) = condition("Ready").filter(|c| c.reason == "NotCanonical") {
         report.push("I005", path, &object, "", c.message.clone());

@@ -21,6 +21,7 @@ use sha2::{Digest, Sha256};
 
 use crate::audience::{lint_definitions_against_ceiling, lint_grants, AudienceCatalog};
 use crate::ceilings::Ceilings;
+use crate::compose::{compose, ComposeError, Included};
 use crate::lint::{self, has_errors, step_of, summarize, Finding};
 use crate::registry::REGISTRY;
 
@@ -44,6 +45,9 @@ pub struct EvalInput<'a> {
     /// Every audience definition, once the platform audience namespace is configured (ADR-0020).
     /// `None` leaves policies as they were before it: no L027, L028 or definition half of L014.
     pub audiences: Option<&'a AudienceCatalog<'a>>,
+    /// Policies this one may include (ADR-0022): those it names are picked by name from the ones
+    /// in its own namespace, and the rest are ignored. Empty for a policy with no `includes`.
+    pub includes: &'a [SandboxPolicy],
 }
 
 #[derive(Debug, Clone)]
@@ -64,6 +68,12 @@ pub struct EvalOutput {
     pub findings: Vec<Finding>,
     pub requeue_after: SignedDuration,
 }
+
+/// The `Ready` reason when a policy names an include that does not exist in its namespace
+/// (ADR-0022, decision 6).
+pub const REASON_INCLUDE_NOT_FOUND: &str = "IncludeNotFound";
+/// The `Ready` reason for a valid policy with `publish: false` (ADR-0022, decision 8).
+pub const REASON_NOT_PUBLISHED: &str = "NotPublished";
 
 /// The `Ready` reason when no further bundle version can be issued.
 pub const REASON_VERSION_EXHAUSTED: &str = "VersionExhausted";
@@ -345,20 +355,94 @@ pub fn evaluate(input: &EvalInput<'_>) -> EvalOutput {
     status.active_grants = active;
     status.next_grant_expiry = earliest;
 
-    // 3. The policy itself, against the effective knobs, and its grants against the audiences'
-    // definitions (ADR-0020), with the token lifetime the bundle would carry.
-    let mut findings = lint::lint_policy(&effective, &input.policy.spec, input.ceilings);
     let policy_ns = input
         .policy
         .metadata
         .namespace
         .as_deref()
         .unwrap_or_default();
+    let mut requeue = input.bundle_lifetime / 2;
+    if let Some(e) = earliest {
+        requeue = requeue.min(e.duration_since(now) + SignedDuration::from_secs(1));
+    }
+    let requeue = requeue.max(SignedDuration::from_secs(10));
+
+    // 3. Includes (ADR-0022): the composite's own spec with its includes' audiences, egress
+    // entries and tools added. Everything after this runs on the effective spec.
+    let candidates: Vec<Included<'_>> = input
+        .includes
+        .iter()
+        .filter(|p| p.metadata.namespace.as_deref().unwrap_or_default() == policy_ns)
+        .filter_map(|p| {
+            Some(Included {
+                name: p.metadata.name.as_deref()?,
+                uid: p.metadata.uid.as_deref().unwrap_or_default(),
+                spec: &p.spec,
+            })
+        })
+        .collect();
+    let composed = match compose(&input.policy.spec, &candidates) {
+        Ok(c) => c,
+        Err(ComposeError::Missing(names)) => {
+            status.conditions = vec![
+                cond("ProfileResolved", true, "Resolved", "profile is valid"),
+                cond(
+                    "Ready",
+                    false,
+                    REASON_INCLUDE_NOT_FOUND,
+                    &format!(
+                        "no policy named {} in this namespace to include; no bundle compiled",
+                        names.join(", ")
+                    ),
+                ),
+            ];
+            return EvalOutput {
+                status,
+                grants,
+                bundle: None,
+                findings: vec![],
+                // Until the controller watches includes (roadmap 04 phase 3), look again soon, as
+                // for a missing profile.
+                requeue_after: retry,
+            };
+        }
+        Err(ComposeError::Invalid(findings)) => {
+            let msg = summarize(&findings);
+            status.conditions = vec![
+                cond("ProfileResolved", true, "Resolved", "profile is valid"),
+                cond("Valid", false, "InvalidPolicy", &msg),
+                cond(
+                    "Ready",
+                    false,
+                    "InvalidPolicy",
+                    "no bundle compiled for this generation",
+                ),
+            ];
+            return EvalOutput {
+                status,
+                grants,
+                bundle: None,
+                findings,
+                requeue_after: requeue,
+            };
+        }
+        Err(ComposeError::NotCanonical(e)) => {
+            let conditions = vec![
+                cond("ProfileResolved", true, "Resolved", "profile is valid"),
+                cond("Ready", false, "NotCanonical", &e.to_string()),
+            ];
+            return not_canonical(status, grants, vec![], requeue, conditions);
+        }
+    };
+    status.includes = composed.includes.clone();
+    let spec = &composed.spec;
+
+    // 4. The policy itself, against the effective knobs, and its grants against the audiences'
+    // definitions (ADR-0020), with the token lifetime the bundle would carry.
+    let mut findings = lint::lint_policy(&effective, spec, input.ceilings);
     if let Some(catalog) = input.audiences {
         let ttl_default = input.ceilings.token_ttl(step_of(&effective, "K5.1"));
-        let compiled: Vec<AudienceGrant> = input
-            .policy
-            .spec
+        let compiled: Vec<AudienceGrant> = spec
             .audiences
             .iter()
             .cloned()
@@ -369,11 +453,7 @@ pub fn evaluate(input: &EvalInput<'_>) -> EvalOutput {
             .collect();
         findings.extend(lint_grants(&compiled, policy_ns, catalog));
     }
-    let mut requeue = input.bundle_lifetime / 2;
-    if let Some(e) = earliest {
-        requeue = requeue.min(e.duration_since(now) + SignedDuration::from_secs(1));
-    }
-    let requeue = requeue.max(SignedDuration::from_secs(10));
+    composed.attribute(&mut findings);
     if has_errors(&findings) {
         let msg = summarize(&findings);
         status.conditions = vec![
@@ -395,7 +475,7 @@ pub fn evaluate(input: &EvalInput<'_>) -> EvalOutput {
         };
     }
 
-    // 4. Compile. The version moves only when the content moves.
+    // 5. Compile. The version moves only when the content moves.
     let content = compile_content(
         input.policy,
         profile
@@ -405,7 +485,7 @@ pub fn evaluate(input: &EvalInput<'_>) -> EvalOutput {
             .unwrap_or(&input.policy.spec.profile_ref),
         p_digest,
         &effective,
-        &input.policy.spec,
+        spec,
         input.ceilings,
     );
     // RFC 8785 has no exact form for floats or integers beyond 2^53 - 1 (ADR-0005). Content
@@ -414,6 +494,28 @@ pub fn evaluate(input: &EvalInput<'_>) -> EvalOutput {
     // A policy it does not cover publishes nothing new; its exposure is still reported, so the
     // approvers can see what they are being asked to approve.
     let exposed = exposure(&content);
+    // A policy that exists only to be included is checked, never compiled into a bundle, and so
+    // needs no ceiling (ADR-0022, decision 8).
+    if !spec.publish {
+        status.max_exposure = Some(exposed);
+        status.conditions = vec![
+            cond("ProfileResolved", true, "Resolved", "profile is valid"),
+            cond("Valid", true, "Valid", "policy passes every lint rule"),
+            cond(
+                "Ready",
+                true,
+                REASON_NOT_PUBLISHED,
+                "publish is false: checked, never signed, for other policies to include",
+            ),
+        ];
+        return EvalOutput {
+            status,
+            grants,
+            bundle: None,
+            findings,
+            requeue_after: requeue,
+        };
+    }
     let mut gate = lint::lint_exposure(
         &exposed,
         input.exposure_ceiling.map(|c| &c.spec),

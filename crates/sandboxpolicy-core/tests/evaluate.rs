@@ -47,6 +47,8 @@ fn policy(profile_ref: &str, audiences: Vec<AudienceGrant>) -> SandboxPolicy {
             tools: vec![],
             lease: None,
             budgets: None,
+            includes: vec![],
+            publish: true,
         },
     );
     p.metadata.namespace = Some("sandboxes".into());
@@ -138,6 +140,7 @@ fn run_with_ceiling(
         bundle_lifetime: SignedDuration::from_hours(1),
         ceilings: &ceilings,
         audiences: None,
+        includes: &[],
     })
 }
 
@@ -433,6 +436,7 @@ fn content_without_a_canonical_form_fails_closed() {
         bundle_lifetime: SignedDuration::from_hours(1),
         ceilings: &ceilings,
         audiences: None,
+        includes: &[],
     });
     assert!(o.bundle.is_none(), "a bundle was compiled");
     assert!(!ready(&o));
@@ -477,7 +481,7 @@ fn rules_table_matches_the_documented_codes() {
             "{code} differs between RULES and the documented table"
         );
     }
-    assert_eq!(sandboxpolicy_core::lint::RULES.len(), 29);
+    assert_eq!(sandboxpolicy_core::lint::RULES.len(), 32);
 }
 
 fn ready_reason(o: &EvalOutput) -> Option<&str> {
@@ -905,6 +909,7 @@ fn run_with_audiences(policy: &SandboxPolicy, audiences: &[SandboxAudience]) -> 
         bundle_lifetime: SignedDuration::from_hours(1),
         ceilings: &ceilings,
         audiences: Some(&catalog),
+        includes: &[],
     })
 }
 
@@ -995,4 +1000,198 @@ fn a_version_at_the_safe_integer_limit_issues_nothing_and_keeps_status() {
             ("False", "VersionExhausted")
         );
     }
+}
+
+// ADR-0022: a policy composed of others.
+
+fn named(mut p: SandboxPolicy, name: &str) -> SandboxPolicy {
+    p.metadata.name = Some(name.into());
+    p.metadata.uid = Some(format!("uid-{name}"));
+    p
+}
+
+fn including(p: SandboxPolicy, names: &[&str]) -> SandboxPolicy {
+    let mut p = p;
+    p.spec.includes = names
+        .iter()
+        .map(|n| PolicyInclude { name: (*n).into() })
+        .collect();
+    p
+}
+
+/// The composite `dev` on `lab` with its own `anthropic`, including `git` (`github`) and `pypi`
+/// (`pypi`).
+fn composite_and_parts() -> (SandboxPolicy, Vec<SandboxPolicy>) {
+    let dev = including(
+        named(
+            policy("lab", vec![audience("anthropic", Access::Read)]),
+            "dev",
+        ),
+        &["git", "pypi"],
+    );
+    let git = named(policy("lab", vec![audience("github", Access::Read)]), "git");
+    let pypi = named(policy("lab", vec![audience("pypi", Access::Read)]), "pypi");
+    (dev, vec![git, pypi])
+}
+
+/// The ceiling `covering_ceiling` would give the effective policy: every audience of the
+/// composite and its includes.
+fn composite_ceiling(dev: &SandboxPolicy, parts: &[SandboxPolicy]) -> ExposureCeiling {
+    let mut whole = dev.clone();
+    for p in parts {
+        whole.spec.audiences.extend(p.spec.audiences.clone());
+    }
+    covering_ceiling(&whole)
+}
+
+fn run_composite(
+    policy: &SandboxPolicy,
+    includes: &[SandboxPolicy],
+    ceiling: Option<&ExposureCeiling>,
+) -> EvalOutput {
+    let ceilings = Ceilings::default();
+    let profile = profile(&policy.spec.profile_ref);
+    evaluate(&EvalInput {
+        now: now(),
+        policy,
+        profile: Some(&profile),
+        exposure_ceiling: ceiling,
+        grants: &[],
+        prev_version: None,
+        prev_digest: None,
+        prev_conditions: &[],
+        bundle_lifetime: SignedDuration::from_hours(1),
+        ceilings: &ceilings,
+        audiences: None,
+        includes,
+    })
+}
+
+#[test]
+fn a_composite_publishes_its_own_grants_and_its_includes() {
+    let (dev, parts) = composite_and_parts();
+    let ceiling = composite_ceiling(&dev, &parts);
+    let o = run_composite(&dev, &parts, Some(&ceiling));
+    assert!(ready(&o), "{:?}", o.status.conditions);
+    let names: Vec<_> = o
+        .bundle
+        .as_ref()
+        .unwrap()
+        .content
+        .audiences
+        .iter()
+        .map(|a| a.name.clone())
+        .collect();
+    assert_eq!(names, ["anthropic", "github", "pypi"]);
+    let inc: Vec<_> = o.status.includes.iter().map(|i| i.name.as_str()).collect();
+    assert_eq!(inc, ["git", "pypi"]);
+    assert_eq!(o.status.includes[0].uid, "uid-git");
+}
+
+#[test]
+fn the_composite_ceiling_bounds_what_its_includes_grant() {
+    let (dev, parts) = composite_and_parts();
+    // Security approved the composite's own audience only.
+    let ceiling = covering_ceiling(&dev);
+    let o = run_composite(&dev, &parts, Some(&ceiling));
+    assert!(o.bundle.is_none());
+    assert_eq!(ready_reason(&o), Some("ExposureAboveCeiling"));
+    assert!(o.findings.iter().any(|f| f.code == "L014"));
+}
+
+#[test]
+fn a_missing_include_compiles_nothing_and_names_it() {
+    let (dev, parts) = composite_and_parts();
+    let ceiling = composite_ceiling(&dev, &parts);
+    let o = run_composite(&dev, &parts[..1], Some(&ceiling));
+    assert!(o.bundle.is_none());
+    assert_eq!(ready_reason(&o), Some("IncludeNotFound"));
+    let msg = &o
+        .status
+        .conditions
+        .iter()
+        .find(|c| c.type_ == "Ready")
+        .unwrap()
+        .message;
+    assert!(msg.contains("pypi"), "{msg}");
+    // Retried like a missing profile, not at half the bundle lifetime.
+    assert!(o.requeue_after < SignedDuration::from_mins(30));
+}
+
+#[test]
+fn an_include_in_another_namespace_is_not_found() {
+    let (dev, mut parts) = composite_and_parts();
+    parts[1].metadata.namespace = Some("elsewhere".into());
+    let ceiling = composite_ceiling(&dev, &parts);
+    let o = run_composite(&dev, &parts, Some(&ceiling));
+    assert_eq!(ready_reason(&o), Some("IncludeNotFound"));
+}
+
+#[test]
+fn colliding_includes_make_the_composite_invalid() {
+    let (dev, mut parts) = composite_and_parts();
+    parts[1].spec.audiences = parts[0].spec.audiences.clone();
+    let ceiling = composite_ceiling(&dev, &parts);
+    let o = run_composite(&dev, &parts, Some(&ceiling));
+    assert!(o.bundle.is_none());
+    assert_eq!(ready_reason(&o), Some("InvalidPolicy"));
+    assert!(o.findings.iter().any(|f| f.code == "L031"));
+}
+
+#[test]
+fn reordering_includes_produces_the_same_bundle() {
+    let (dev, parts) = composite_and_parts();
+    let ceiling = composite_ceiling(&dev, &parts);
+    let a = run_composite(&dev, &parts, Some(&ceiling));
+    let swapped = including(dev.clone(), &["pypi", "git"]);
+    let rev: Vec<_> = parts.iter().rev().cloned().collect();
+    let b = run_composite(&swapped, &rev, Some(&ceiling));
+    assert!(a.status.bundle_digest.is_some());
+    assert_eq!(a.status.bundle_digest, b.status.bundle_digest);
+}
+
+#[test]
+fn a_change_to_an_include_is_a_new_composite_digest() {
+    let (dev, mut parts) = composite_and_parts();
+    let ceiling = composite_ceiling(&dev, &parts);
+    let before = run_composite(&dev, &parts, Some(&ceiling));
+    parts[0].spec.audiences[0].scopes = vec!["repo:write".into()];
+    let after = run_composite(&dev, &parts, Some(&ceiling));
+    assert_ne!(before.status.bundle_digest, after.status.bundle_digest);
+}
+
+#[test]
+fn a_finding_on_an_included_entry_names_the_include() {
+    let (dev, mut parts) = composite_and_parts();
+    parts[0].spec.audiences[0].ttl_seconds = Some(u32::MAX);
+    let ceiling = composite_ceiling(&dev, &parts);
+    let o = run_composite(&dev, &parts, Some(&ceiling));
+    let f = o
+        .findings
+        .iter()
+        .find(|f| f.code == "L006")
+        .expect("token lifetime above K5.1");
+    assert!(f.message.starts_with("from include git: "), "{}", f.message);
+}
+
+#[test]
+fn a_policy_that_is_not_published_is_ready_without_a_ceiling_or_bundle() {
+    let mut git = named(policy("lab", vec![audience("github", Access::Read)]), "git");
+    git.spec.publish = false;
+    let o = run_composite(&git, &[], None);
+    assert!(o.bundle.is_none());
+    assert!(ready(&o), "{:?}", o.status.conditions);
+    assert_eq!(ready_reason(&o), Some("NotPublished"));
+    assert!(o.status.bundle_digest.is_none());
+    assert!(o.findings.iter().all(|f| f.code != "L015"));
+}
+
+#[test]
+fn a_policy_that_is_not_published_is_still_linted() {
+    let mut git = named(policy("lab", vec![audience("github", Access::Read)]), "git");
+    git.spec.publish = false;
+    git.spec.audiences[0].ttl_seconds = Some(u32::MAX);
+    let o = run_composite(&git, &[], None);
+    assert!(!ready(&o));
+    assert!(o.findings.iter().any(|f| f.code == "L006"));
 }

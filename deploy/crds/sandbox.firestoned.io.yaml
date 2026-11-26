@@ -153,6 +153,8 @@ spec:
             description: |-
               Binds subjects to a profile and adds the concrete audiences, egress entries and tools. The
               controller checks all of it against the profile's knob ceilings and compiles a signed bundle.
+              A policy may include others (`includes`): their audiences, egress entries and tools are added
+              to its own, and the result is checked against this policy's profile and ceiling (ADR-0022).
             properties:
               audiences:
                 default: []
@@ -275,6 +277,29 @@ spec:
                   - endpoint
                   type: object
                 type: array
+              includes:
+                description: |-
+                  Other policies in this namespace whose audiences, egress entries and tools this one
+                  includes, at most four, names unique. An entry this policy declares replaces an included
+                  one with the same key; two includes supplying the same key are refused (L031). An included
+                  policy may not include others (L032), and this policy's groups must be in every include's
+                  (L033). Everything else (profile, subjects, lease, budgets, knobs) is this policy's own.
+                items:
+                  description: |-
+                    Another `SandboxPolicy` in the same namespace whose audiences, egress entries and tools this
+                    policy includes (ADR-0022).
+                  properties:
+                    name:
+                      description: The included policy's name, in this policy's namespace.
+                      type: string
+                  required:
+                  - name
+                  type: object
+                maxItems: 4
+                type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
               lease:
                 description: Lease limits. Defaults to the K7.3 ceiling for the profile when omitted.
                 nullable: true
@@ -297,6 +322,12 @@ spec:
               profileRef:
                 description: Name of a cluster-scoped SandboxProfile.
                 type: string
+              publish:
+                description: |-
+                  `false` for a policy that exists only to be included: linted against its profile, but
+                  never compiled, signed or published, and needing no ExposureCeiling. A sandbox that names
+                  it finds no bundle. Defaults to `true` (ADR-0022, decision 8).
+                type: boolean
               subjects:
                 default:
                   groups: []
@@ -329,6 +360,9 @@ spec:
             required:
             - profileRef
             type: object
+            x-kubernetes-validations:
+            - message: "a policy with publish: false cannot have includes (ADR-0022)"
+              rule: "!has(self.includes) || !has(self.publish) || self.publish"
           status:
             nullable: true
             properties:
@@ -388,6 +422,41 @@ spec:
                   - reason
                   - status
                   - type
+                  type: object
+                type: array
+              includedBy:
+                default: []
+                description: >-
+                  The policies that include this one, sorted (ADR-0022). Always written, like
+                  `includes`.
+                items:
+                  type: string
+                type: array
+              includes:
+                default: []
+                description: |-
+                  The policies this one includes, as it was last compiled from them (ADR-0022). Always
+                  written, empty included: status goes out as a merge patch, where absent means unchanged.
+                items:
+                  description: >-
+                    One included policy, as the composite was compiled from it (ADR-0022, decision
+                    7).
+                  properties:
+                    contentDigest:
+                      description: |-
+                        `sha256:<hex>` of the RFC 8785 form of what it contributes: its audiences, egress entries
+                        and tools, each sorted.
+                      type: string
+                    name:
+                      description: The included policy's name.
+                      type: string
+                    uid:
+                      default: ""
+                      description: Its uid, so a deleted and recreated include reads as a different one.
+                      type: string
+                  required:
+                  - contentDigest
+                  - name
                   type: object
                 type: array
               maxExposure:

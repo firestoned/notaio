@@ -40,7 +40,7 @@ A named bundle of knob steps (Fortress, Hardened, Standard, Lab). Cluster-scoped
 
 `sandbox.firestoned.io/v1alpha2`, namespaced, short name `sbpolicy`.
 
-Binds subjects to a profile and adds the concrete audiences, egress entries and tools. The controller checks all of it against the profile's knob ceilings and compiles a signed bundle.
+Binds subjects to a profile and adds the concrete audiences, egress entries and tools. The controller checks all of it against the profile's knob ceilings and compiles a signed bundle. A policy may include others (`includes`): their audiences, egress entries and tools are added to its own, and the result is checked against this policy's profile and ceiling (ADR-0022).
 
 ### `spec`
 
@@ -64,10 +64,13 @@ Binds subjects to a profile and adds the concrete audiences, egress entries and 
 | `egress[].rules` | array of object |  | What may be called there. Only accepted at K4.1 R2 and above. None means anything. |
 | `egress[].rules[].method` | string | yes | An HTTP method, or `*`. |
 | `egress[].rules[].path` | string | yes | A path glob starting with `/`. |
+| `includes` | array of object |  | Other policies in this namespace whose audiences, egress entries and tools this one includes, at most four, names unique. An entry this policy declares replaces an included one with the same key; two includes supplying the same key are refused (L031). An included policy may not include others (L032), and this policy's groups must be in every include's (L033). Everything else (profile, subjects, lease, budgets, knobs) is this policy's own. |
+| `includes[].name` | string | yes | The included policy's name, in this policy's namespace. |
 | `lease` | object |  | Lease limits. Defaults to the K7.3 ceiling for the profile when omitted. |
 | `lease.maxConcurrent` | integer | yes | How many sandboxes one person may run at once. |
 | `lease.maxDurationSeconds` | integer | yes | The longest a sandbox may run, in seconds. |
 | `profileRef` | string | yes | Name of a cluster-scoped SandboxProfile. |
+| `publish` | boolean |  | `false` for a policy that exists only to be included: linted against its profile, but never compiled, signed or published, and needing no ExposureCeiling. A sandbox that names it finds no bundle. Defaults to `true` (ADR-0022, decision 8). |
 | `subjects` | object |  | Who may claim a sandbox under this policy. |
 | `subjects.groups` | array of string |  | Identity provider group ids allowed to claim a sandbox under this policy. |
 | `tools` | array of object |  | Tools and MCP servers the agent may use. |
@@ -89,6 +92,11 @@ Binds subjects to a profile and adds the concrete audiences, egress entries and 
 | `conditions[].reason` | string | yes | The reason for the status, in CamelCase, such as `Published` or `SigningFailed`. |
 | `conditions[].status` | string | yes | `True`, `False` or `Unknown`. |
 | `conditions[].type` | string | yes | The condition: `Ready`, `Valid`, `ProfileResolved` or `Applied`, by kind. |
+| `includedBy` | array of string |  | The policies that include this one, sorted (ADR-0022). Always written, like `includes`. |
+| `includes` | array of object |  | The policies this one includes, as it was last compiled from them (ADR-0022). Always written, empty included: status goes out as a merge patch, where absent means unchanged. |
+| `includes[].contentDigest` | string | yes | `sha256:<hex>` of the RFC 8785 form of what it contributes: its audiences, egress entries and tools, each sorted. |
+| `includes[].name` | string | yes | The included policy's name. |
+| `includes[].uid` | string |  | Its uid, so a deleted and recreated include reads as a different one. |
 | `maxExposure` | object |  | What a fully compromised sandbox under this policy could reach (objective O3): computed, not asserted. |
 | `maxExposure.audiences` | array of object | yes | Every audience the sandbox can get a token for. |
 | `maxExposure.audiences[].access` | string: `Read`, `Write` | yes | `Read` or `Write`. |

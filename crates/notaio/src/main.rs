@@ -30,6 +30,7 @@ use notaio::cli::{
     ENV_LOG_JSON, ENV_NAMESPACE, ENV_POD_NAME,
 };
 use notaio::http::Observed;
+use notaio::include::related;
 use notaio::leader::Elector;
 use notaio::metrics::{Counters, Snapshot};
 use notaio::watch::deserves_warning;
@@ -228,8 +229,15 @@ async fn run_controller() -> anyhow::Result<()> {
     let (grant_cache, grant_cache_task) = cache(grants.clone(), "grant");
     let exposure_ceilings: Api<ExposureCeiling> = Api::all(client.clone());
 
-    let mut policy_controller = Controller::new(policies, watcher::Config::default());
+    let mut policy_controller = Controller::new(policies.clone(), watcher::Config::default());
     let store = policy_controller.store();
+    // A policy's change re-evaluates the policies that include it and the ones it includes
+    // (ADR-0022): their effective content, or their `includedBy`, may have moved. Deletions too.
+    let include_store = store.clone();
+    policy_controller = policy_controller.watches(policies, watcher::Config::default(), move |p| {
+        let all = include_store.state();
+        related(all.iter().map(|a| &**a), &p)
+    });
     if let Some(platform) = platform_namespace.clone() {
         // An audience change re-evaluates every policy that grants it (ADR-0020): in every
         // namespace for a platform audience, in its own namespace for a team audience.

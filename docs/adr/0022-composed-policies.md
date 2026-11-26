@@ -10,7 +10,10 @@
   (a running claim follows a new bundle), and ADR-0065 (rejected in favour of this). Threat
   model T5.4, T8.2, K5.3, objective O3
 
-Not implemented. Roadmap 04 carries the phases.
+Partly implemented (2026-11-24): the composition in `sandboxpolicy-core`, `notaio lint`, the
+controller (the watch on includes, `status.includes` and `status.includedBy`) and the
+`e2e_compose` suite. Bundle v4 (decision 7's payload fields) and the threat model pass are not done
+yet; roadmap 04 carries the phases.
 
 ## Context
 
@@ -61,7 +64,9 @@ and it is signed. No consumer changes to enforce it.
      cannot change a grant, a digest or a version.
 
 3. **One level.** An included policy may not itself have `includes` (**L032**). A policy that
-   names itself is the same case, since it then has includes. No cycles by construction, and a
+   names itself is the same case, since it then has includes. L032 also covers the shape the CRD
+   enforces, for `notaio lint`, which has no API server: more than four includes, a name twice,
+   or `includes` on a policy with `publish: false`. No cycles by construction, and a
    reader sees every grant of a composite one step away. Nesting is revisited only if real
    policies need it.
 
