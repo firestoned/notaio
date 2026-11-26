@@ -1,0 +1,1 @@
+--8<-- "adr/0024-subjects-in-the-signed-bundle.md"

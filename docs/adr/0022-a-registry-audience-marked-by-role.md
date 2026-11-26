@@ -3,6 +3,7 @@
 - **Status:** Proposed
 - **Date:** 2026-11-23
 - **Deciders:** Erick Bourgeois
+- **Amended:** 2026-11-26 (lint code `L037`, not `L030`, which ADR-0019 reserved first)
 - **Related:** Extends [ADR-0020](0020-sandbox-audience.md) (the `SandboxAudience` definition and
   its signed bundle); ADR-0005 (canonical form); ADR-0008 (the consumer's version floor); ADR-0007
   (the ceiling still decides). In mediatore: ADR-0063 (the image pull goes through the claim's proxy
@@ -50,7 +51,7 @@ Two facts about the current code shape the decision:
    `role` is serialised only when it is `registry`, so an `api` definition's canonical bytes, its
    digest and its version are what they are today, and no published bundle changes.
 
-2. **A new stable code, `L030`: a registry audience may only read.** A definition with
+2. **A new stable code, `L037`: a registry audience may only read.** A definition with
    `role: registry` must have at least one rule, and every rule must be the method `GET` or `HEAD`
    on a path that begins `/v2/`, after `L017`'s checks on the rule. An empty `rules` list, which
    for an `api` audience means every method and path, is a finding here: a registry's ceiling is
@@ -98,7 +99,7 @@ The CALM step is deferred: notaio has no CALM model yet, so `docs/architecture.m
 | Threat | STRIDE | Control |
 | --- | --- | --- |
 | A team pulls images from a host it was granted for API calls, or calls as an API a host it was granted to pull from | E | The marker is signed in the definition (decision 1); the consumer serves the two roles apart (mediatore ADR-0063 decision 5) |
-| A registry audience opened for writing (push, delete) | T/E | `L030` (decision 2) on the definition and `L028` on every grant of it; the consumer's own check repeats it on read |
+| A registry audience opened for writing (push, delete) | T/E | `L037` (decision 2) on the definition and `L028` on every grant of it; the consumer's own check repeats it on read |
 | A consumer that predates the marker serves a registry audience to the workload as an ordinary route | E | Decision 3: a registry definition is `v2`, which an older consumer refuses at the schema check |
 | A registry definition replayed as an API one, or the reverse | T | `role` is in the signed content; decision 3's pairing of schema and role refuses a mismatch |
 | A team adds a registry host Security never approved | E | `L014` against the policy's ceiling, unchanged (decision 4) |
@@ -136,14 +137,14 @@ The CALM step is deferred: notaio has no CALM model yet, so `docs/architecture.m
 
 - `sandboxpolicy-types`: `role` defaults to `api`, is omitted when `api`, and round-trips
   `registry`; a definition without the field deserialises as before.
-- `sandboxpolicy-core`: `L030` with a passing case and each failing case (no rules, a `PUT`, a `GET`
+- `sandboxpolicy-core`: `L037` with a passing case and each failing case (no rules, a `PUT`, a `GET`
   outside `/v2/`), on a platform and on a team audience, and not applied while the platform audience
   namespace is unset; `L028` refusing a grant of a registry audience wider than its definition.
 - `sandboxpolicy-bundle`: a golden digest pinning that an `api` definition's canonical bytes did not
   change; a registry definition signed as `v2`; `v1` with `role` and `v2` without it refused with
   `BundleError::Schema`; a v0.8.0-shaped verifier refusing a `v2` bundle (the conformance vectors).
 - The controller publishes a registry audience as `v2`, and the `Role` column shows it.
-- `notaio lint` reports `L030` at pull request time.
+- `notaio lint` reports `L037` at pull request time.
 - Docs: the audience guide (a registry audience), the reference, `docs/architecture.md`, the lint
   table in `docs/threat-model-mapping.md`, and a threat model pass
   (`.claude/rules/threat-modeling.md`).

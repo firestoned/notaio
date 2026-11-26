@@ -3,8 +3,8 @@
 
 # Roadmap 04: a policy composed of others, signed as one bundle
 
-- **Status:** In progress: phase 0 decided in ADR-0023, phases 1 to 3 done (2026-11-24), the
-  threat model pass done (2026-11-25); opened
+- **Status:** In progress: phase 0 done (ADR-0023; mediatore's ADR-0065 rejected 2026-11-24),
+  phases 1 to 3 done (2026-11-24), the threat model pass done (2026-11-25); opened
   2026-11-24. Replaces mediatore roadmap 16 and its ADR-0065
   (several `policyRefs` per sandbox, composed by the broker), which are withdrawn in favour of this.
 - **Milestone:** M4 in [`ROADMAPS.md`](../../ROADMAPS.md)
@@ -104,7 +104,8 @@ Each phase is shippable and leaves the system no looser than before.
 
 - [x] ADR-0023 (a policy composed of others), D1 to D7 decided (2026-11-24). D6: includes are
       audit data only. D7: `spec.publish: false`.
-- [ ] mediatore ADR-0065 marked rejected, pointing here; mediatore roadmap 16 removed.
+- [x] mediatore ADR-0065 marked rejected, pointing here; mediatore roadmap 16 removed (mediatore
+      #165, 2026-11-24).
 
 ### Phase 1: the composition, pure (`sandboxpolicy-core`)
 

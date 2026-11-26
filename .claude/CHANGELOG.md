@@ -2,6 +2,30 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-26 14:45] - ADR-0024 and ADR-0025 on the docs site; L030 to ADR-0019, L037 to ADR-0022
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `docs/src/adr/0024-subjects-in-the-signed-bundle.md`,
+  `docs/src/adr/0025-a-ceiling-shared-by-several-policies.md`, `docs/src/adr/index.md`,
+  `docs/mkdocs.yml`: the stubs, index rows and nav entries #117 left out.
+- `docs/adr/0022-a-registry-audience-marked-by-role.md`: its lint code is `L037`. ADR-0019
+  reserved `L030` first (amended 2026-11-20), and the code already said so.
+- `crates/sandboxpolicy-core/src/lint.rs`: the module doc lists every code reserved by a proposed
+  ADR (L030, L034 to L037) and the next free one (L038), so the next ADR does not collide.
+- Roadmap 04: phase 0 done; mediatore rejected its ADR-0065 and withdrew roadmap 16 (#165).
+
+### Why
+Two proposed ADRs claimed `L030`; a stable code is a contract once it ships, so the collision is
+fixed while neither is implemented.
+
+### Impact
+- [ ] Breaking change (CRD schema, bundle schema, public API)
+- [ ] Requires cluster rollout (CRDs, profiles or controller)
+- [ ] Config or examples change only
+- [x] Documentation only
+
 ## [2026-11-26 11:43] - Poetry lock recompiled for Python 3.11 again
 
 **Author:** Erick Bourgeois
