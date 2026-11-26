@@ -2,6 +2,40 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-26 16:11] - L034: a subject group a consumer could not match exactly (roadmap 05 phase 1)
+
+**Author:** Erick Bourgeois
+
+### Added
+- `crates/sandboxpolicy-core/src/lint.rs`: `L034`, an error, on each `subjects.groups` entry that
+  is empty, has leading or trailing whitespace, holds a pattern character (`*?[]{}`), or repeats
+  an earlier entry (the finding names it). Matching stays exact: case and prefix variants are
+  different groups. In `RULES` and the documented table; runs in `lint_policy`, so in the controller
+  and `notaio lint` alike, on the effective spec (a composite's own groups).
+- Tests: `lint_tests.rs` (each malformed shape at its index, a repeat naming the first, exact
+  matching, an empty list staying `L010`), `tests/evaluate.rs` (a malformed group compiles no
+  bundle, `InvalidPolicy`), `crates/notaio/tests/lint.rs` (a repeat is an error at pull request
+  time, at `subjects.groups[1]`).
+
+### Changed
+- `docs/src/reference/lint-rules.md` regenerated; `RULES` has 33 codes.
+- `docs/threat-model-mapping.md`: the eligibility row lists `L034` among the checks on
+  `subjects.groups`; the row stays under "Not covered yet" until a consumer checks the signed list.
+- ADR-0024 partly implemented (decision 3); roadmap 05 phase 1 done; `ROADMAPS.md` row 05.
+- `crates/notaio/src/lint.rs`: `Diagnostic::code`'s doc no longer names a stale range of codes.
+
+### Why
+ADR-0024 decision 3: once the groups are signed and a consumer matches them exactly, a pattern, a
+stray space or an empty entry is a grant nobody meant. It only adds findings, so it ships before
+the schema.
+
+### Impact
+- [ ] Breaking change (CRD schema, bundle schema, public API)
+- [x] Requires cluster rollout (CRDs, profiles or controller): a new controller refuses a policy
+      whose groups are malformed, which an older one published
+- [ ] Config or examples change only
+- [ ] Documentation only
+
 ## [2026-11-26 15:20] - ADR-0026: bundle schema v4 and its rollout (roadmap 05 phase 0)
 
 **Author:** Erick Bourgeois

@@ -481,7 +481,7 @@ fn rules_table_matches_the_documented_codes() {
             "{code} differs between RULES and the documented table"
         );
     }
-    assert_eq!(sandboxpolicy_core::lint::RULES.len(), 32);
+    assert_eq!(sandboxpolicy_core::lint::RULES.len(), 33);
 }
 
 fn ready_reason(o: &EvalOutput) -> Option<&str> {
@@ -1194,4 +1194,16 @@ fn a_policy_that_is_not_published_is_still_linted() {
     let o = run_composite(&git, &[], None);
     assert!(!ready(&o));
     assert!(o.findings.iter().any(|f| f.code == "L006"));
+}
+
+#[test]
+fn l034_a_malformed_group_compiles_no_bundle() {
+    // ADR-0024 decision 3: a pattern in subjects.groups is an error, so nothing is signed.
+    let pr = profile("hardened");
+    let mut po = policy("hardened", vec![audience("internal-git", Access::Read)]);
+    po.spec.subjects.groups.push("algo-*".into());
+    let o = run(&po, Some(&pr), &[], None);
+    assert!(o.bundle.is_none());
+    assert_eq!(ready_reason(&o), Some("InvalidPolicy"));
+    assert!(has_code(&o, "L034"), "{:?}", o.findings);
 }

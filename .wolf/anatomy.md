@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-11-26T20:36:03.803Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-11-26T21:12:09.742Z
 > Files: 99 tracked | Anatomy hits: 0 | Misses: 0
 
 > Project structure index. Auto-maintained by OpenWolf hooks and daemon.
@@ -21,7 +21,7 @@
 
 ## .claude/
 
-- `CHANGELOG.md` — Changelog (~30503 tok)
+- `CHANGELOG.md` — Changelog (~30978 tok)
 
 ## .claude/rules/
 

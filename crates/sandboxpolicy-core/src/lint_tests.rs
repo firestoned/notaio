@@ -4,6 +4,7 @@
 
 use super::*;
 use crate::builtin;
+use sandboxpolicy_api::Subjects;
 
 fn knobs(pairs: &[(&str, Step)]) -> BTreeMap<KnobId, Step> {
     pairs.iter().map(|(k, s)| (KnobId::new(k), *s)).collect()
@@ -197,4 +198,91 @@ fn ordinary_rule_paths_and_globs_pass() {
     ] {
         assert_eq!(rule_problem(&path_rule(good)), None, "{good:?}");
     }
+}
+
+// L034 (ADR-0024 decision 3): a group entry that is empty, padded, a pattern, or repeated.
+
+/// A spec on `hardened` with no audiences, egress or tools, so only the subject rules can fire.
+fn spec_with_groups(groups: &[&str]) -> SandboxPolicySpec {
+    SandboxPolicySpec {
+        profile_ref: "hardened".into(),
+        subjects: Subjects {
+            groups: groups.iter().map(|g| (*g).to_string()).collect(),
+        },
+        audiences: vec![],
+        egress: vec![],
+        tools: vec![],
+        lease: None,
+        budgets: None,
+        includes: vec![],
+        publish: true,
+    }
+}
+
+fn subject_findings(groups: &[&str]) -> Vec<Finding> {
+    let hardened = builtin::profile("hardened").unwrap();
+    lint_policy(
+        &hardened.knobs,
+        &spec_with_groups(groups),
+        &Ceilings::default(),
+    )
+    .into_iter()
+    .filter(|f| f.code == "L034" || f.code == "L010")
+    .collect()
+}
+
+#[test]
+fn l034_well_formed_groups_pass() {
+    for groups in [
+        &["00000000-0000-0000-0000-000000000000"][..],
+        &["algo-devs", "platform:sre", "a b"][..],
+    ] {
+        assert!(subject_findings(groups).is_empty(), "{groups:?}");
+    }
+}
+
+#[test]
+fn l034_refuses_each_malformed_entry_at_its_index() {
+    for (bad, why) in [
+        ("", "empty"),
+        (" algo-devs", "whitespace"),
+        ("algo-devs\t", "whitespace"),
+        ("algo-*", "pattern"),
+        ("algo-?", "pattern"),
+        ("[ab]", "pattern"),
+        ("{a,b}", "pattern"),
+    ] {
+        let f = subject_findings(&["ok", bad]);
+        assert_eq!(codes(&f), ["L034"], "{bad:?}");
+        assert_eq!(f[0].severity, Severity::Error, "{bad:?}");
+        assert_eq!(f[0].path, "subjects.groups[1]", "{bad:?}");
+        assert!(f[0].message.contains(why), "{bad:?}: {}", f[0].message);
+    }
+}
+
+#[test]
+fn l034_a_repeated_group_is_refused_on_the_repeat_naming_the_first() {
+    let f = subject_findings(&["algo-devs", "sre", "algo-devs"]);
+    assert_eq!(codes(&f), ["L034"]);
+    assert_eq!(f[0].path, "subjects.groups[2]");
+    assert!(
+        f[0].message.contains("subjects.groups[0]"),
+        "{}",
+        f[0].message
+    );
+}
+
+#[test]
+fn l034_matching_is_exact_so_case_and_prefix_variants_are_not_repeats() {
+    assert!(subject_findings(&["Algo-Devs", "algo-devs", "corp/algo-devs"]).is_empty());
+}
+
+#[test]
+fn l034_an_empty_list_is_l010_not_l034() {
+    assert_eq!(codes(&subject_findings(&[])), ["L010"]);
+}
+
+#[test]
+fn l034_is_in_the_rule_table() {
+    assert!(RULES.iter().any(|(c, _)| *c == "L034"));
 }

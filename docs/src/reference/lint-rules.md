@@ -46,6 +46,7 @@ Checked by the controller and by `notaio lint`, from `crates/sandboxpolicy-core/
 | `L031` | Two included policies supply the same audience, egress endpoint or tool, and the including policy does not declare it |
 | `L032` | An include that has includes of its own, more than four includes, one named twice, or includes on a policy with `publish: false` |
 | `L033` | The including policy's groups are not all in an included policy's groups |
+| `L034` | A subject group that is empty, has leading or trailing whitespace, holds a pattern character (`*?[]{}`), or repeats another |
 
 ## Input rules
 
