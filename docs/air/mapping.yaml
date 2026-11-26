@@ -203,7 +203,10 @@ mitigations:
     knobs: [K7.2, K5.2, K5.3]
     lint: [L005, L006, L010]
     note: Subjects, eligibility and audience scoping.
-    gap: Scoping stops at the audience and token. Access control inside the downstream data store is that system's.
+    gap: >
+      Scoping stops at the audience and token. Access control inside the downstream data store is
+      that system's. Subjects are linted but not signed into the bundle, and no consumer checks
+      them yet (K7.2, roadmap 00 item D3).
   mi-13:
     status: out_of_scope
     note: Output citation.
