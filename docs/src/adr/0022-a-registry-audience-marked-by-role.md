@@ -1,0 +1,1 @@
+--8<-- "adr/0022-a-registry-audience-marked-by-role.md"
