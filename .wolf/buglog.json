@@ -69,6 +69,22 @@
         "python",
         "recurrence"
       ]
+    },
+    {
+      "id": "bug-006",
+      "timestamp": "2026-11-26T19:41:17.313Z",
+      "error_message": "Incorrect value in code",
+      "file": "crates/sandboxpolicy-core/src/lint.rs",
+      "root_cause": "Had 's and are found by `",
+      "fix": "Changed to 's and are found\n//! by `",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "rs"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-26T19:41:17.313Z"
     }
   ]
 }

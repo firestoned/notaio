@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-11-26T00:50:07.414Z
-> Files: 94 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-11-26T19:41:57.707Z
+> Files: 97 tracked | Anatomy hits: 0 | Misses: 0
 
 > Project structure index. Auto-maintained by OpenWolf hooks and daemon.
 > Run `openwolf scan` to generate, or wait for the first Claude Code session.
@@ -21,7 +21,7 @@
 
 ## .claude/
 
-- `CHANGELOG.md` — Changelog (~29177 tok)
+- `CHANGELOG.md` — Changelog (~29728 tok)
 
 ## .claude/rules/
 
@@ -37,7 +37,7 @@
 
 ## .github/community/
 
-- `04-composed-policies.md` — Roadmap 04: a policy composed of others, signed as one bundle (~2839 tok)
+- `04-composed-policies.md` — Roadmap 04: a policy composed of others, signed as one bundle (~2857 tok)
 
 ## .github/workflows/
 
@@ -106,7 +106,7 @@
 - `compose.rs` — A policy composed of others (ADR-0022): `compose` turns a policy and the policies it includes (~3196 tok)
 - `evaluate.rs` — `evaluate` is the whole decision: given a policy, its profile and its grants at an instant, say (~3678 tok)
 - `lib.rs` — Pure policy logic: the knob register, the built-in profiles, the lint rules, the ceilings and the (~163 tok)
-- `lint.rs` — Lint rules. Every rule has a stable code so findings can be documented, tested and alerted on. (~4466 tok)
+- `lint.rs` — Lint rules. Every rule has a stable code so findings can be documented, tested and alerted on. (~8700 tok)
 - `registry.rs` — The knob register, transcribed from section 9 of the AgentSandbox threat model. (~1097 tok)
 
 ## crates/sandboxpolicy-core/tests/
@@ -177,6 +177,7 @@
 - `0019-resource-sizes.md` — ADR-0019: Resource sizes for K2.4 (~1488 tok)
 - `0020-sandbox-audience.md` — ADR-0020: SandboxAudience, an audience defined by the platform or by a team, signed like a policy (~4717 tok)
 - `0021-status-written-only-by-notaio.md` — ADR-0021: Status is written only by notaio (~1031 tok)
+- `0022-a-registry-audience-marked-by-role.md` — ADR-0022: A registry audience, marked by `role` on the definition (~2604 tok)
 - `0022-composed-policies.md` — ADR-0022: A policy composed of others, signed as one bundle (~2712 tok)
 - `0023-composed-policies.md` — ADR-0023: A policy composed of others, signed as one bundle (~2850 tok)
 
@@ -187,6 +188,8 @@
 
 ## docs/src/adr/
 
+- `0024-subjects-in-the-signed-bundle.md` — 8<-- "adr/0024-subjects-in-the-signed-bundle.md" (~13 tok)
+- `0025-a-ceiling-shared-by-several-policies.md` — 8<-- "adr/0025-a-ceiling-shared-by-several-policies.md" (~15 tok)
 - `index.md` — Architecture Decision Records (~617 tok)
 
 ## docs/src/concepts/

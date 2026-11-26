@@ -38,8 +38,9 @@
 //! | L033 | The including policy's groups are not all in an included policy's groups |
 //!
 //! L022 to L029 and the definition half of L014 are ADR-0020's, and apply only once the platform
-//! audience namespace is configured (`crate::audience`). L030 is reserved for ADR-0019. L031 to
-//! L033 are ADR-0023's and are found by `crate::compose`.
+//! audience namespace is configured (`crate::audience`). L031 to L033 are ADR-0023's and are found
+//! by `crate::compose`. Reserved by proposed ADRs, not implemented: L030 (ADR-0019), L034
+//! (ADR-0024), L035 and L036 (ADR-0025), L037 (ADR-0022). The next free code is L038.
 
 use std::collections::{BTreeMap, BTreeSet};
 

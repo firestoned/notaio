@@ -1,0 +1,1 @@
+--8<-- "adr/0025-a-ceiling-shared-by-several-policies.md"
