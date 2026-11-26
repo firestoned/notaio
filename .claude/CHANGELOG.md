@@ -2,6 +2,35 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-26 14:52] - Roadmap 05: bundle schema v4, one migration, consumers first
+
+**Author:** Erick Bourgeois
+
+### Added
+- `.github/community/05-bundle-schema-v4.md`: the one v4 migration that ADR-0016, ADR-0019,
+  ADR-0023 decision 7 and ADR-0024 each call for. What a survey of notaio, mediatore and banlieue
+  found (the exact schema check, the digest recomputed from parsed content, `envelope()` and
+  `signing_input()` fixed to the v3 payload type on the OpenBao path, the CRD's types shared with
+  the bundle, mediatore as the only consumer), eight decisions with recommendations (a migration
+  ADR, the v4 member table, the dual verifier, `from` in the bundle crate, a producer switch,
+  running claims at the cutover, a guard check on the signed groups, hand-written release notes),
+  and the work over three releases.
+
+### Changed
+- `ROADMAPS.md`: row 05; under M4, the v4 and eligibility bullet, the K2.4 bullet pointing to
+  roadmap 05, and roadmap 04 "in progress" rather than "planned".
+- Roadmap 04, phase 4: built as part of roadmap 05.
+
+### Why
+Eligibility by group (K7.2) is enforced nowhere until the bundle carries the groups, and four
+ADRs share one schema change that has to reach consumers before notaio emits it.
+
+### Impact
+- [ ] Breaking change (CRD schema, bundle schema, public API)
+- [ ] Requires cluster rollout (CRDs, profiles or controller)
+- [ ] Config or examples change only
+- [x] Documentation only
+
 ## [2026-11-26 14:45] - ADR-0024 and ADR-0025 on the docs site; L030 to ADR-0019, L037 to ADR-0022
 
 **Author:** Erick Bourgeois

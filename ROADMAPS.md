@@ -16,6 +16,7 @@ request that changes a roadmap's state.
 | 02 | OpenBao unseals itself | Done: the static seal, proven on kind and on the test cluster (2026-11-01) | [02-unseal-the-signer.md](https://github.com/firestoned/notaio/blob/main/.github/community/02-unseal-the-signer.md) |
 | 03 | Policies delivered as signed OCI artifacts | Done: the test cluster on two signed artifacts, every refusal shown; ADR-0015 and a guide (2026-11-02) | [03-signed-policy-artifacts.md](https://github.com/firestoned/notaio/blob/main/.github/community/03-signed-policy-artifacts.md) |
 | 04 | A policy composed of others, signed as one bundle | In progress: decided in [ADR-0023](https://github.com/firestoned/notaio/blob/main/docs/adr/0023-composed-policies.md), the composition, `notaio lint`, the controller and the threat model pass done (2026-11-25): `spec.includes`, one ceiling over the composite; replaces mediatore roadmap 16 | [04-composed-policies.md](https://github.com/firestoned/notaio/blob/main/.github/community/04-composed-policies.md) |
+| 05 | Bundle schema v4, one migration, consumers first | Planned (2026-11-26): `subjects` (ADR-0024), `includes` and `from` (ADR-0023), the places for `resources` and `sources` (ADR-0019, ADR-0016); three releases, a switch for the producer | [05-bundle-schema-v4.md](https://github.com/firestoned/notaio/blob/main/.github/community/05-bundle-schema-v4.md) |
 
 ## M0: scaffold and contracts (this repository state)
 
@@ -147,14 +148,21 @@ notaio computes in the cluster.
 - K2.4 resource sizes once the model defines them. Proposed 2026-11-08
   ([ADR-0019](https://github.com/firestoned/notaio/blob/main/docs/adr/0019-resource-sizes.md)):
   sizes per step in the ceilings, `spec.resources`, lint `L030`, bundle schema v4 (one migration
-  with ADR-0016's `sources`); waiting on the model's numbers.
+  with ADR-0016's `sources`); waiting on the model's numbers. The schema half is
+  [roadmap 05](https://github.com/firestoned/notaio/blob/main/.github/community/05-bundle-schema-v4.md),
+  which leaves `resources` absent until the numbers come.
+- Bundle schema v4 and eligibility by group (K7.2). Planned in
+  [roadmap 05](https://github.com/firestoned/notaio/blob/main/.github/community/05-bundle-schema-v4.md):
+  the policy's groups signed into the bundle
+  ([ADR-0024](https://github.com/firestoned/notaio/blob/main/docs/adr/0024-subjects-in-the-signed-bundle.md)),
+  with the include behind each grant of a composite, consumers first, over three releases.
 - Cedar: compile a Cedar policy set into the bundle when the declarative form runs out.
 - Audience definitions signed like policies, and teams' own credentials. Done 2026-11-20
   ([ADR-0020](https://github.com/firestoned/notaio/blob/main/docs/adr/0020-sandbox-audience.md)):
   `SandboxAudience`, platform and team audiences by namespace, its own signed bundle, lint `L022`
   to `L029`, opt-in with `NOTAIO_AUDIENCE_PLATFORM_NAMESPACE`. mediatore's consumer side is its
   ADR-0055.
-- Policies composed of others, signed as one bundle. Planned in
+- Policies composed of others, signed as one bundle. In progress in
   [roadmap 04](https://github.com/firestoned/notaio/blob/main/.github/community/04-composed-policies.md):
   `spec.includes`, the composite under its own ceiling, so a sandbox that needs several
   policies' grants still names one policy and reads one bundle.

@@ -139,6 +139,9 @@ Each phase is shippable and leaves the system no looser than before.
 
 ### Phase 4: the bundle (with schema v4)
 
+Built as part of [roadmap 05](05-bundle-schema-v4.md) (D2 and D4 there: `from` lives in the
+bundle crate, not on the CRD's types), which carries the migration.
+
 - [ ] `includes` and per-entry `from` in the v4 payload (D6); conformance vectors for both; the
       JSON Schema regenerated.
 - [ ] mediatore: `PolicyConformant` and the audit line name the include a finding is about (a
