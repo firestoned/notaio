@@ -30,3 +30,5 @@ budget_tokens: 2000
 
 <!-- Significant technical decisions with rationale. Why X was chosen over Y. -->
 - [2026-11-22] `git commit -S` from the agent shell can fail with "gpg: signing failed: Timeout" when the key needs pinentry. Stage the files and hand Erick the exact commit command (or a script) instead of retrying.
+- [2026-11-24] Composed policies (ADR-0022): an include contributes audiences, egress and tools only; knobs and KnobGrants stay the composite's. Built-in profiles allow one audience (K5.3 R1) except `lab`, so a multi-audience composite needs a K5.3 grant on the composite itself.
+- [2026-11-24] notaio has no `delete` on ConfigMaps (deploy/policy-namespace/notaio-bundles.yaml: get, create, patch). A policy that stops publishing lets its bundle expire; never design a path that deletes a bundle ConfigMap without an RBAC/threat-model change.

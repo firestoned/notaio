@@ -1,0 +1,59 @@
+# A policy composed of others (ADR-0023). Each grant is written once, in the policy that owns it;
+# build-agent includes them, and its own ExposureCeiling (examples/exposureceiling-build-agent.yaml)
+# bounds the combination, so Security approves what a sandbox under build-agent can reach as a
+# whole. A sandbox names build-agent and reads one bundle.
+#
+# An include contributes its audiences, egress entries and tools only. The profile, subjects,
+# lease, budgets and knobs are build-agent's own, and every included entry is checked against
+# build-agent's profile, not the include's.
+apiVersion: sandbox.firestoned.io/v1alpha2
+kind: SandboxPolicy
+metadata:
+  name: build-agent
+  namespace: sandboxes
+spec:
+  profileRef: standard
+  # Every group here must be in every include's groups (L033).
+  subjects:
+    groups: ["00000000-0000-0000-0000-000000000000"]
+  # One to four policies in this namespace, one level deep (L032). Two that supply the same
+  # audience, egress endpoint or tool are refused (L031) unless this policy declares it itself,
+  # which replaces theirs. Their order means nothing.
+  includes:
+    - name: git-read
+    - name: package-mirror
+---
+# Exists only to be included: checked against its own profile, never signed or published, and
+# needing no ceiling of its own. A sandbox that names it finds no bundle.
+apiVersion: sandbox.firestoned.io/v1alpha2
+kind: SandboxPolicy
+metadata:
+  name: git-read
+  namespace: sandboxes
+spec:
+  profileRef: standard
+  publish: false
+  subjects:
+    groups: ["00000000-0000-0000-0000-000000000000"]
+  audiences:
+    - name: internal-git
+      access: Read
+      scopes: ["repo:read"]
+      ttlSeconds: 300
+      endpoints: ["git.foo.io:443"]
+      rules:
+        - { method: GET, path: "/repos/**" }
+---
+apiVersion: sandbox.firestoned.io/v1alpha2
+kind: SandboxPolicy
+metadata:
+  name: package-mirror
+  namespace: sandboxes
+spec:
+  profileRef: standard
+  publish: false
+  subjects:
+    groups: ["00000000-0000-0000-0000-000000000000"]
+  # Direct egress, enforced at the gateway (ADR-0013).
+  egress:
+    - endpoint: packages.foo.io:443

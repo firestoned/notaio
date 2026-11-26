@@ -243,6 +243,23 @@ current content keeps publishing, and the one that changed or arrived is refused
 was never published refuses nothing, and between two edited audiences the platform's is kept, so a
 team namespace cannot withdraw a platform audience by leaving a colliding one in place.
 
+### Composed policies
+
+[ADR-0023](adr/0023-composed-policies.md) lets a policy include up to four others in its namespace
+(`spec.includes`), so a sandbox that needs several policies' grants still names one policy and
+reads one bundle. Before step 3, `sandboxpolicy_core::compose` adds each include's audiences,
+egress entries and tools to the composite's own; everything sandbox-wide (profile, subjects,
+lease, budgets, knobs and their grants) stays the composite's. Steps 3 to 8 then run on that
+effective content, against the composite's profile and its own ExposureCeiling, so Security
+approves the combination as a whole. An entry the composite declares replaces an included one with
+the same key; two includes supplying the same key are refused (L031), as is an include that has
+includes of its own (L032) or a composite whose subjects reach groups an include does not grant
+(L033). A policy with `spec.publish: false` is linted but never compiled or signed, and exists
+only to be included, and reports `Ready=True` with reason `NotPublished`. A missing include reports
+`IncludeNotFound`. The controller watches policies for this: a change to an include, or its
+deletion, re-evaluates every composite that includes it, and each include reports the composites
+that include it in `status.includedBy`.
+
 The lint rules and their codes are documented at the top of
 `crates/sandboxpolicy-core/src/lint.rs`.
 
@@ -269,7 +286,10 @@ reconciler lints and records a digest. The policy reconciler gathers the profile
 publishes `<audience>-audience` in the audience's namespace, owned by the audience so deleting it
 deletes the bundle. Both read every audience from one cache, filled before either starts, so a
 half-filled cache can never make a defined audience look undefined. A change to an audience
-re-evaluates the policies that grant it and the audiences it collides with.
+re-evaluates the policies that grant it and the audiences it collides with. A change to a policy,
+or its deletion, re-evaluates the policies that include it and the ones it includes or last
+included (ADR-0023, `include.rs`); the policy reconciler reads the namespace's policies from the
+API to resolve includes and to write `status.includedBy`.
 
 - **Idempotent.** It writes only when something other than the refresh timestamp changed, so its own
   status writes do not cause a reconcile loop.

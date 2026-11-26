@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-11-23T14:15:21.107Z
-> Files: 87 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-11-26T00:50:07.414Z
+> Files: 94 tracked | Anatomy hits: 0 | Misses: 0
 
 > Project structure index. Auto-maintained by OpenWolf hooks and daemon.
 > Run `openwolf scan` to generate, or wait for the first Claude Code session.
@@ -21,7 +21,7 @@
 
 ## .claude/
 
-- `CHANGELOG.md` — Changelog (~26887 tok)
+- `CHANGELOG.md` — Changelog (~29177 tok)
 
 ## .claude/rules/
 
@@ -30,6 +30,14 @@
 - `rust-style.md` — Rust Style Guide (~1226 tok)
 - `testing.md` — Testing Standards (~1179 tok)
 - `threat-modeling.md` — Threat Modeling (~1153 tok)
+
+## .git/hooks/
+
+- `pre-commit` — Local hook (not tracked): refuse a commit that stages OpenWolf state under .wolf/. (~155 tok)
+
+## .github/community/
+
+- `04-composed-policies.md` — Roadmap 04: a policy composed of others, signed as one bundle (~2839 tok)
 
 ## .github/workflows/
 
@@ -46,6 +54,7 @@
 - `e2e_admission.rs` — e2e: `deploy/admission/gitops-only.yaml` refuses direct edits to policy objects, lets the GitOps (~3270 tok)
 - `e2e_audience.rs` — e2e: a SandboxAudience goes in, a signed audience bundle comes out (ADR-0020). (~2210 tok)
 - `e2e_bundle.rs` — e2e: a policy goes in, a signed bundle comes out, and a consumer can verify it. (~2108 tok)
+- `e2e_compose.rs` — e2e: a policy composed of others (ADR-0022), through the deployed controller. (~2707 tok)
 - `e2e_rbac.rs` — e2e: the controller's deployed RBAC is read plus status writes, and nothing more. (~1446 tok)
 
 ## crates/notaio/tests/common/
@@ -93,6 +102,8 @@
 - `audience.rs` — Audience definitions (ADR-0020): the lint rules on a `SandboxAudience` (L017 on its endpoints (~3983 tok)
 - `builtin.rs` — The four built-in profiles, transcribed from the profile matrix in section 10 of the threat (~708 tok)
 - `ceilings.rs` — Numeric ceilings that hang off knob steps. (~590 tok)
+- `compose_tests.rs` — A composite on `agent` for `devs`, with the given includes and named parts. (~2787 tok)
+- `compose.rs` — A policy composed of others (ADR-0022): `compose` turns a policy and the policies it includes (~3196 tok)
 - `evaluate.rs` — `evaluate` is the whole decision: given a policy, its profile and its grants at an instant, say (~3678 tok)
 - `lib.rs` — Pure policy logic: the knob register, the built-in profiles, the lint rules, the ceilings and the (~163 tok)
 - `lint.rs` — Lint rules. Every rule has a stable code so findings can be documented, tested and alerted on. (~4466 tok)
@@ -153,9 +164,9 @@
 
 ## docs/
 
-- `architecture.md` — Architecture (~1331 tok)
+- `architecture.md` — Architecture (~6317 tok)
 - `framework-mapping.md` — Mapping to the FINOS AI Governance Framework (~4117 tok)
-- `threat-model-mapping.md` — Mapping to the AgentSandbox threat model (~683 tok)
+- `threat-model-mapping.md` — Mapping to the AgentSandbox threat model (~4860 tok)
 
 ## docs/adr/
 
@@ -166,11 +177,13 @@
 - `0019-resource-sizes.md` — ADR-0019: Resource sizes for K2.4 (~1488 tok)
 - `0020-sandbox-audience.md` — ADR-0020: SandboxAudience, an audience defined by the platform or by a team, signed like a policy (~4717 tok)
 - `0021-status-written-only-by-notaio.md` — ADR-0021: Status is written only by notaio (~1031 tok)
+- `0022-composed-policies.md` — ADR-0022: A policy composed of others, signed as one bundle (~2712 tok)
+- `0023-composed-policies.md` — ADR-0023: A policy composed of others, signed as one bundle (~2850 tok)
 
 ## docs/air/
 
 - `catalogue.yaml` (~1582 tok)
-- `mapping.yaml` — One entry per item in docs/air/catalogue.yaml. Judgments are the author's and need review by (~2822 tok)
+- `mapping.yaml` — One entry per item in docs/air/catalogue.yaml. Judgments are the author's and need review by (~3068 tok)
 
 ## docs/src/adr/
 

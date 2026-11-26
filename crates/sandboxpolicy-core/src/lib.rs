@@ -9,10 +9,12 @@
 pub mod audience;
 pub mod builtin;
 pub mod ceilings;
+pub mod compose;
 pub mod evaluate;
 pub mod lint;
 pub mod registry;
 
 pub use audience::{evaluate_audience, AudienceCatalog, AudienceEvalInput, AudienceEvalOutput};
+pub use compose::{compose, ComposeError, EffectivePolicy, Included};
 pub use evaluate::{evaluate, EvalInput, EvalOutput, GrantResult};
 pub use lint::{Finding, Severity};

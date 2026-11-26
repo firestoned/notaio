@@ -15,6 +15,7 @@ use kube::{Client, Resource, ResourceExt};
 use notaio::adopt;
 use notaio::events::{self, Note};
 use notaio::guard::{self, Evaluated};
+use notaio::include::included_by;
 use notaio::metrics::Counters;
 use notaio::refresh;
 use sandboxpolicy_api::{
@@ -158,6 +159,15 @@ pub async fn reconcile_policy(policy: Arc<SandboxPolicy>, ctx: Arc<Ctx>) -> Resu
     let cm_version: Option<u64> = ann(ANN_VERSION).and_then(|v| v.parse().ok());
     let cm_digest = ann(ANN_DIGEST);
 
+    // Every policy in this namespace, read once (ADR-0023): the evaluator picks this policy's
+    // includes from it by name, and reports one that is missing as `IncludeNotFound`; and the
+    // policies that include this one are its `includedBy`. Read from the API, not a cache, so a
+    // composite is never compiled from an include older than what the reconcile was woken for.
+    let namespace_policies = Api::<SandboxPolicy>::namespaced(client.clone(), &ns)
+        .list(&ListParams::default())
+        .await?
+        .items;
+
     let prev = policy.status.clone().unwrap_or_default();
     let (prev_version, prev_digest) = match (prev.bundle_version, cm_version) {
         (Some(s), Some(c)) if c > s => (Some(c), cm_digest),
@@ -187,6 +197,7 @@ pub async fn reconcile_policy(policy: Arc<SandboxPolicy>, ctx: Arc<Ctx>) -> Resu
         bundle_lifetime: ctx.bundle_lifetime,
         ceilings: &ctx.ceilings,
         audiences: catalog.as_ref(),
+        includes: &namespace_policies,
     });
     for f in &out.findings {
         tracing::debug!(policy = %name, code = f.code, path = %f.path, "{}", f.message);
@@ -238,6 +249,7 @@ pub async fn reconcile_policy(policy: Arc<SandboxPolicy>, ctx: Arc<Ctx>) -> Resu
     // Readiness means compiled, signed and published. Decide it before comparing with old status so
     // an unchanged policy produces an identical status and no write.
     let mut status = out.status.clone();
+    status.included_by = included_by(&namespace_policies, &ns, &name);
     if out.bundle.is_some() {
         let ready = match &ctx.signer {
             Some(_) => condition(

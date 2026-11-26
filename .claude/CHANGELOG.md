@@ -2,6 +2,170 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-25 19:43] - kube 5.2.0
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `crates/notaio/Cargo.toml`, `crates/sandboxpolicy-api/Cargo.toml`, `Cargo.lock`: kube,
+  kube-client, kube-core, kube-derive and kube-runtime 5.1.0 to 5.2.0. `k8s-openapi` stays at
+  0.29.0 and no other crate moves.
+
+### Why
+Keep the controller on the current kube-rs release. Same licence (Apache-2.0), same maintainers,
+no new transitive dependency; `make deny` passes.
+
+### Impact
+- [ ] Breaking change (CRD schema, bundle schema, public API)
+- [x] Requires cluster rollout (CRDs, profiles or controller): a new controller image, no CRD
+      change (`make manifests-check` passes, the generated CRDs are byte for byte the same)
+- [ ] Config or examples change only
+- [ ] Documentation only
+
+## [2026-11-25 19:30] - Threat model pass for ADR-0023, composed policies (roadmap 04 phase 5)
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `docs/threat-model-mapping.md`: full pass, stamped 2026-11-25 against ADR-0001 to ADR-0023. A
+  new "Implemented here" row for composition (L031 to L033, an include's KnobGrants never
+  reaching a composite, `publish: false` never signed, a missing include publishing nothing, the
+  watch); the O3, ceiling and status rows say what they mean for a composite; the T8.2 "silent
+  edit" row notes that an include's owner changes every composite, bounded by each composite's
+  ceiling; "Not covered yet" lists the unsigned origin of a grant until bundle schema v4.
+- `docs/threat-model-mapping.md`, corrections found by checking banlieue and mediatore during the
+  pass: "Profile eligibility by group (K7.2, T7.3)" claimed banlieue admission enforces it, and
+  nothing does (`subjects.groups` is not in the bundle and no consumer checks it), so it moves to
+  "Not covered yet" with the namespace-per-tenant mitigation and roadmap 00 item D3. The
+  enforcement row now says mediatore reads audiences, egress and lease but no knobs, tools or
+  budgets; that shadow, its default, means the ceiling bounds what is signed and not what runs;
+  and that under `enforce` a notaio outage past the bundle lifetime fails closed.
+- `docs/air/mapping.yaml` (`mi-12`) and the generated `docs/framework-mapping.md`: the same gap
+  for subjects.
+- `docs/adr/0023-composed-policies.md`: implemented but for decision 7's v4 fields.
+- Roadmap 04 and `ROADMAPS.md`: the phase 5 threat model item done.
+- The ADR is numbered 0023: main took ADR-0022 for the registry audience (#111) while this
+  branch was open, and every reference on the branch moved with it.
+
+### Why
+ADD's last step: an ADR is not implemented until the pass is done. No knob, profile, RBAC rule,
+admission rule, listener or bundle format changed, so `registry.rs` and `builtin.rs` stand as they
+are. The corrections are coverage the mapping overstated before this ADR, not a change in notaio. ADR-0022 (registry audience) is proposed and has nothing implemented to map.
+
+### Impact
+- [ ] Breaking change (CRD schema, bundle schema, public API)
+- [ ] Requires cluster rollout (CRDs, profiles or controller)
+- [ ] Config or examples change only
+- [x] Documentation only
+
+## [2026-11-24 08:15] - Composed policies in the controller: the watch, includedBy, e2e (roadmap 04 phase 3)
+
+**Author:** Erick Bourgeois
+
+### Added
+- `crates/notaio/src/include.rs` and `include_tests.rs`: `included_by` and `related`, the pure
+  relations between composites and includes (ADR-0023).
+- `crates/notaio/tests/e2e_compose.rs`, `make kind-e2e-compose`, `E2E_SUITES` and the
+  `.github/workflows/e2e.yaml` matrix row: a composite of two `publish: false` policies published
+  and verified; the includes publish nothing and report `includedBy`; reordering `includes` keeps
+  the digest and version; an include widened past the composite's ceiling stops the re-sign with
+  the last bundle kept; a deleted include reports `IncludeNotFound`.
+
+### Changed
+- `crates/notaio/src/main.rs`: a second watch on `SandboxPolicy` re-evaluates the policies that
+  include the changed one, and the ones it includes now or last included. Deletions included.
+- `crates/notaio/src/reconcile.rs`: lists the namespace's policies once per reconcile, from the
+  API, to resolve includes and to write `status.includedBy`. Replaces the per-name reads.
+- `crates/sandboxpolicy-api/src/policy.rs`: `status.includes` and `status.includedBy` always
+  serialized: status is written as a JSON merge patch, so an omitted empty list would never clear.
+- `deploy/crds/`, `docs/src/reference/`: regenerated.
+- ADR-0023, `docs/architecture.md`, roadmap 04 and `ROADMAPS.md`: phase 3 marked done.
+
+### Why
+ADR-0023 decision 6: a change to an include must reach every composite promptly, not at the next
+half-life refresh, so a widening past a composite's ceiling stops its re-signing at once.
+
+### Impact
+- [ ] Breaking change (CRD schema, bundle schema, public API)
+- [x] Requires cluster rollout (CRDs, profiles or controller)
+- [ ] Config or examples change only
+- [ ] Documentation only
+
+## [2026-11-24 01:30] - Composed policies: spec.includes, L031 to L033 (roadmap 04 phases 1 and 2)
+
+**Author:** Erick Bourgeois
+
+### Added
+- `crates/sandboxpolicy-api/src/policy.rs`: `spec.includes` (at most `MAX_INCLUDES`, four, a
+  list-map keyed by `name`), `spec.publish` (default `true`), a CEL rule refusing `includes` with
+  `publish: false`, and `status.includes` (`name`, `uid`, `contentDigest`) and
+  `status.includedBy` (ADR-0023).
+- `crates/sandboxpolicy-core/src/compose.rs` and `compose_tests.rs`: `compose`, the effective
+  policy with the origin of every named entry, `content_digest` of what an include contributes,
+  and L031 (two includes supply one key), L032 (nested includes, and the list's shape for
+  `notaio lint`) and L033 (subjects wider than an include's). Findings on an included entry name
+  the include.
+- `crates/notaio/src/lint.rs`: includes resolved across the input files; `I012` for an include
+  not in the inputs.
+- `examples/sandboxpolicy-composite.yaml`, `examples/exposureceiling-build-agent.yaml`: a
+  composite of two `publish: false` policies under its own ceiling.
+
+### Changed
+- `crates/sandboxpolicy-core/src/evaluate.rs`: `EvalInput.includes`. Lint, the ceiling checks
+  (L014 to L016) and compilation run on the effective spec; `IncludeNotFound` (retried every
+  minute) and `NotPublished` (Ready, no bundle, no ceiling needed) reasons.
+- `crates/notaio/src/reconcile.rs`: fetches a composite's includes by name in its namespace. No
+  watch on includes yet (phase 3): an include's change reaches a composite at its next refresh.
+- `crates/sandboxpolicy-core/src/lint.rs`: L031 to L033 in `RULES` and the table; L030 stays
+  reserved for ADR-0019.
+- `deploy/crds/`, `docs/src/reference/`: regenerated (`make manifests`).
+- ADR-0023, `docs/architecture.md`, roadmap 04 and `ROADMAPS.md`: phases 1 and 2 marked done.
+
+### Why
+ADR-0023: a sandbox that needs several policies' grants names one policy, and one ceiling
+approved by Security bounds the combination (ADR-0007, objective O3). The threat model pass is
+roadmap 04 phase 5, once the controller watch and the e2e suite land.
+
+### Impact
+- [ ] Breaking change (CRD schema, bundle schema, public API)
+- [x] Requires cluster rollout (CRDs, profiles or controller)
+- [ ] Config or examples change only
+- [ ] Documentation only
+
+## [2026-11-24 00:11] - ADR-0023: a policy composed of others (roadmap 04 phase 0)
+
+**Author:** Erick Bourgeois
+
+### Added
+- `docs/adr/0023-composed-policies.md`: `SandboxPolicy.spec.includes` (one to four policies in the
+  same namespace, one level), named parts only, the composite's own entry replacing an include's,
+  collisions refused (L031), no nested includes (L032), subjects no wider than every include's
+  (L033), L014 to L016 on the effective content against the composite's own ceiling,
+  `spec.publish: false` for a policy that exists only to be included, and in bundle v4
+  `includes` and per-entry `from` as audit data only. notaio gains no
+  `delete` on ConfigMaps: a policy that stops publishing has its old bundle expire (ADR-0018).
+- `docs/src/adr/0023-composed-policies.md`, `docs/src/adr/index.md`, `docs/mkdocs.yml`: the site
+  stub, index row and nav entry.
+
+### Changed
+- `docs/architecture.md`: a "Composed policies" section under Evaluation (the CALM step,
+  deferred until the model is bootstrapped).
+- `.github/community/04-composed-policies.md`, `ROADMAPS.md`: roadmap 04 in progress, phase 0's
+  ADR item done, D6 and D7 decided, the ADR number (0022, not 0023), `I012` for a missing
+  include, and phase 1's field in `sandboxpolicy-api` with `make manifests`.
+
+### Why
+A sandbox names one policy, and a workload needing several policies' grants had only a copied
+policy with no ceiling. Composing in notaio keeps one ceiling approved by Security over the
+combination and one signed bundle per sandbox (ADR-0007, T5.4, objective O3), where mediatore
+ADR-0065's composition at the broker left the union unbounded.
+
+### Impact
+- [ ] Breaking change (CRD schema, bundle schema, public API)
+- [ ] Requires cluster rollout (CRDs, profiles or controller)
+- [ ] Config or examples change only
+- [x] Documentation only
+
 ## [2026-11-23 04:30] - Release prep v0.8.0
 
 **Author:** Erick Bourgeois

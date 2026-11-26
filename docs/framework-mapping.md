@@ -106,7 +106,7 @@ checked against the controls the framework expects for it.
 | AIR-DET-009 | AI System Alerting and Denial of Wallet (DoW) / Spend Monitoring | partial | L009<br>Budgets | Budgets cap use. | No spend or token dimension, no alerting until ROADMAP M2. |  |
 | AIR-PREV-010 | AI Model Version Pinning | gap | none | See AIR-OP-005. A model pin is not a policy field. |  |  |
 | AIR-DET-011 | Human Feedback Loop for AI Systems | out_of_scope | none | K3.2 is approval of actions, not a feedback loop on output quality. |  |  |
-| AIR-PREV-012 | Role-Based Access Control for AI Data | partial | K7.2, K5.2, K5.3<br>L005, L006, L010 | Subjects, eligibility and audience scoping. | Scoping stops at the audience and token. Access control inside the downstream data store is that system's. |  |
+| AIR-PREV-012 | Role-Based Access Control for AI Data | partial | K7.2, K5.2, K5.3<br>L005, L006, L010 | Subjects, eligibility and audience scoping. | Scoping stops at the audience and token. Access control inside the downstream data store is that system's. Subjects are linted but not signed into the bundle, and no consumer checks them yet (K7.2, roadmap 00 item D3). |  |
 | AIR-DET-013 | Providing Citations and Source Traceability for AI-Generated Information | out_of_scope | none | Output citation. |  |  |
 | AIR-PREV-014 | Encryption of AI Data at Rest | out_of_scope | none | Disk encryption is a VM concern. |  | banlieue installMode Deferred with vTPM and LUKS, see the banlieue design. |
 | AIR-DET-015 | Using Large Language Models for Automated Evaluation (LLM-as-a-Judge) | out_of_scope | none | Model evaluation. |  |  |
@@ -138,7 +138,7 @@ checked against the controls the framework expects for it.
 - **AIR-PREV-006** Data Quality & Classification/Sensitivity: Two levels only; no finer sensitivity classification.
 - **AIR-DET-009** AI System Alerting and Denial of Wallet (DoW) / Spend Monitoring: No spend or token dimension, no alerting until ROADMAP M2.
 - **AIR-PREV-010** AI Model Version Pinning: See AIR-OP-005. A model pin is not a policy field.
-- **AIR-PREV-012** Role-Based Access Control for AI Data: Scoping stops at the audience and token. Access control inside the downstream data store is that system's.
+- **AIR-PREV-012** Role-Based Access Control for AI Data: Scoping stops at the audience and token. Access control inside the downstream data store is that system's. Subjects are linted but not signed into the bundle, and no consumer checks them yet (K7.2, roadmap 00 item D3).
 - **AIR-PREV-018** Agent Authority Least Privilege Framework: Agent behaviour monitoring is not modelled.
 - **AIR-PREV-019** Tool Chain Validation and Sanitization: Parameter validation and sequence validation rules are not in the spec.
 - **AIR-PREV-020** MCP Server Security Governance: No vetting, onboarding or incident response content.

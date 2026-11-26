@@ -28,6 +28,7 @@ code that implements it, and every implemented ADR ends with a full pass over th
 | [ADR-0020](0020-sandbox-audience.md) | SandboxAudience, an audience defined by the platform or by a team, signed like a policy |
 | [ADR-0021](0021-status-written-only-by-notaio.md) | Status is written only by notaio |
 | [ADR-0022](0022-a-registry-audience-marked-by-role.md) | A registry audience, marked by `role` on the definition (proposed) |
+| [ADR-0023](0023-composed-policies.md) | A policy composed of others, signed as one bundle |
 
 ADRs live in [`docs/adr/`](https://github.com/firestoned/notaio/tree/main/docs/adr) in the
 repository and are never renumbered.

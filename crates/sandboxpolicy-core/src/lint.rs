@@ -33,9 +33,13 @@
 //! | L027 | A policy grants an audience no definition is visible for, or a team audience from another namespace |
 //! | L028 | A grant's endpoints, rules or token lifetime wider than its audience's definition |
 //! | L029 | A team audience placed in the proxy (a warning, it publishes) |
+//! | L031 | Two included policies supply the same audience, egress endpoint or tool, and the including policy does not declare it |
+//! | L032 | An include that has includes of its own, more than four includes, one named twice, or includes on a policy with `publish: false` |
+//! | L033 | The including policy's groups are not all in an included policy's groups |
 //!
 //! L022 to L029 and the definition half of L014 are ADR-0020's, and apply only once the platform
-//! audience namespace is configured (`crate::audience`).
+//! audience namespace is configured (`crate::audience`). L030 is reserved for ADR-0019. L031 to
+//! L033 are ADR-0023's and are found by `crate::compose`.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -143,6 +147,18 @@ pub const RULES: &[(&str, &str)] = &[
     (
         "L029",
         "A team audience placed in the proxy",
+    ),
+    (
+        "L031",
+        "Two included policies supply the same audience, egress endpoint or tool, and the including policy does not declare it",
+    ),
+    (
+        "L032",
+        "An include that has includes of its own, more than four includes, one named twice, or includes on a policy with `publish: false`",
+    ),
+    (
+        "L033",
+        "The including policy's groups are not all in an included policy's groups",
     ),
 ];
 
