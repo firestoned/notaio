@@ -2,6 +2,26 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-25 19:43] - kube 5.2.0
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `crates/notaio/Cargo.toml`, `crates/sandboxpolicy-api/Cargo.toml`, `Cargo.lock`: kube,
+  kube-client, kube-core, kube-derive and kube-runtime 5.1.0 to 5.2.0. `k8s-openapi` stays at
+  0.29.0 and no other crate moves.
+
+### Why
+Keep the controller on the current kube-rs release. Same licence (Apache-2.0), same maintainers,
+no new transitive dependency; `make deny` passes.
+
+### Impact
+- [ ] Breaking change (CRD schema, bundle schema, public API)
+- [x] Requires cluster rollout (CRDs, profiles or controller): a new controller image, no CRD
+      change (`make manifests-check` passes, the generated CRDs are byte for byte the same)
+- [ ] Config or examples change only
+- [ ] Documentation only
+
 ## [2026-11-25 19:30] - Threat model pass for ADR-0023, composed policies (roadmap 04 phase 5)
 
 **Author:** Erick Bourgeois
@@ -13,6 +33,15 @@ Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
   watch); the O3, ceiling and status rows say what they mean for a composite; the T8.2 "silent
   edit" row notes that an include's owner changes every composite, bounded by each composite's
   ceiling; "Not covered yet" lists the unsigned origin of a grant until bundle schema v4.
+- `docs/threat-model-mapping.md`, corrections found by checking banlieue and mediatore during the
+  pass: "Profile eligibility by group (K7.2, T7.3)" claimed banlieue admission enforces it, and
+  nothing does (`subjects.groups` is not in the bundle and no consumer checks it), so it moves to
+  "Not covered yet" with the namespace-per-tenant mitigation and roadmap 00 item D3. The
+  enforcement row now says mediatore reads audiences, egress and lease but no knobs, tools or
+  budgets; that shadow, its default, means the ceiling bounds what is signed and not what runs;
+  and that under `enforce` a notaio outage past the bundle lifetime fails closed.
+- `docs/air/mapping.yaml` (`mi-12`) and the generated `docs/framework-mapping.md`: the same gap
+  for subjects.
 - `docs/adr/0023-composed-policies.md`: implemented but for decision 7's v4 fields.
 - Roadmap 04 and `ROADMAPS.md`: the phase 5 threat model item done.
 - The ADR is numbered 0023: main took ADR-0022 for the registry audience (#111) while this
@@ -20,8 +49,8 @@ Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
 ### Why
 ADD's last step: an ADR is not implemented until the pass is done. No knob, profile, RBAC rule,
-admission rule, listener or bundle format changed, so `registry.rs`, `builtin.rs` and `docs/air/`
-stand as they are. ADR-0022 (registry audience) is proposed and has nothing implemented to map.
+admission rule, listener or bundle format changed, so `registry.rs` and `builtin.rs` stand as they
+are. The corrections are coverage the mapping overstated before this ADR, not a change in notaio. ADR-0022 (registry audience) is proposed and has nothing implemented to map.
 
 ### Impact
 - [ ] Breaking change (CRD schema, bundle schema, public API)

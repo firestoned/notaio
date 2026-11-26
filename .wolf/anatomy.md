@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-11-26T00:30:33.683Z
-> Files: 93 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-11-26T00:50:07.414Z
+> Files: 94 tracked | Anatomy hits: 0 | Misses: 0
 
 > Project structure index. Auto-maintained by OpenWolf hooks and daemon.
 > Run `openwolf scan` to generate, or wait for the first Claude Code session.
@@ -21,7 +21,7 @@
 
 ## .claude/
 
-- `CHANGELOG.md` — Changelog (~28773 tok)
+- `CHANGELOG.md` — Changelog (~29177 tok)
 
 ## .claude/rules/
 
@@ -30,6 +30,10 @@
 - `rust-style.md` — Rust Style Guide (~1226 tok)
 - `testing.md` — Testing Standards (~1179 tok)
 - `threat-modeling.md` — Threat Modeling (~1153 tok)
+
+## .git/hooks/
+
+- `pre-commit` — Local hook (not tracked): refuse a commit that stages OpenWolf state under .wolf/. (~155 tok)
 
 ## .github/community/
 
@@ -162,7 +166,7 @@
 
 - `architecture.md` — Architecture (~6317 tok)
 - `framework-mapping.md` — Mapping to the FINOS AI Governance Framework (~4117 tok)
-- `threat-model-mapping.md` — Mapping to the AgentSandbox threat model (~4505 tok)
+- `threat-model-mapping.md` — Mapping to the AgentSandbox threat model (~4860 tok)
 
 ## docs/adr/
 
@@ -179,7 +183,7 @@
 ## docs/air/
 
 - `catalogue.yaml` (~1582 tok)
-- `mapping.yaml` — One entry per item in docs/air/catalogue.yaml. Judgments are the author's and need review by (~2822 tok)
+- `mapping.yaml` — One entry per item in docs/air/catalogue.yaml. Judgments are the author's and need review by (~3068 tok)
 
 ## docs/src/adr/
 
