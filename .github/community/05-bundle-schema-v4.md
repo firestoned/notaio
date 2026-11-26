@@ -3,7 +3,8 @@
 
 # Roadmap 05: bundle schema v4, one migration, consumers first
 
-- **Status:** Planned: opened 2026-11-26. Nothing built.
+- **Status:** Phase 0 decided (ADR-0026, ADR-0024 accepted, 2026-11-26); nothing built. Opened
+  2026-11-26.
 - **Milestone:** M4 in [`ROADMAPS.md`](../../ROADMAPS.md)
 - **Related:** ADR-0002 (the bundle contract, amended by this), ADR-0005 (canonical form),
   ADR-0008 (the consumer's floor), ADR-0013 (the last schema change, v2 to v3), ADR-0014 (how
@@ -137,9 +138,9 @@ N; phase 6 is N+1; phase 7 is N+2.
 
 ### Phase 0: design
 
-- [ ] ADR-0026 (D1 to D8), amending ADR-0002; ADR-0024 accepted; ADR-0016, ADR-0019 and ADR-0023
+- [x] ADR-0026 (D1 to D8), amending ADR-0002; ADR-0024 accepted; ADR-0016, ADR-0019 and ADR-0023
       point to it for the schema half. ADR-0024's conformance path corrected
-      (`crates/sandboxpolicy-bundle/conformance/vectors.json`).
+      (`crates/sandboxpolicy-bundle/conformance/vectors.json`). Done 2026-11-26.
 - [ ] mediatore: ADR-0066 cites notaio ADR-0024 (it says ADR-0022, which is the registry
       audience), and the switch name and P-codes in `docs/design/policy-subjects.md` follow
       ADR-0066.

@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-11-26T19:52:20.288Z
-> Files: 98 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-11-26T20:36:03.803Z
+> Files: 99 tracked | Anatomy hits: 0 | Misses: 0
 
 > Project structure index. Auto-maintained by OpenWolf hooks and daemon.
 > Run `openwolf scan` to generate, or wait for the first Claude Code session.
@@ -21,7 +21,7 @@
 
 ## .claude/
 
-- `CHANGELOG.md` — Changelog (~30088 tok)
+- `CHANGELOG.md` — Changelog (~30503 tok)
 
 ## .claude/rules/
 
@@ -181,6 +181,7 @@
 - `0022-a-registry-audience-marked-by-role.md` — ADR-0022: A registry audience, marked by `role` on the definition (~2604 tok)
 - `0022-composed-policies.md` — ADR-0022: A policy composed of others, signed as one bundle (~2712 tok)
 - `0023-composed-policies.md` — ADR-0023: A policy composed of others, signed as one bundle (~2850 tok)
+- `0026-bundle-schema-v4-and-its-rollout.md` — ADR-0026: Bundle schema v4 and its rollout (~2412 tok)
 
 ## docs/air/
 

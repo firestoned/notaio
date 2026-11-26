@@ -3,6 +3,7 @@
 - **Status:** Proposed
 - **Date:** 2026-11-08
 - **Deciders:** Erick Bourgeois
+- **Amended:** 2026-11-26 (the schema half, this ADR's field included, is built by [ADR-0026](0026-bundle-schema-v4-and-its-rollout.md); this ADR only fills its field)
 - **Amended:** 2026-11-20 (decision 3: lint code `L030`, since ADR-0020 took `L022` to `L029`);
   2026-11-08 (decisions 3 and 4: lint code `L022`, `resources` optional in the
   schema; one v4 with ADR-0016)

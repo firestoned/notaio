@@ -5,6 +5,7 @@
 - Amended: 2026-10-16 (open decisions 1, 2 and 4 resolved by ADR-0003, ADR-0004 and ADR-0005)
 - Amended: 2026-10-20 (decisions 1 and 2: RFC 8785 canonical form and schema v2, from ADR-0005)
 - Amended: 2026-11-22 (decision 5: a consumer refuses a lifetime over one day)
+- Amended: 2026-11-26 (decisions 1, 2 and 5: schema v4 and its rollout, by ADR-0026; not implemented)
 
 ## Context
 
@@ -72,6 +73,12 @@ loosen a running sandbox.
 *Amended 2026-10-31 by [ADR-0013](0013-bundle-v3-routes-and-v1alpha2.md):* schema v3. Each
 audience carries its `endpoints` and `rules`, and direct egress is `{ endpoint, rules }`; the
 payload type is `application/vnd.firestoned.sandboxpolicy.bundle.v3+json`.
+
+*Amended 2026-11-26 by [ADR-0026](0026-bundle-schema-v4-and-its-rollout.md), not implemented yet:*
+schema v4. The content gains `subjects` (always), `includes` and a per-entry `from` (on a
+composite), and places for `resources` and `sources`; a payload type pairs with its own schema
+only. For two releases a consumer verifies v3 and v4 and refuses a v3 payload carrying any v4
+member; the producer switches with `NOTAIO_BUNDLE_SCHEMA`, and a third release removes v3.
 
 ## Consequences
 

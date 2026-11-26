@@ -1,0 +1,1 @@
+--8<-- "adr/0026-bundle-schema-v4-and-its-rollout.md"

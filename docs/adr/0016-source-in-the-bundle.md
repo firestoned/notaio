@@ -3,6 +3,7 @@
 - **Status:** Proposed
 - **Date:** 2026-11-06
 - **Deciders:** Erick Bourgeois
+- **Amended:** 2026-11-26 (the schema half, this ADR's field included, is built by [ADR-0026](0026-bundle-schema-v4-and-its-rollout.md); this ADR only fills its field)
 - **Amended:** 2026-11-08 (decision 5: one v4 with ADR-0019)
 - **Related:** ADR-0015 (signed policy delivery), ADR-0002 and ADR-0013 (the bundle), ADR-0008
   (the consumer's floor); roadmap 03 ("later, separate decision"); roadmap 00 D6 (what a token

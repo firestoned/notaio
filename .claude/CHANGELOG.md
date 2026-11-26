@@ -2,6 +2,37 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-26 15:20] - ADR-0026: bundle schema v4 and its rollout (roadmap 05 phase 0)
+
+**Author:** Erick Bourgeois
+
+### Added
+- `docs/adr/0026-bundle-schema-v4-and-its-rollout.md`: the one v4 migration. The member table
+  (`subjects` always, `includes` and `from` on a composite, places for `resources` and `sources`,
+  optional members omitted and never `null`); `from` in bundle-crate wrappers, not the CRD's types;
+  payload type and schema paired, and the payload type carried through out-of-band signing; one
+  verifier for v3 and v4 for two releases; `NOTAIO_BUNDLE_SCHEMA` as the producer's switch; a fifth
+  fail-open check, `subjects-mismatch`; the v4 conformance vectors; three releases with notes
+  written for consumers. Accepted, not implemented. Docs-site stub, index row and nav entry.
+
+### Changed
+- `docs/adr/0024-subjects-in-the-signed-bundle.md`: accepted with ADR-0026; decision 6's vectors
+  path corrected to `crates/sandboxpolicy-bundle/conformance/vectors.json`.
+- `docs/adr/0002-bundle-contract.md`: amended by ADR-0026 (not implemented yet).
+- `docs/adr/0016-source-in-the-bundle.md`, `docs/adr/0019-resource-sizes.md`,
+  `docs/adr/0023-composed-policies.md`: their schema half is ADR-0026's.
+- Roadmap 05 phase 0 (the notaio half) done; `ROADMAPS.md` row 05.
+
+### Why
+Four ADRs add bundle members and none owned the migration: how consumers read two schemas, how the
+producer switches, when v3 ends. ADD's first step for roadmap 05.
+
+### Impact
+- [ ] Breaking change (CRD schema, bundle schema, public API)
+- [ ] Requires cluster rollout (CRDs, profiles or controller)
+- [ ] Config or examples change only
+- [x] Documentation only
+
 ## [2026-11-26 14:52] - Roadmap 05: bundle schema v4, one migration, consumers first
 
 **Author:** Erick Bourgeois
