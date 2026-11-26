@@ -1,8 +1,10 @@
 # ADR-0024: The policy's subjects in the signed bundle, in schema v4
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-25
+- **Proposed:** 2026-11-25
 - **Deciders:** Erick Bourgeois
+- **Amended:** 2026-11-26 (accepted with [ADR-0026](0026-bundle-schema-v4-and-its-rollout.md), which carries the schema half and the rollout; decision 6's vectors path corrected)
 - **Related:** [ADR-0002](0002-bundle-contract.md) (the bundle contract);
   [ADR-0005](0005-canonical-form-rfc-8785.md) (canonical form);
   [ADR-0008](0008-consumer-version-floor.md) (the consumer's version floor);
@@ -12,6 +14,8 @@
   [ADR-0018](0018-tightening-latency.md); [ADR-0023](0023-composed-policies.md) (a composite's
   subjects are its own, bounded by `L033`); threat model K7.2; mediatore ADR-0054 decision 7
   (eligibility by subject waits on this change)
+
+Not implemented: roadmap 05 carries the work, under ADR-0026.
 
 ## Context
 
@@ -80,7 +84,7 @@ provider connector's. notaio does not interpret, normalise or pattern-match it.
 
 6. **Upgrade order: consumers first,** as ADR-0016 decision 5 has it. A consumer accepts v3 and v4
    before notaio emits v4, because it refuses unknown schemas. The conformance vectors
-   (`conformance/vectors.json`) gain v4 cases every consumer's verifier must agree with, including a
+   (`crates/sandboxpolicy-bundle/conformance/vectors.json`) gain v4 cases every consumer's verifier must agree with, including a
    v3 bundle refused as v4 and the reverse, and a v4 bundle with no `subjects` refused.
 
 7. **No behaviour changes in notaio's decisions.** notaio does not decide eligibility; it only signs

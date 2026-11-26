@@ -200,8 +200,9 @@ nav:
       - "ADR-0021: Status written only by notaio": adr/0021-status-written-only-by-notaio.md
       - "ADR-0022: A registry audience": adr/0022-a-registry-audience-marked-by-role.md
       - "ADR-0023: Composed policies": adr/0023-composed-policies.md
-      - "ADR-0024: Subjects in the signed bundle (proposed)": adr/0024-subjects-in-the-signed-bundle.md
+      - "ADR-0024: Subjects in the signed bundle": adr/0024-subjects-in-the-signed-bundle.md
       - "ADR-0025: A shared ceiling (proposed)": adr/0025-a-ceiling-shared-by-several-policies.md
+      - "ADR-0026: Bundle schema v4 and its rollout": adr/0026-bundle-schema-v4-and-its-rollout.md
   - Reference:
       - Glossary: glossary.md
       - CRD API: reference/crds.md

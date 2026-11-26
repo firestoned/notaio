@@ -29,8 +29,9 @@ code that implements it, and every implemented ADR ends with a full pass over th
 | [ADR-0021](0021-status-written-only-by-notaio.md) | Status is written only by notaio |
 | [ADR-0022](0022-a-registry-audience-marked-by-role.md) | A registry audience, marked by `role` on the definition (proposed) |
 | [ADR-0023](0023-composed-policies.md) | A policy composed of others, signed as one bundle |
-| [ADR-0024](0024-subjects-in-the-signed-bundle.md) | The policy's subjects in the signed bundle, in schema v4 (proposed) |
+| [ADR-0024](0024-subjects-in-the-signed-bundle.md) | The policy's subjects in the signed bundle, in schema v4 |
 | [ADR-0025](0025-a-ceiling-shared-by-several-policies.md) | A ceiling shared by several policies, in a namespace of its own (proposed) |
+| [ADR-0026](0026-bundle-schema-v4-and-its-rollout.md) | Bundle schema v4 and its rollout: one migration, consumers first, three releases |
 
 ADRs live in [`docs/adr/`](https://github.com/firestoned/notaio/tree/main/docs/adr) in the
 repository and are never renumbered.

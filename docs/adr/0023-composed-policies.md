@@ -13,7 +13,7 @@
 Implemented (2026-11-25) but for decision 7's bundle v4 fields: the composition in
 `sandboxpolicy-core`, `notaio lint`, the controller (the watch on includes, `status.includes` and
 `status.includedBy`), the `e2e_compose` suite, and the threat model pass. The `includes` and
-`from` payload fields land with bundle schema v4 (roadmap 04 phase 4); until then the includes are
+`from` payload fields land with bundle schema v4 (ADR-0026, roadmap 05); until then the includes are
 recorded in status only, as decision 7 says.
 
 ## Context
