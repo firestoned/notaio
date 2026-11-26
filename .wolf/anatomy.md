@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-11-26T19:41:57.707Z
-> Files: 97 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-11-26T19:52:20.288Z
+> Files: 98 tracked | Anatomy hits: 0 | Misses: 0
 
 > Project structure index. Auto-maintained by OpenWolf hooks and daemon.
 > Run `openwolf scan` to generate, or wait for the first Claude Code session.
@@ -21,7 +21,7 @@
 
 ## .claude/
 
-- `CHANGELOG.md` — Changelog (~29728 tok)
+- `CHANGELOG.md` — Changelog (~30088 tok)
 
 ## .claude/rules/
 
@@ -37,7 +37,8 @@
 
 ## .github/community/
 
-- `04-composed-policies.md` — Roadmap 04: a policy composed of others, signed as one bundle (~2857 tok)
+- `04-composed-policies.md` — Roadmap 04: a policy composed of others, signed as one bundle (~2897 tok)
+- `05-bundle-schema-v4.md` — Roadmap 05: bundle schema v4, one migration, consumers first (~3537 tok)
 
 ## .github/workflows/
 
