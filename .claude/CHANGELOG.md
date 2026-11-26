@@ -2,6 +2,29 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-26 11:43] - Poetry lock recompiled for Python 3.11 again
+
+**Author:** Erick Bourgeois
+
+### Fixed
+- `.github/requirements/poetry.txt`: recompiled with the command in its header
+  (`uv pip compile --python-version 3.11 ...`). Dependabot's poetry 2.3.4 bump (#113) had
+  recompiled it without the 3.11 target and dropped eight packages Python 3.11 needs
+  (`typing-extensions`, `importlib-metadata`, `zipp`, `cachecontrol`, `backports-tarfile`,
+  `backports-zstd`, `lazy-importer`, `pbs-installer`), so the Documentation job failed installing
+  Poetry on main. Verified with `pip install --require-hashes` in `python:3.11-slim`.
+
+### Why
+The same failure as the msgpack bump (#105). The docs job was red on #113, #114 and #115, and all
+three merged: approving a held lock PR enables auto-merge, and the docs check is not required on
+`main`.
+
+### Impact
+- [ ] Breaking change (CRD schema, bundle schema, public API)
+- [ ] Requires cluster rollout (CRDs, profiles or controller)
+- [x] Config or examples change only (CI)
+- [ ] Documentation only
+
 ## [2026-11-25 19:43] - kube 5.2.0
 
 **Author:** Erick Bourgeois
