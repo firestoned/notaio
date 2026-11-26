@@ -19,7 +19,7 @@
 //! | I009 | An object uses an API version notaio no longer serves: write it as `v1alpha2` (ADR-0013) |
 //! | I010 | A SandboxAudience has no namespace: the namespace decides whether it is a platform or a team audience (ADR-0020) |
 //! | I011 | SandboxAudience objects in the inputs, but no platform audience namespace: their rules were not checked (a warning) |
-//! | I012 | A policy includes a policy that is not in the inputs, in its namespace (ADR-0022) |
+//! | I012 | A policy includes a policy that is not in the inputs, in its namespace (ADR-0023) |
 //!
 //! With `--platform-audience-namespace`, every SandboxAudience is linted (L017, L022 to L029)
 //! and every policy's grants are checked against the definitions (L027, L028, and the definition
@@ -86,7 +86,7 @@ pub const INPUT_RULES: &[(&str, &str)] = &[
     ),
     (
         "I012",
-        "A policy includes a policy that is not in the inputs, in its namespace (ADR-0022)",
+        "A policy includes a policy that is not in the inputs, in its namespace (ADR-0023)",
     ),
 ];
 
@@ -496,7 +496,7 @@ struct PolicyRefs<'a> {
     profiles: &'a BTreeMap<String, (PathBuf, SandboxProfile)>,
     grants: &'a [(PathBuf, KnobGrant)],
     exposure_ceiling: Option<&'a ExposureCeiling>,
-    /// Every policy in the inputs, from which includes are resolved (ADR-0022).
+    /// Every policy in the inputs, from which includes are resolved (ADR-0023).
     policies: &'a [SandboxPolicy],
 }
 

@@ -39,7 +39,7 @@
 //!
 //! L022 to L029 and the definition half of L014 are ADR-0020's, and apply only once the platform
 //! audience namespace is configured (`crate::audience`). L030 is reserved for ADR-0019. L031 to
-//! L033 are ADR-0022's and are found by `crate::compose`.
+//! L033 are ADR-0023's and are found by `crate::compose`.
 
 use std::collections::{BTreeMap, BTreeSet};
 

@@ -1,6 +1,6 @@
 // Copyright (c) 2026 Erick Bourgeois, notaio
 // SPDX-License-Identifier: Apache-2.0
-//! e2e: a policy composed of others (ADR-0022), through the deployed controller.
+//! e2e: a policy composed of others (ADR-0023), through the deployed controller.
 //!
 //! Run with `make kind-e2e-compose`. A composite that includes two `publish: false` policies is
 //! published as one verified bundle with both includes' grants; the includes publish nothing and

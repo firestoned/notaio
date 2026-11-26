@@ -159,7 +159,7 @@ pub async fn reconcile_policy(policy: Arc<SandboxPolicy>, ctx: Arc<Ctx>) -> Resu
     let cm_version: Option<u64> = ann(ANN_VERSION).and_then(|v| v.parse().ok());
     let cm_digest = ann(ANN_DIGEST);
 
-    // Every policy in this namespace, read once (ADR-0022): the evaluator picks this policy's
+    // Every policy in this namespace, read once (ADR-0023): the evaluator picks this policy's
     // includes from it by name, and reports one that is missing as `IncludeNotFound`; and the
     // policies that include this one are its `includedBy`. Read from the API, not a cache, so a
     // composite is never compiled from an include older than what the reconcile was woken for.

@@ -583,7 +583,7 @@ fn a_path_named_on_the_command_line_is_followed() {
     assert_eq!(sources[0].path, link.join("policy.yaml"));
 }
 
-// ADR-0022: a policy composed of others, resolved across the files given.
+// ADR-0023: a policy composed of others, resolved across the files given.
 
 /// A composite on `hardened` with no grants of its own, including `includes`.
 fn composite(name: &str, includes: &[&str]) -> String {

@@ -1,1 +1,0 @@
---8<-- "adr/0022-composed-policies.md"

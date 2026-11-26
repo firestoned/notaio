@@ -3,7 +3,8 @@
 
 # Roadmap 04: a policy composed of others, signed as one bundle
 
-- **Status:** In progress: phase 0 decided in ADR-0022, phases 1 to 3 done (2026-11-24); opened
+- **Status:** In progress: phase 0 decided in ADR-0023, phases 1 to 3 done (2026-11-24), the
+  threat model pass done (2026-11-25); opened
   2026-11-24. Replaces mediatore roadmap 16 and its ADR-0065
   (several `policyRefs` per sandbox, composed by the broker), which are withdrawn in favour of this.
 - **Milestone:** M4 in [`ROADMAPS.md`](../../ROADMAPS.md)
@@ -88,10 +89,10 @@ its origin (`from: <include name>`, absent for the composite's own), added in bu
 with ADR-0016's `sources` and ADR-0019's `resources`, so there is one migration. Any change to an
 include is a new version of every composite that includes it. Until v4 ships, the controller
 re-signs on an include's change and records the includes in the policy's status only.
-*Decided (ADR-0022 decision 7):* audit data only; the signature covers the effective content.
+*Decided (ADR-0023 decision 7):* audit data only; the signature covers the effective content.
 
 **D7. A policy that exists only to be included.** Such a policy has no ceiling of its own and
-today reports `Ready=False` with `L015`, which reads as an alarm. *Decided (ADR-0022 decision 8):* `spec.publish: false`: lint it, never publish it, report
+today reports `Ready=False` with `L015`, which reads as an alarm. *Decided (ADR-0023 decision 8):* `spec.publish: false`: lint it, never publish it, report
 `Ready=True` (`NotPublished`); a sandbox naming such a policy is refused by the consumer as
 `NotFound`, because no bundle exists.
 
@@ -101,7 +102,7 @@ Each phase is shippable and leaves the system no looser than before.
 
 ### Phase 0: design
 
-- [x] ADR-0022 (a policy composed of others), D1 to D7 decided (2026-11-24). D6: includes are
+- [x] ADR-0023 (a policy composed of others), D1 to D7 decided (2026-11-24). D6: includes are
       audit data only. D7: `spec.publish: false`.
 - [ ] mediatore ADR-0065 marked rejected, pointing here; mediatore roadmap 16 removed.
 
@@ -153,7 +154,10 @@ Each phase is shippable and leaves the system no looser than before.
 - [ ] Live: the Claude Code workload of the opening section runs under `claude-dev-agent` with
       `PolicyConformant=True` in shadow, then refused nothing under `policy.audiences: enforce`.
 - [ ] A guide page (composing policies) and the reference for `includes` and `L031` to `L033`.
-- [ ] Threat-model pass: an include changed by its owner changes every composite; bounded by D4.
+- [x] Threat-model pass: an include changed by its owner changes every composite; bounded by D4.
+      Done 2026-11-25 (`docs/threat-model-mapping.md`): a new "Implemented here" row, the O3,
+      ceiling, status and T8.2 rows extended, and the unsigned origin of a grant listed under "Not
+      covered yet" until v4.
 
 ## 5. Done when
 

@@ -1,4 +1,4 @@
-# A policy composed of others (ADR-0022). Each grant is written once, in the policy that owns it;
+# A policy composed of others (ADR-0023). Each grant is written once, in the policy that owns it;
 # build-agent includes them, and its own ExposureCeiling (examples/exposureceiling-build-agent.yaml)
 # bounds the combination, so Security approves what a sandbox under build-agent can reach as a
 # whole. A sandbox names build-agent and reads one bundle.

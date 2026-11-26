@@ -1,6 +1,6 @@
 // Copyright (c) 2026 Erick Bourgeois, notaio
 // SPDX-License-Identifier: Apache-2.0
-//! A policy composed of others (ADR-0022): `compose` turns a policy and the policies it includes
+//! A policy composed of others (ADR-0023): `compose` turns a policy and the policies it includes
 //! into the effective policy that is linted, checked against the composite's own ceiling and
 //! compiled. Pure, like the rest of this crate.
 //!
@@ -51,7 +51,7 @@ pub struct EffectivePolicy {
     /// order, and `includes` cleared: what is linted and compiled.
     pub spec: SandboxPolicySpec,
     pub origins: Origins,
-    /// Each include as it was composed, sorted by name (ADR-0022, decision 7).
+    /// Each include as it was composed, sorted by name (ADR-0023, decision 7).
     pub includes: Vec<IncludeStatus>,
 }
 

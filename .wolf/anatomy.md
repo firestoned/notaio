@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-11-24T13:04:27.929Z
-> Files: 91 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-11-26T00:30:33.683Z
+> Files: 93 tracked | Anatomy hits: 0 | Misses: 0
 
 > Project structure index. Auto-maintained by OpenWolf hooks and daemon.
 > Run `openwolf scan` to generate, or wait for the first Claude Code session.
@@ -21,7 +21,7 @@
 
 ## .claude/
 
-- `CHANGELOG.md` — Changelog (~26887 tok)
+- `CHANGELOG.md` — Changelog (~28773 tok)
 
 ## .claude/rules/
 
@@ -30,6 +30,10 @@
 - `rust-style.md` — Rust Style Guide (~1226 tok)
 - `testing.md` — Testing Standards (~1179 tok)
 - `threat-modeling.md` — Threat Modeling (~1153 tok)
+
+## .github/community/
+
+- `04-composed-policies.md` — Roadmap 04: a policy composed of others, signed as one bundle (~2839 tok)
 
 ## .github/workflows/
 
@@ -158,7 +162,7 @@
 
 - `architecture.md` — Architecture (~6317 tok)
 - `framework-mapping.md` — Mapping to the FINOS AI Governance Framework (~4117 tok)
-- `threat-model-mapping.md` — Mapping to the AgentSandbox threat model (~683 tok)
+- `threat-model-mapping.md` — Mapping to the AgentSandbox threat model (~4505 tok)
 
 ## docs/adr/
 
@@ -170,6 +174,7 @@
 - `0020-sandbox-audience.md` — ADR-0020: SandboxAudience, an audience defined by the platform or by a team, signed like a policy (~4717 tok)
 - `0021-status-written-only-by-notaio.md` — ADR-0021: Status is written only by notaio (~1031 tok)
 - `0022-composed-policies.md` — ADR-0022: A policy composed of others, signed as one bundle (~2712 tok)
+- `0023-composed-policies.md` — ADR-0023: A policy composed of others, signed as one bundle (~2850 tok)
 
 ## docs/air/
 

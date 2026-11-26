@@ -154,7 +154,7 @@ spec:
               Binds subjects to a profile and adds the concrete audiences, egress entries and tools. The
               controller checks all of it against the profile's knob ceilings and compiles a signed bundle.
               A policy may include others (`includes`): their audiences, egress entries and tools are added
-              to its own, and the result is checked against this policy's profile and ceiling (ADR-0022).
+              to its own, and the result is checked against this policy's profile and ceiling (ADR-0023).
             properties:
               audiences:
                 default: []
@@ -287,7 +287,7 @@ spec:
                 items:
                   description: |-
                     Another `SandboxPolicy` in the same namespace whose audiences, egress entries and tools this
-                    policy includes (ADR-0022).
+                    policy includes (ADR-0023).
                   properties:
                     name:
                       description: The included policy's name, in this policy's namespace.
@@ -326,7 +326,7 @@ spec:
                 description: |-
                   `false` for a policy that exists only to be included: linted against its profile, but
                   never compiled, signed or published, and needing no ExposureCeiling. A sandbox that names
-                  it finds no bundle. Defaults to `true` (ADR-0022, decision 8).
+                  it finds no bundle. Defaults to `true` (ADR-0023, decision 8).
                 type: boolean
               subjects:
                 default:
@@ -361,7 +361,7 @@ spec:
             - profileRef
             type: object
             x-kubernetes-validations:
-            - message: "a policy with publish: false cannot have includes (ADR-0022)"
+            - message: "a policy with publish: false cannot have includes (ADR-0023)"
               rule: "!has(self.includes) || !has(self.publish) || self.publish"
           status:
             nullable: true
@@ -427,7 +427,7 @@ spec:
               includedBy:
                 default: []
                 description: >-
-                  The policies that include this one, sorted (ADR-0022). Always written, like
+                  The policies that include this one, sorted (ADR-0023). Always written, like
                   `includes`.
                 items:
                   type: string
@@ -435,11 +435,11 @@ spec:
               includes:
                 default: []
                 description: |-
-                  The policies this one includes, as it was last compiled from them (ADR-0022). Always
+                  The policies this one includes, as it was last compiled from them (ADR-0023). Always
                   written, empty included: status goes out as a merge patch, where absent means unchanged.
                 items:
                   description: >-
-                    One included policy, as the composite was compiled from it (ADR-0022, decision
+                    One included policy, as the composite was compiled from it (ADR-0023, decision
                     7).
                   properties:
                     contentDigest:

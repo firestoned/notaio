@@ -1002,7 +1002,7 @@ fn a_version_at_the_safe_integer_limit_issues_nothing_and_keeps_status() {
     }
 }
 
-// ADR-0022: a policy composed of others.
+// ADR-0023: a policy composed of others.
 
 fn named(mut p: SandboxPolicy, name: &str) -> SandboxPolicy {
     p.metadata.name = Some(name.into());

@@ -1,5 +1,5 @@
 # The approved maximum exposure of SandboxPolicy build-agent (ADR-0007), which includes git-read
-# and package-mirror (ADR-0022). It bounds the composite's effective content: what build-agent
+# and package-mirror (ADR-0023). It bounds the composite's effective content: what build-agent
 # declares and what its includes contribute. A change to an include that goes past it stops
 # build-agent's re-signing (L014) until this is widened, with its own Security approval.
 apiVersion: sandbox.firestoned.io/v1alpha2

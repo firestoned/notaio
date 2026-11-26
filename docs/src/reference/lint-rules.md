@@ -64,4 +64,4 @@ About the set of files given to `notaio lint`, from `crates/notaio/src/lint.rs`.
 | `I009` | An object uses an API version notaio no longer serves: write it as v1alpha2 (ADR-0013) |
 | `I010` | A SandboxAudience has no namespace: the namespace decides whether it is a platform or a team audience (ADR-0020) |
 | `I011` | SandboxAudience objects in the inputs, but no platform audience namespace: their rules were not checked |
-| `I012` | A policy includes a policy that is not in the inputs, in its namespace (ADR-0022) |
+| `I012` | A policy includes a policy that is not in the inputs, in its namespace (ADR-0023) |

@@ -16,12 +16,12 @@ pub struct Subjects {
     pub groups: Vec<String>,
 }
 
-/// The most policies one policy may include (ADR-0022, decision 1). Small enough that a reviewer
+/// The most policies one policy may include (ADR-0023, decision 1). Small enough that a reviewer
 /// reads every grant of a composite one step away.
 pub const MAX_INCLUDES: usize = 4;
 
 /// Another `SandboxPolicy` in the same namespace whose audiences, egress entries and tools this
-/// policy includes (ADR-0022).
+/// policy includes (ADR-0023).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct PolicyInclude {
@@ -42,7 +42,7 @@ fn is_true(b: &bool) -> bool {
 /// Binds subjects to a profile and adds the concrete audiences, egress entries and tools. The
 /// controller checks all of it against the profile's knob ceilings and compiles a signed bundle.
 /// A policy may include others (`includes`): their audiences, egress entries and tools are added
-/// to its own, and the result is checked against this policy's profile and ceiling (ADR-0022).
+/// to its own, and the result is checked against this policy's profile and ceiling (ADR-0023).
 #[derive(CustomResource, Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[kube(
     group = "sandbox.firestoned.io",
@@ -58,7 +58,7 @@ fn is_true(b: &bool) -> bool {
 #[serde(rename_all = "camelCase")]
 #[schemars(extend("x-kubernetes-validations" = [{
     "rule": "!has(self.includes) || !has(self.publish) || self.publish",
-    "message": "a policy with publish: false cannot have includes (ADR-0022)"
+    "message": "a policy with publish: false cannot have includes (ADR-0023)"
 }]))]
 pub struct SandboxPolicySpec {
     /// Name of a cluster-scoped SandboxProfile.
@@ -94,12 +94,12 @@ pub struct SandboxPolicySpec {
     pub includes: Vec<PolicyInclude>,
     /// `false` for a policy that exists only to be included: linted against its profile, but
     /// never compiled, signed or published, and needing no ExposureCeiling. A sandbox that names
-    /// it finds no bundle. Defaults to `true` (ADR-0022, decision 8).
+    /// it finds no bundle. Defaults to `true` (ADR-0023, decision 8).
     #[serde(default = "default_publish", skip_serializing_if = "is_true")]
     pub publish: bool,
 }
 
-/// One included policy, as the composite was compiled from it (ADR-0022, decision 7).
+/// One included policy, as the composite was compiled from it (ADR-0023, decision 7).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct IncludeStatus {
@@ -174,11 +174,11 @@ pub struct SandboxPolicyStatus {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     /// The soonest expiry among the active grants.
     pub next_grant_expiry: Option<Timestamp>,
-    /// The policies this one includes, as it was last compiled from them (ADR-0022). Always
+    /// The policies this one includes, as it was last compiled from them (ADR-0023). Always
     /// written, empty included: status goes out as a merge patch, where absent means unchanged.
     #[serde(default)]
     pub includes: Vec<IncludeStatus>,
-    /// The policies that include this one, sorted (ADR-0022). Always written, like `includes`.
+    /// The policies that include this one, sorted (ADR-0023). Always written, like `includes`.
     #[serde(default)]
     pub included_by: Vec<String>,
 }

@@ -510,7 +510,7 @@ kind-deploy: kind-load kind-openbao ## Install CRDs, profiles and the controller
 #                       when the leader's pod goes, and publishes
 #   kind-e2e-openbao    bundles signed by the OpenBao transit key verify against
 #                       its public key; without OpenBao nothing is published
-#   kind-e2e-compose    a policy composed of others (ADR-0022): one bundle with
+#   kind-e2e-compose    a policy composed of others (ADR-0023): one bundle with
 #                       its includes' grants under its own ceiling; an include
 #                       widened past it or deleted stops the re-sign
 #   kind-e2e-audience   audiences turned on (ADR-0020): a SandboxAudience is

@@ -1,6 +1,6 @@
 // Copyright (c) 2026 Erick Bourgeois, notaio
 // SPDX-License-Identifier: Apache-2.0
-//! Who includes whom (ADR-0022): the relations the controller needs to keep composites and their
+//! Who includes whom (ADR-0023): the relations the controller needs to keep composites and their
 //! includes current, as pure functions over the policies it can see.
 
 use std::collections::BTreeSet;

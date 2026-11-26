@@ -45,7 +45,7 @@ pub struct EvalInput<'a> {
     /// Every audience definition, once the platform audience namespace is configured (ADR-0020).
     /// `None` leaves policies as they were before it: no L027, L028 or definition half of L014.
     pub audiences: Option<&'a AudienceCatalog<'a>>,
-    /// Policies this one may include (ADR-0022): those it names are picked by name from the ones
+    /// Policies this one may include (ADR-0023): those it names are picked by name from the ones
     /// in its own namespace, and the rest are ignored. Empty for a policy with no `includes`.
     pub includes: &'a [SandboxPolicy],
 }
@@ -70,9 +70,9 @@ pub struct EvalOutput {
 }
 
 /// The `Ready` reason when a policy names an include that does not exist in its namespace
-/// (ADR-0022, decision 6).
+/// (ADR-0023, decision 6).
 pub const REASON_INCLUDE_NOT_FOUND: &str = "IncludeNotFound";
-/// The `Ready` reason for a valid policy with `publish: false` (ADR-0022, decision 8).
+/// The `Ready` reason for a valid policy with `publish: false` (ADR-0023, decision 8).
 pub const REASON_NOT_PUBLISHED: &str = "NotPublished";
 
 /// The `Ready` reason when no further bundle version can be issued.
@@ -367,7 +367,7 @@ pub fn evaluate(input: &EvalInput<'_>) -> EvalOutput {
     }
     let requeue = requeue.max(SignedDuration::from_secs(10));
 
-    // 3. Includes (ADR-0022): the composite's own spec with its includes' audiences, egress
+    // 3. Includes (ADR-0023): the composite's own spec with its includes' audiences, egress
     // entries and tools added. Everything after this runs on the effective spec.
     let candidates: Vec<Included<'_>> = input
         .includes
@@ -495,7 +495,7 @@ pub fn evaluate(input: &EvalInput<'_>) -> EvalOutput {
     // approvers can see what they are being asked to approve.
     let exposed = exposure(&content);
     // A policy that exists only to be included is checked, never compiled into a bundle, and so
-    // needs no ceiling (ADR-0022, decision 8).
+    // needs no ceiling (ADR-0023, decision 8).
     if !spec.publish {
         status.max_exposure = Some(exposed);
         status.conditions = vec![

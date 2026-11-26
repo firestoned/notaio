@@ -232,7 +232,7 @@ async fn run_controller() -> anyhow::Result<()> {
     let mut policy_controller = Controller::new(policies.clone(), watcher::Config::default());
     let store = policy_controller.store();
     // A policy's change re-evaluates the policies that include it and the ones it includes
-    // (ADR-0022): their effective content, or their `includedBy`, may have moved. Deletions too.
+    // (ADR-0023): their effective content, or their `includedBy`, may have moved. Deletions too.
     let include_store = store.clone();
     policy_controller = policy_controller.watches(policies, watcher::Config::default(), move |p| {
         let all = include_store.state();

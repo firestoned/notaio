@@ -245,7 +245,7 @@ team namespace cannot withdraw a platform audience by leaving a colliding one in
 
 ### Composed policies
 
-[ADR-0022](adr/0022-composed-policies.md) lets a policy include up to four others in its namespace
+[ADR-0023](adr/0023-composed-policies.md) lets a policy include up to four others in its namespace
 (`spec.includes`), so a sandbox that needs several policies' grants still names one policy and
 reads one bundle. Before step 3, `sandboxpolicy_core::compose` adds each include's audiences,
 egress entries and tools to the composite's own; everything sandbox-wide (profile, subjects,
@@ -288,7 +288,7 @@ deletes the bundle. Both read every audience from one cache, filled before eithe
 half-filled cache can never make a defined audience look undefined. A change to an audience
 re-evaluates the policies that grant it and the audiences it collides with. A change to a policy,
 or its deletion, re-evaluates the policies that include it and the ones it includes or last
-included (ADR-0022, `include.rs`); the policy reconciler reads the namespace's policies from the
+included (ADR-0023, `include.rs`); the policy reconciler reads the namespace's policies from the
 API to resolve includes and to write `status.includedBy`.
 
 - **Idempotent.** It writes only when something other than the refresh timestamp changed, so its own
