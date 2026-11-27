@@ -2,6 +2,34 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-27 10:00] - Release prep v0.9.0, release N of roadmap 05
+
+**Author:** Erick Bourgeois
+
+v0.9.0 is release N of ADR-0026: the bundle crate reads schema v3 and v4, and the controller can
+sign v4 behind `NOTAIO_BUNDLE_SCHEMA`, still signing v3 by default. It also carries composed
+policies (`spec.includes`, ADR-0023) and `L034` (ADR-0024).
+
+### Changed
+- `Cargo.toml` and `Cargo.lock`: the workspace crates at 0.9.0. Minor, not patch: `envelope()`
+  takes the `SigningInput`, and a bundle's audiences, egress rules and tools are the bundle crate's
+  own entry types.
+- `docs/src/guides/consume-a-bundle.md`: the dependency example pins `v0.9.0`, and the v4 section
+  names the two API changes.
+- `docs/src/guides/install.md`: an "Upgrading to bundle v4" box (ADR-0026 D8): upgrade, wait for
+  every consumer to run v0.9.0, then set `NOTAIO_BUNDLE_SCHEMA=v4`; `v3` rolls it back.
+- Roadmap 05: release N prepared.
+
+### Why
+ADR-0026 decision 4: consumers take the release that reads v4 before notaio emits it, and the
+release says so in hand-written notes (D8).
+
+### Impact
+- [x] Breaking change (public API, for a consumer building payloads: see Changed)
+- [x] Requires cluster rollout (CRDs, profiles or controller)
+- [ ] Config or examples change only
+- [ ] Documentation only
+
 ## [2026-11-26 22:54] - The controller can emit bundle schema v4, behind NOTAIO_BUNDLE_SCHEMA (roadmap 05 phase 4)
 
 **Author:** Erick Bourgeois

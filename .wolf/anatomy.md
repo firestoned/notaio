@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-11-27T03:54:36.712Z
-> Files: 102 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-11-27T05:43:26.311Z
+> Files: 104 tracked | Anatomy hits: 0 | Misses: 0
 
 > Project structure index. Auto-maintained by OpenWolf hooks and daemon.
 > Run `openwolf scan` to generate, or wait for the first Claude Code session.
@@ -203,6 +203,8 @@
 
 ## docs/src/guides/
 
+- `consume-a-bundle.md` — Consume a bundle (~2477 tok)
+- `install.md` — Install notaio (~2138 tok)
 - `platform-audiences.md` — Set up platform audiences (~887 tok)
 
 ## examples/
