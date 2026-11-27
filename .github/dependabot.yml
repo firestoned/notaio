@@ -30,8 +30,8 @@ updates:
     cooldown:
       default-days: 7
     groups:
-      # kube and k8s-openapi are tightly version-coupled: kube 4.x requires
-      # k8s-openapi 0.28. Bumping either alone produces two incompatible
+      # kube and k8s-openapi are tightly version-coupled: kube 5.x requires
+      # k8s-openapi 0.29. Bumping either alone produces two incompatible
       # k8s-openapi copies, which breaks the build. Group them, including
       # majors, so they always move together. Must precede the catch-all.
       kube-ecosystem:
@@ -40,6 +40,15 @@ updates:
       rust-dependencies:
         patterns: ["*"]
         update-types: ["major", "minor", "patch"]
+    ignore:
+      # jiff 1.x is held until k8s-openapi and schemars take it. k8s-openapi
+      # 0.29 depends on jiff 0.2 (its Time and MicroTime wrap a 0.2
+      # Timestamp), and schemars 1.2 implements JsonSchema only for jiff 0.2
+      # (`jiff02`), so a lone jiff bump leaves two copies and the CRD types do
+      # not compile (#123 failed that way). Lift this with the kube bump that
+      # brings jiff 1.
+      - dependency-name: "jiff"
+        update-types: ["version-update:semver-major"]
 
   # Container base image (/Dockerfile, used by the kind e2e image).
   #
