@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-11-27T05:43:26.311Z
-> Files: 104 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-11-27T12:54:10.028Z
+> Files: 105 tracked | Anatomy hits: 0 | Misses: 0
 
 > Project structure index. Auto-maintained by OpenWolf hooks and daemon.
 > Run `openwolf scan` to generate, or wait for the first Claude Code session.
@@ -34,6 +34,10 @@
 ## .git/hooks/
 
 - `pre-commit` — Local hook (not tracked): refuse a commit that stages OpenWolf state under .wolf/. (~155 tok)
+
+## .github/
+
+- `dependabot.yml` — SPDX-License-Identifier: Apache-2.0 (~950 tok)
 
 ## .github/community/
 
