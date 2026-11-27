@@ -14,7 +14,7 @@ RUST_LOG         ?= info
 .PHONY: help build test lint fmt fmt-check clippy deny manifests manifests-check air air-check \
         ci-code-changed kind-install kind-create kind-delete kind-kubeconfig kind-load \
         kind-deploy kind-e2e kind-e2e-ci kind-e2e-logs \
-        kind-e2e-install kind-e2e-bundle kind-e2e-rbac kind-e2e-admission kind-e2e-leader kind-e2e-compose kind-e2e-openbao \
+        kind-e2e-install kind-e2e-bundle kind-e2e-rbac kind-e2e-admission kind-e2e-leader kind-e2e-compose kind-e2e-schema-v4 kind-e2e-openbao \
         kind-cert-manager kind-openbao cluster-deploy cluster-undeploy cluster-smoke openbao-e2e \
         docs docs-serve docs-clean docs-linkcheck docs-reference docs-reference-check policy-lint openbao-dev openbao-dev-check \
         license-check bundle-deps-check conformance conformance-check cargo-auditable release-binary release-version sbom-check grype-install vexctl-install vex-evidence vex-evidence-test vex-assemble image-scan image-gate release-manifest release-manifest-sign release-manifest-test release-binary-assets release-binary-sign release-binary-assets-test set-version set-version-test
@@ -516,11 +516,15 @@ kind-deploy: kind-load kind-openbao ## Install CRDs, profiles and the controller
 #   kind-e2e-audience   audiences turned on (ADR-0020): a SandboxAudience is
 #                       published, verified, kept on a finding and deleted with
 #                       its object; an undefined grant publishes nothing (L027)
+#   kind-e2e-schema-v4  the controller emits bundle schema v4 (ADR-0026): a
+#                       composite's includes and origins, a policy's groups
+#                       sorted, and the switch to v3 and back with the version
+#                       still climbing
 
-# Keep in sync with the matrix in .github/workflows/e2e.yaml. audience and openbao
-# run last in `make kind-e2e`: each changes the controller's configuration and
-# restores it afterwards.
-E2E_SUITES = install bundle rbac admission leader compose audience openbao
+# Keep in sync with the matrix in .github/workflows/e2e.yaml. schema-v4, audience
+# and openbao run last in `make kind-e2e`: each changes the controller's
+# configuration and restores it afterwards.
+E2E_SUITES = install bundle rbac admission leader compose schema-v4 audience openbao
 
 # The platform audience namespace the audience suite turns on (ADR-0020).
 E2E_PLATFORM_NAMESPACE ?= notaio-e2e-platform
@@ -555,6 +559,17 @@ kind-e2e-leader: kind-deploy ## e2e: one leader by Lease; a follower takes over 
 
 kind-e2e-compose: kind-deploy ## e2e: a composite of two policies, one bundle under its own ceiling; include widened or deleted
 	$(call run-e2e-suite,e2e_compose)
+
+kind-e2e-schema-v4: kind-deploy ## e2e: the controller emits bundle schema v4, and switches to v3 and back with the version climbing
+	@$(KIND_KUBECTL) -n $(NAMESPACE) set env deployment/notaio NOTAIO_BUNDLE_SCHEMA=v4
+	@$(KIND_KUBECTL) -n $(NAMESPACE) rollout status deployment/notaio --timeout=180s
+	@# Always back to the default, pass or fail: a later suite expects v3 bundles.
+	@$(E2E_ENV) \
+	 cargo test -p notaio --test e2e_schema_v4 -- --ignored --nocapture --test-threads=1; \
+	 rc=$$?; \
+	 $(KIND_KUBECTL) -n $(NAMESPACE) set env deployment/notaio NOTAIO_BUNDLE_SCHEMA-; \
+	 $(KIND_KUBECTL) -n $(NAMESPACE) rollout status deployment/notaio --timeout=180s; \
+	 exit $$rc
 
 kind-e2e-audience: kind-deploy ## e2e: SandboxAudience published, verified, kept on a finding, deleted with its object
 	@$(KIND_KUBECTL) create namespace $(E2E_PLATFORM_NAMESPACE) --dry-run=client -o yaml | $(KIND_KUBECTL) apply -f -

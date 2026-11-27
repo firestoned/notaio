@@ -553,6 +553,8 @@ fn lint_policy(
         ceilings,
         audiences,
         includes: policies,
+        // It affects only the signed content's form, which lint does not report.
+        bundle_schema: crate::cli::DEFAULT_BUNDLE_SCHEMA,
     });
 
     let condition = |t: &str| out.status.conditions.iter().find(|c| c.type_ == t);

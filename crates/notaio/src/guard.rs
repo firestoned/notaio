@@ -19,6 +19,11 @@ pub struct Evaluated<'a> {
     pub findings: &'a [Finding],
     /// The expiry of every grant the bundle applies, by grant name.
     pub active_grant_expiries: &'a [(String, Timestamp)],
+    /// The groups the bundle signs: `None` for a v3 bundle, which signs none (ADR-0026).
+    pub signed_groups: Option<&'a [String]>,
+    /// The policy's own `subjects.groups`, read from the object, not from the evaluator. A
+    /// composite's are its own (ADR-0023 decision 2).
+    pub policy_groups: &'a [String],
 }
 
 /// The checks `e` fails, by their stable names in `crate::metrics::FAIL_OPEN_CHECKS`. Empty means
@@ -36,6 +41,13 @@ pub fn check(e: &Evaluated<'_>, now: Timestamp) -> Vec<&'static str> {
     }
     if e.not_after <= now {
         failed.push("already-expired");
+    }
+    if let Some(signed) = e.signed_groups {
+        let mut want = e.policy_groups.to_vec();
+        want.sort();
+        if signed != want.as_slice() {
+            failed.push("subjects-mismatch");
+        }
     }
     failed
 }

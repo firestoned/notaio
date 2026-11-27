@@ -22,11 +22,12 @@ pub const CONTENT_TYPE: &str = "application/openmetrics-text; version=1.0.0; cha
 type Labels = Vec<(String, String)>;
 
 /// The fail-open checks (`crate::guard`), each a stable label value of `notaio_fail_open_total`.
-pub const FAIL_OPEN_CHECKS: [&str; 4] = [
+pub const FAIL_OPEN_CHECKS: [&str; 5] = [
     "no-ceiling",
     "error-findings",
     "expired-relaxation",
     "already-expired",
+    "subjects-mismatch",
 ];
 
 /// Counters the controller increments as things happen. Cloning shares the values.

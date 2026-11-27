@@ -58,3 +58,20 @@ fn a_platform_audience_namespace_is_a_namespace_name() {
         );
     }
 }
+
+// NOTAIO_BUNDLE_SCHEMA (ADR-0026 decision 5).
+
+#[test]
+fn the_bundle_schema_is_v3_unless_set() {
+    assert_eq!(bundle_schema(None).unwrap(), SchemaVersion::V3);
+    assert_eq!(bundle_schema(Some("v3")).unwrap(), SchemaVersion::V3);
+    assert_eq!(bundle_schema(Some(" v4 ")).unwrap(), SchemaVersion::V4);
+}
+
+#[test]
+fn any_other_bundle_schema_stops_the_controller_naming_the_variable() {
+    for bad in ["", "V4", "4", "v5", "bundle/v4"] {
+        let e = bundle_schema(Some(bad)).unwrap_err().to_string();
+        assert!(e.contains(ENV_BUNDLE_SCHEMA), "{bad:?}: {e}");
+    }
+}

@@ -3,8 +3,9 @@
 
 # Roadmap 05: bundle schema v4, one migration, consumers first
 
-- **Status:** Phases 0 to 3 done, 2026-11-26: ADR-0026, `L034`, the bundle crate verifying v3 and
-  v4, the conformance kit. The controller still emits v3. Opened 2026-11-26.
+- **Status:** Phases 0 to 4 done, 2026-11-26: ADR-0026, `L034`, the bundle crate verifying v3 and
+  v4, the conformance kit, and the controller able to emit v4 behind `NOTAIO_BUNDLE_SCHEMA` (default
+  v3). Next: release N. Opened 2026-11-26.
 - **Milestone:** M4 in [`ROADMAPS.md`](../../ROADMAPS.md)
 - **Related:** ADR-0002 (the bundle contract, amended by this), ADR-0005 (canonical form),
   ADR-0008 (the consumer's floor), ADR-0013 (the last schema change, v2 to v3), ADR-0014 (how
@@ -181,16 +182,19 @@ N; phase 6 is N+1; phase 7 is N+2.
 
 ### Phase 4: the producer, still emitting v3
 
-- [ ] `compile_content` carries each entry's origin through the sort and fills `includes`, `from`
+- [x] `compile_content` carries each entry's origin through the sort and fills `includes`, `from`
       and `subjects`; with `NOTAIO_BUNDLE_SCHEMA=v3` (the default) every v4 member is left out and
-      the bundle is byte for byte what release N-1 signed.
-- [ ] `NOTAIO_BUNDLE_SCHEMA` read at startup, refused when it is neither value, in the environment
-      reference.
-- [ ] The guard check of D7, with its metric value and tests.
-- [ ] e2e with `v4` set: `e2e_bundle` (the schema, the payload type, `subjects` equal to the
-      fixture's groups, the version still climbing across a v3 to v4 to v3 switch),
-      `e2e_compose` (`includes` equal to `status.includes`, `from` on included entries only, a
-      reordering keeping the digest), `e2e_openbao` (v4 signed by transit verifies).
+      the bundle is byte for byte what release N-1 signed. Done 2026-11-26 (`EvalInput.bundle_schema`).
+- [x] `NOTAIO_BUNDLE_SCHEMA` read at startup, refused when it is neither value, in the environment
+      reference and as a comment in `deploy/controller/20-deployment.yaml`. Done 2026-11-26.
+- [x] The guard check of D7, with its metric value and tests. Done 2026-11-26 (`subjects-mismatch`,
+      the fifth value of `notaio_fail_open_total`).
+- [x] e2e with `v4` set, as one suite, `e2e_schema_v4` (`make kind-e2e-schema-v4`, its own CI row):
+      a composite's `includes` equal to `status.includes` and `from` on the included entry only;
+      a policy's groups signed sorted; the controller switched to v3 and back with the version
+      climbing each time and the payload type following. Every kind suite signs with OpenBao
+      transit, so this is v4 signed by transit, verified against its key. The reorder digest is a
+      unit test (`reordering_includes_keeps_the_v4_digest`). Done 2026-11-26.
 - [ ] **Release N**, with the notes of D8.
 
 ### Phase 5: consumers take release N

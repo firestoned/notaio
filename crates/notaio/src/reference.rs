@@ -490,6 +490,11 @@ pub fn environment_variables() -> Vec<(&'static str, String, &'static str)> {
             "How long a bundle is valid, in seconds, 300 to 86400 (anything else stops the controller). Bounds how long a policy that turns invalid stays honoured, and how long the signer may be down before bundles expire (ADR-0018).",
         ),
         (
+            cli::ENV_BUNDLE_SCHEMA,
+            "v3".to_string(),
+            "The bundle schema the controller emits, `v3` or `v4` (anything else stops the controller). Turn `v4` on only once every consumer runs a release that reads it, and off again to roll back; the version keeps climbing either way (ADR-0026).",
+        ),
+        (
             cli::ENV_HTTP_ADDR,
             crate::http::DEFAULT_ADDR.to_string(),
             "The health and metrics listener's address.",

@@ -25,9 +25,9 @@ use kube::runtime::reflector::{self, ObjectRef, Store};
 use kube::runtime::{watcher, WatchStreamExt};
 use kube::{Api, Client};
 use notaio::cli::{
-    audience_platform_namespace, bundle_lifetime_seconds, Cli, Command, Format, LintArgs,
-    DEFAULT_NAMESPACE, ENV_AUDIENCE_PLATFORM_NAMESPACE, ENV_BUNDLE_LIFETIME, ENV_HTTP_ADDR,
-    ENV_LOG_JSON, ENV_NAMESPACE, ENV_POD_NAME,
+    audience_platform_namespace, bundle_lifetime_seconds, bundle_schema, Cli, Command, Format,
+    LintArgs, DEFAULT_NAMESPACE, ENV_AUDIENCE_PLATFORM_NAMESPACE, ENV_BUNDLE_LIFETIME,
+    ENV_BUNDLE_SCHEMA, ENV_HTTP_ADDR, ENV_LOG_JSON, ENV_NAMESPACE, ENV_POD_NAME,
 };
 use notaio::http::Observed;
 use notaio::include::related;
@@ -160,6 +160,8 @@ async fn run_controller() -> anyhow::Result<()> {
 
     let lifetime_secs =
         bundle_lifetime_seconds(std::env::var(ENV_BUNDLE_LIFETIME).ok().as_deref())?;
+    let schema = bundle_schema(std::env::var(ENV_BUNDLE_SCHEMA).ok().as_deref())?;
+    tracing::info!(schema = schema.schema(), "bundle schema emitted (ADR-0026)");
     let platform_namespace = audience_platform_namespace(
         std::env::var(ENV_AUDIENCE_PLATFORM_NAMESPACE)
             .ok()
@@ -206,6 +208,7 @@ async fn run_controller() -> anyhow::Result<()> {
         signer,
         ceilings: Ceilings::default(),
         bundle_lifetime: SignedDuration::from_secs(lifetime_secs),
+        bundle_schema: schema,
         counters: counters.clone(),
         recorder: Recorder::new(client.clone(), reporter),
         audiences: platform_namespace.clone().zip(audience_store.clone()),
