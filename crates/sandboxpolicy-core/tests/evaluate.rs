@@ -4,6 +4,7 @@
 
 use jiff::{SignedDuration, Timestamp};
 use sandboxpolicy_api::*;
+use sandboxpolicy_bundle::{SchemaVersion, SCHEMA_V3, SCHEMA_V4};
 use sandboxpolicy_core::ceilings::Ceilings;
 use sandboxpolicy_core::lint::Severity;
 use sandboxpolicy_core::{builtin, evaluate, registry, EvalInput, EvalOutput};
@@ -127,6 +128,25 @@ fn run_with_ceiling(
     prev: Option<(u64, &str)>,
     exposure_ceiling: Option<&ExposureCeiling>,
 ) -> EvalOutput {
+    run_in_schema(
+        policy,
+        profile,
+        grants,
+        prev,
+        exposure_ceiling,
+        SchemaVersion::V3,
+    )
+}
+
+/// As [`run_with_ceiling`], with the controller emitting `bundle_schema` (ADR-0026 decision 5).
+fn run_in_schema(
+    policy: &SandboxPolicy,
+    profile: Option<&SandboxProfile>,
+    grants: &[KnobGrant],
+    prev: Option<(u64, &str)>,
+    exposure_ceiling: Option<&ExposureCeiling>,
+    bundle_schema: SchemaVersion,
+) -> EvalOutput {
     let ceilings = Ceilings::default();
     evaluate(&EvalInput {
         now: now(),
@@ -141,6 +161,7 @@ fn run_with_ceiling(
         ceilings: &ceilings,
         audiences: None,
         includes: &[],
+        bundle_schema,
     })
 }
 
@@ -437,6 +458,7 @@ fn content_without_a_canonical_form_fails_closed() {
         ceilings: &ceilings,
         audiences: None,
         includes: &[],
+        bundle_schema: SchemaVersion::V3,
     });
     assert!(o.bundle.is_none(), "a bundle was compiled");
     assert!(!ready(&o));
@@ -910,6 +932,7 @@ fn run_with_audiences(policy: &SandboxPolicy, audiences: &[SandboxAudience]) -> 
         ceilings: &ceilings,
         audiences: Some(&catalog),
         includes: &[],
+        bundle_schema: SchemaVersion::V3,
     })
 }
 
@@ -1049,6 +1072,15 @@ fn run_composite(
     includes: &[SandboxPolicy],
     ceiling: Option<&ExposureCeiling>,
 ) -> EvalOutput {
+    run_composite_in(policy, includes, ceiling, SchemaVersion::V3)
+}
+
+fn run_composite_in(
+    policy: &SandboxPolicy,
+    includes: &[SandboxPolicy],
+    ceiling: Option<&ExposureCeiling>,
+    bundle_schema: SchemaVersion,
+) -> EvalOutput {
     let ceilings = Ceilings::default();
     let profile = profile(&policy.spec.profile_ref);
     evaluate(&EvalInput {
@@ -1064,6 +1096,7 @@ fn run_composite(
         ceilings: &ceilings,
         audiences: None,
         includes,
+        bundle_schema,
     })
 }
 
@@ -1206,4 +1239,108 @@ fn l034_a_malformed_group_compiles_no_bundle() {
     assert!(o.bundle.is_none());
     assert_eq!(ready_reason(&o), Some("InvalidPolicy"));
     assert!(has_code(&o, "L034"), "{:?}", o.findings);
+}
+
+// Bundle schema v4 from the producer (ADR-0026, roadmap 05 phase 4).
+
+fn run_v(policy: &SandboxPolicy, prev: Option<(u64, &str)>, schema: SchemaVersion) -> EvalOutput {
+    let pr = profile(&policy.spec.profile_ref);
+    let ceiling = covering_ceiling(policy);
+    run_in_schema(policy, Some(&pr), &[], prev, Some(&ceiling), schema)
+}
+
+#[test]
+fn v3_by_default_carries_no_v4_member() {
+    let po = policy("hardened", vec![audience("internal-git", Access::Read)]);
+    let b = run_v(&po, None, SchemaVersion::V3).bundle.unwrap();
+    assert_eq!(b.schema, SCHEMA_V3);
+    assert!(!b.content.has_v4_members());
+}
+
+#[test]
+fn v4_signs_the_policys_groups_sorted() {
+    let mut po = policy("hardened", vec![audience("internal-git", Access::Read)]);
+    po.spec.subjects.groups = vec!["sre".into(), "algo-devs".into()];
+    let b = run_v(&po, None, SchemaVersion::V4).bundle.unwrap();
+    assert_eq!(b.schema, SCHEMA_V4);
+    assert_eq!(b.content.subjects.unwrap().groups, ["algo-devs", "sre"]);
+    assert!(b.content.includes.is_empty());
+    assert!(b.content.audiences.iter().all(|a| a.from.is_none()));
+}
+
+#[test]
+fn v4_signs_an_empty_group_list_as_nobody_not_as_absent() {
+    let mut po = policy("hardened", vec![audience("internal-git", Access::Read)]);
+    po.spec.subjects.groups = vec![];
+    let o = run_v(&po, None, SchemaVersion::V4);
+    assert!(has_code(&o, "L010"));
+    let subjects = o.bundle.unwrap().content.subjects;
+    assert_eq!(subjects.unwrap().groups, Vec::<String>::new());
+}
+
+#[test]
+fn switching_the_schema_moves_the_version_once_each_way() {
+    // ADR-0026 decision 5: the version keeps climbing, so a consumer reading both follows a switch
+    // either way and its floor still refuses a replay.
+    let po = policy("hardened", vec![audience("internal-git", Access::Read)]);
+    let v3 = run_v(&po, None, SchemaVersion::V3).status;
+    let (v1, d3) = (v3.bundle_version.unwrap(), v3.bundle_digest.unwrap());
+    let v4 = run_v(&po, Some((v1, &d3)), SchemaVersion::V4).status;
+    let (v2, d4) = (v4.bundle_version.unwrap(), v4.bundle_digest.unwrap());
+    assert_eq!(v2, v1 + 1);
+    assert_ne!(d4, d3);
+    let back = run_v(&po, Some((v2, &d4)), SchemaVersion::V3).status;
+    assert_eq!(back.bundle_version, Some(v2 + 1));
+    assert_eq!(back.bundle_digest.as_deref(), Some(d3.as_str()));
+}
+
+#[test]
+fn a_v4_composite_names_its_includes_and_where_each_entry_came_from() {
+    let (dev, parts) = composite_and_parts();
+    let ceiling = composite_ceiling(&dev, &parts);
+    let o = run_composite_in(&dev, &parts, Some(&ceiling), SchemaVersion::V4);
+    let b = o.bundle.unwrap();
+    let signed: Vec<_> = b
+        .content
+        .includes
+        .iter()
+        .map(|i| (i.name.clone(), i.uid.clone(), i.content_digest.clone()))
+        .collect();
+    let recorded: Vec<_> = o
+        .status
+        .includes
+        .iter()
+        .map(|i| (i.name.clone(), i.uid.clone(), i.content_digest.clone()))
+        .collect();
+    assert_eq!(signed, recorded);
+    assert_eq!(
+        signed.iter().map(|i| i.0.as_str()).collect::<Vec<_>>(),
+        ["git", "pypi"]
+    );
+    let from: Vec<_> = b
+        .content
+        .audiences
+        .iter()
+        .map(|a| (a.name.as_str(), a.from.as_deref()))
+        .collect();
+    assert_eq!(
+        from,
+        [
+            ("anthropic", None),
+            ("github", Some("git")),
+            ("pypi", Some("pypi"))
+        ]
+    );
+}
+
+#[test]
+fn reordering_includes_keeps_the_v4_digest() {
+    let (dev, parts) = composite_and_parts();
+    let ceiling = composite_ceiling(&dev, &parts);
+    let a = run_composite_in(&dev, &parts, Some(&ceiling), SchemaVersion::V4);
+    let swapped = including(dev.clone(), &["pypi", "git"]);
+    let rev: Vec<_> = parts.iter().rev().cloned().collect();
+    let b = run_composite_in(&swapped, &rev, Some(&ceiling), SchemaVersion::V4);
+    assert!(a.status.bundle_digest.is_some());
+    assert_eq!(a.status.bundle_digest, b.status.bundle_digest);
 }

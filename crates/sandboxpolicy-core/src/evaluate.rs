@@ -10,18 +10,19 @@ use std::collections::BTreeMap;
 use jiff::{SignedDuration, Timestamp};
 use sandboxpolicy_api::{
     Condition, ExposedAudience, ExposureCeiling, GrantPhase, KnobGrant, MaxExposure, SandboxPolicy,
-    SandboxPolicySpec, SandboxPolicyStatus, SandboxProfile, SandboxProfileSpec,
+    SandboxPolicyStatus, SandboxProfile, SandboxProfileSpec,
 };
 use sandboxpolicy_bundle::jcs::MAX_SAFE_INTEGER;
 use sandboxpolicy_bundle::{
-    BundleContent, BundleError, BundleMeta, BundlePayload, PolicyRef, ProfileRef,
+    BundleAudience, BundleContent, BundleEgress, BundleError, BundleMeta, BundlePayload,
+    BundleTool, IncludeRef, PolicyRef, ProfileRef, SchemaVersion, Subjects,
 };
 use sandboxpolicy_types::{Access, AudienceGrant, KnobId, Step};
 use sha2::{Digest, Sha256};
 
 use crate::audience::{lint_definitions_against_ceiling, lint_grants, AudienceCatalog};
 use crate::ceilings::Ceilings;
-use crate::compose::{compose, ComposeError, Included};
+use crate::compose::{compose, ComposeError, EffectivePolicy, Included};
 use crate::lint::{self, has_errors, step_of, summarize, Finding};
 use crate::registry::REGISTRY;
 
@@ -48,6 +49,9 @@ pub struct EvalInput<'a> {
     /// Policies this one may include (ADR-0023): those it names are picked by name from the ones
     /// in its own namespace, and the rest are ignored. Empty for a policy with no `includes`.
     pub includes: &'a [SandboxPolicy],
+    /// The bundle schema to emit (ADR-0026 decision 5). Under `V3` every v4 member is left out and
+    /// the bundle is byte for byte what a controller without v4 signed.
+    pub bundle_schema: SchemaVersion,
 }
 
 #[derive(Debug, Clone)]
@@ -154,16 +158,33 @@ fn exposure(c: &BundleContent) -> MaxExposure {
     }
 }
 
+/// Each entry paired with the include it came from, when the bundle carries origins (v4), so the
+/// origin survives the sort.
+fn with_origins<T>(
+    items: Vec<T>,
+    origins: &[Option<String>],
+    v4: bool,
+) -> Vec<(T, Option<String>)> {
+    items
+        .into_iter()
+        .enumerate()
+        .map(|(i, t)| (t, origins.get(i).cloned().flatten().filter(|_| v4)))
+        .collect()
+}
+
 fn compile_content(
     policy: &SandboxPolicy,
     profile_name: &str,
     profile_digest: String,
     effective: &BTreeMap<KnobId, Step>,
-    spec: &SandboxPolicySpec,
+    composed: &EffectivePolicy,
     ceilings: &Ceilings,
+    schema: SchemaVersion,
 ) -> BundleContent {
+    let spec = &composed.spec;
+    let v4 = schema == SchemaVersion::V4;
     let ttl_default = ceilings.token_ttl(step_of(effective, "K5.1"));
-    let mut audiences: Vec<AudienceGrant> = spec
+    let audiences: Vec<AudienceGrant> = spec
         .audiences
         .iter()
         .cloned()
@@ -175,14 +196,34 @@ fn compile_content(
             a
         })
         .collect();
-    audiences.sort_by(|a, b| a.name.cmp(&b.name));
+    let mut audiences = with_origins(audiences, &composed.origins.audiences, v4);
+    audiences.sort_by(|a, b| a.0.name.cmp(&b.0.name));
     let mut egress = spec.egress.clone();
     for e in &mut egress {
         e.rules.sort();
     }
-    egress.sort_by(|a, b| a.endpoint.cmp(&b.endpoint));
-    let mut tools = spec.tools.clone();
-    tools.sort_by(|a, b| a.name.cmp(&b.name));
+    let mut egress = with_origins(egress, &composed.origins.egress, v4);
+    egress.sort_by(|a, b| a.0.endpoint.cmp(&b.0.endpoint));
+    let mut tools = with_origins(spec.tools.clone(), &composed.origins.tools, v4);
+    tools.sort_by(|a, b| a.0.name.cmp(&b.0.name));
+    let subjects = v4.then(|| {
+        let mut groups = spec.subjects.groups.clone();
+        groups.sort();
+        Subjects { groups }
+    });
+    let includes = if v4 {
+        composed
+            .includes
+            .iter()
+            .map(|i| IncludeRef {
+                name: i.name.clone(),
+                uid: i.uid.clone(),
+                content_digest: i.content_digest.clone(),
+            })
+            .collect()
+    } else {
+        Vec::new()
+    };
 
     let k73 = step_of(effective, "K7.3");
     let k43 = step_of(effective, "K4.3");
@@ -197,9 +238,18 @@ fn compile_content(
             digest: profile_digest,
         },
         knobs: full_knobs(effective),
-        audiences: audiences.into_iter().map(Into::into).collect(),
-        egress: egress.into_iter().map(Into::into).collect(),
-        tools: tools.into_iter().map(Into::into).collect(),
+        audiences: audiences
+            .into_iter()
+            .map(|(grant, from)| BundleAudience { grant, from })
+            .collect(),
+        egress: egress
+            .into_iter()
+            .map(|(rule, from)| BundleEgress { rule, from })
+            .collect(),
+        tools: tools
+            .into_iter()
+            .map(|(tool, from)| BundleTool { tool, from })
+            .collect(),
         lease: spec
             .lease
             .clone()
@@ -208,9 +258,9 @@ fn compile_content(
             .budgets
             .clone()
             .unwrap_or_else(|| ceilings.default_budgets(k73, k43)),
-        // The v4 members (ADR-0026): filled when the producer emits v4 (roadmap 05 phase 4).
-        subjects: None,
-        includes: vec![],
+        // ADR-0026 decision 1. `resources` (ADR-0019) and `sources` (ADR-0016) are not built.
+        subjects,
+        includes,
         resources: None,
         sources: None,
     }
@@ -490,8 +540,9 @@ pub fn evaluate(input: &EvalInput<'_>) -> EvalOutput {
             .unwrap_or(&input.policy.spec.profile_ref),
         p_digest,
         &effective,
-        spec,
+        &composed,
         input.ceilings,
+        input.bundle_schema,
     );
     // RFC 8785 has no exact form for floats or integers beyond 2^53 - 1 (ADR-0005). Content
     // without a canonical form is never published: no bundle, and Ready says why.
@@ -612,14 +663,16 @@ pub fn evaluate(input: &EvalInput<'_>) -> EvalOutput {
             "bundle compiled, awaiting signature and publication",
         ),
     ];
-    let bundle = match BundlePayload::new(
-        BundleMeta {
-            version,
-            issued_at: now,
-            not_after,
-        },
-        content,
-    ) {
+    let meta = BundleMeta {
+        version,
+        issued_at: now,
+        not_after,
+    };
+    let payload = match input.bundle_schema {
+        SchemaVersion::V3 => BundlePayload::new_v3(meta, content),
+        SchemaVersion::V4 => BundlePayload::new_v4(meta, content),
+    };
+    let bundle = match payload {
         Ok(b) => b,
         Err(e) => return not_canonical(status, grants, findings, requeue, refused(&e)),
     };

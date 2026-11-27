@@ -44,6 +44,8 @@ pub struct Ctx {
     pub ceilings: Ceilings,
     /// How long a compiled bundle stays valid. The upper bound on staleness.
     pub bundle_lifetime: SignedDuration,
+    /// The bundle schema to emit (`NOTAIO_BUNDLE_SCHEMA`, ADR-0026 decision 5).
+    pub bundle_schema: sandboxpolicy_bundle::SchemaVersion,
     pub counters: Counters,
     pub recorder: Recorder,
     /// True while this replica holds the leader Lease (ADR-0011).
@@ -198,6 +200,7 @@ pub async fn reconcile_policy(policy: Arc<SandboxPolicy>, ctx: Arc<Ctx>) -> Resu
         ceilings: &ctx.ceilings,
         audiences: catalog.as_ref(),
         includes: &namespace_policies,
+        bundle_schema: ctx.bundle_schema,
     });
     for f in &out.findings {
         tracing::debug!(policy = %name, code = f.code, path = %f.path, "{}", f.message);
@@ -325,6 +328,12 @@ pub async fn reconcile_policy(policy: Arc<SandboxPolicy>, ctx: Arc<Ctx>) -> Resu
                 has_ceiling: exposure_ceiling.is_some(),
                 findings: &out.findings,
                 active_grant_expiries: &active_grant_expiries,
+                signed_groups: bundle
+                    .content
+                    .subjects
+                    .as_ref()
+                    .map(|s| s.groups.as_slice()),
+                policy_groups: &policy.spec.subjects.groups,
             },
             now,
         );

@@ -6,6 +6,7 @@ use std::path::PathBuf;
 
 use clap::{Parser, Subcommand, ValueEnum};
 use jiff::Timestamp;
+use sandboxpolicy_bundle::SchemaVersion;
 
 /// How long a bundle stays valid, in seconds. A consumer refuses a bundle past `notAfter`, so this
 /// bounds how long a policy that turns invalid stays honoured, and how long the signer may be down
@@ -42,6 +43,31 @@ pub fn bundle_lifetime_seconds(raw: Option<&str>) -> anyhow::Result<i64> {
     }
     Ok(secs)
 }
+/// The bundle schema the controller emits, `v3` or `v4` (ADR-0026 decision 5). An operator turns
+/// `v4` on once every consumer reads it, and back off to roll back: the version keeps climbing
+/// either way.
+pub const ENV_BUNDLE_SCHEMA: &str = "NOTAIO_BUNDLE_SCHEMA";
+/// What an unset [`ENV_BUNDLE_SCHEMA`] means in this release: v3, so no consumer sees v4 until
+/// someone chooses it (ADR-0026 decision 5).
+pub const DEFAULT_BUNDLE_SCHEMA: SchemaVersion = SchemaVersion::V3;
+
+/// The bundle schema from the raw value of [`ENV_BUNDLE_SCHEMA`], or [`DEFAULT_BUNDLE_SCHEMA`]
+/// when unset.
+///
+/// # Errors
+/// Anything but `v3` or `v4`, an empty value included: the controller refuses to start rather than
+/// emit a schema nobody chose, which every consumer would refuse.
+pub fn bundle_schema(raw: Option<&str>) -> anyhow::Result<SchemaVersion> {
+    let Some(raw) = raw else {
+        return Ok(DEFAULT_BUNDLE_SCHEMA);
+    };
+    match raw.trim() {
+        "v3" => Ok(SchemaVersion::V3),
+        "v4" => Ok(SchemaVersion::V4),
+        _ => anyhow::bail!("{ENV_BUNDLE_SCHEMA}={raw:?} is neither v3 nor v4"),
+    }
+}
+
 /// The platform audience namespace (ADR-0020, decision 2). Unset, `SandboxAudience` is not
 /// reconciled and policies behave as before the ADR; set, every audience rule applies. No default:
 /// the consumer names the same namespace, and a guess on either side is a refusal.

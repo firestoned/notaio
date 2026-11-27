@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-11-27T03:16:41.530Z
-> Files: 101 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-11-27T03:54:36.712Z
+> Files: 102 tracked | Anatomy hits: 0 | Misses: 0
 
 > Project structure index. Auto-maintained by OpenWolf hooks and daemon.
 > Run `openwolf scan` to generate, or wait for the first Claude Code session.
@@ -21,7 +21,7 @@
 
 ## .claude/
 
-- `CHANGELOG.md` — Changelog (~31890 tok)
+- `CHANGELOG.md` — Changelog (~32405 tok)
 
 ## .claude/rules/
 
@@ -57,6 +57,7 @@
 - `e2e_bundle.rs` — e2e: a policy goes in, a signed bundle comes out, and a consumer can verify it. (~2108 tok)
 - `e2e_compose.rs` — e2e: a policy composed of others (ADR-0022), through the deployed controller. (~2707 tok)
 - `e2e_rbac.rs` — e2e: the controller's deployed RBAC is read plus status writes, and nothing more. (~1446 tok)
+- `e2e_schema_v4.rs` — e2e: bundle schema v4 from the deployed controller (ADR-0026, roadmap 05 phase 4). (~2018 tok)
 
 ## crates/notaio/tests/common/
 

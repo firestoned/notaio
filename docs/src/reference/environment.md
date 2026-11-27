@@ -12,6 +12,7 @@ What `notaio controller` reads from its environment, with the default when it is
 | --- | --- | --- |
 | `NOTAIO_AUDIENCE_PLATFORM_NAMESPACE` | unset | The platform audience namespace (ADR-0020). Unset, SandboxAudience is not reconciled and policies are checked as before; set, audience bundles are published and every audience rule (L022 to L029, the definition half of L014) applies. Must match the consumer's own setting. A value that is not a namespace name stops the controller. |
 | `NOTAIO_BUNDLE_LIFETIME_SECONDS` | `900` | How long a bundle is valid, in seconds, 300 to 86400 (anything else stops the controller). Bounds how long a policy that turns invalid stays honoured, and how long the signer may be down before bundles expire (ADR-0018). |
+| `NOTAIO_BUNDLE_SCHEMA` | `v3` | The bundle schema the controller emits, `v3` or `v4` (anything else stops the controller). Turn `v4` on only once every consumer runs a release that reads it, and off again to roll back; the version keeps climbing either way (ADR-0026). |
 | `NOTAIO_HTTP_ADDR` | `0.0.0.0:8080` | The health and metrics listener's address. |
 | `NOTAIO_LOG_JSON` | unset | `1` for JSON logs. `RUST_LOG` sets the level, `info` by default. |
 | `NOTAIO_POD_NAME` | unset; required | The pod's name, from the downward API: this replica's identity in leader election and in Events. |

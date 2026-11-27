@@ -192,6 +192,9 @@ pub async fn reconcile_audience(
                 has_ceiling: true,
                 findings: &out.findings,
                 active_grant_expiries: &[],
+                // An audience bundle signs no groups.
+                signed_groups: None,
+                policy_groups: &[],
             },
             now,
         );

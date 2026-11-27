@@ -53,6 +53,7 @@ fn examples_are_valid_and_compile() {
         ceilings: &ceilings,
         audiences: None,
         includes: &[],
+        bundle_schema: sandboxpolicy_bundle::SchemaVersion::V3,
     });
     assert!(out.bundle.is_some(), "{:?}", out.findings);
     assert_eq!(

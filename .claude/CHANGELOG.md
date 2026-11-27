@@ -2,6 +2,42 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-26 22:54] - The controller can emit bundle schema v4, behind NOTAIO_BUNDLE_SCHEMA (roadmap 05 phase 4)
+
+**Author:** Erick Bourgeois
+
+### Added
+- `NOTAIO_BUNDLE_SCHEMA` (`crates/notaio/src/cli.rs`): `v3`, the default, or `v4`; anything else,
+  an empty value included, stops the controller at startup. In the environment reference and as a
+  comment in `deploy/controller/20-deployment.yaml` (ADR-0026 decision 5).
+- `EvalInput.bundle_schema`. Under `V4`, `compile_content` signs the policy's groups sorted
+  (`subjects`, `[]` for none), a composite's includes as its status records them, and `from` on each
+  entry an include supplied, carried through the sort; under `V3` every v4 member is left out and
+  the bundle is byte for byte what it was. `notaio lint` evaluates as v3 (it signs nothing).
+- The fifth fail-open check, `subjects-mismatch` (`guard.rs`, ADR-0026 decision 7): a v4 bundle
+  whose signed groups are not the policy object's own, sorted, is not signed.
+  `notaio_fail_open_total` pre-registers it.
+- `crates/notaio/tests/e2e_schema_v4.rs`, `make kind-e2e-schema-v4` (sets the variable for the run
+  and always unsets it), `E2E_SUITES`, a CI matrix row.
+- Tests: six in `tests/evaluate.rs` (v3 by default, groups sorted, `[]` signed as nobody, the
+  version moving once each way on a switch and v3's digest coming back, a composite's includes and
+  origins, a reordering keeping the v4 digest), the setting's in `cli_tests.rs`, three guard tests.
+
+### Changed
+- Docs: ADR-0026 (decisions 5 to 7 built), `docs/architecture.md`'s bundle row, the threat model
+  mapping's guard row, roadmap 05 phase 4, `ROADMAPS.md` row 05.
+
+### Why
+Roadmap 05 phase 4: release N must be able to emit v4 when an operator chooses, and keep emitting
+exactly v3 until then.
+
+### Impact
+- [ ] Breaking change (CRD schema, bundle schema, public API)
+- [x] Requires cluster rollout (CRDs, profiles or controller): a new controller; nothing changes
+      until `NOTAIO_BUNDLE_SCHEMA=v4` is set
+- [ ] Config or examples change only
+- [ ] Documentation only
+
 ## [2026-11-26 22:16] - The bundle crate reads schema v3 and v4 (roadmap 05 phases 2 and 3)
 
 **Author:** Erick Bourgeois

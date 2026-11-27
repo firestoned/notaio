@@ -24,6 +24,8 @@ fn good() -> Evaluated<'static> {
         has_ceiling: true,
         findings: &[],
         active_grant_expiries: &[],
+        signed_groups: None,
+        policy_groups: &[],
     }
 }
 
@@ -89,14 +91,63 @@ fn every_check_name_is_a_metric_label() {
     // A check the metric does not pre-register would be absent rather than 0 until it fired.
     let errors = [finding(Severity::Error)];
     let lapsed = [("g".to_string(), now())];
+    let signed = ["somebody-else".to_string()];
     let all = Evaluated {
         not_after: now(),
         has_ceiling: false,
         findings: &errors,
         active_grant_expiries: &lapsed,
+        signed_groups: Some(&signed),
+        policy_groups: &[],
     };
     assert_eq!(
         check(&all, now()),
         crate::metrics::FAIL_OPEN_CHECKS.to_vec()
     );
+}
+
+// subjects-mismatch (ADR-0026 decision 7): the signed groups are the policy's, sorted.
+
+fn groups(g: &[&str]) -> Vec<String> {
+    g.iter().map(|s| (*s).to_string()).collect()
+}
+
+#[test]
+fn v4_groups_equal_to_the_policys_sorted_pass() {
+    let (policy, signed) = (groups(&["sre", "algo-devs"]), groups(&["algo-devs", "sre"]));
+    let e = Evaluated {
+        signed_groups: Some(&signed),
+        policy_groups: &policy,
+        ..good()
+    };
+    assert!(check(&e, now()).is_empty());
+}
+
+#[test]
+fn signed_groups_wider_narrower_or_unsorted_are_refused() {
+    let policy = groups(&["algo-devs", "sre"]);
+    for signed in [
+        groups(&["algo-devs", "sre", "all-staff"]),
+        groups(&["algo-devs"]),
+        groups(&["sre", "algo-devs"]),
+        groups(&[]),
+    ] {
+        let e = Evaluated {
+            signed_groups: Some(&signed),
+            policy_groups: &policy,
+            ..good()
+        };
+        assert_eq!(check(&e, now()), ["subjects-mismatch"], "{signed:?}");
+    }
+}
+
+#[test]
+fn a_v3_bundle_signs_no_groups_and_is_not_checked_for_them() {
+    let policy = groups(&["algo-devs"]);
+    let e = Evaluated {
+        signed_groups: None,
+        policy_groups: &policy,
+        ..good()
+    };
+    assert!(check(&e, now()).is_empty());
 }

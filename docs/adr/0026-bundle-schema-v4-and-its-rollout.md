@@ -17,8 +17,9 @@
   Threat model K7.2, T5.4.
 
 Partly implemented (2026-11-26): the verifier and the types (decisions 1 to 4) and the
-conformance kit (decision 8), in `sandboxpolicy-bundle`; the controller still emits v3. Roadmap 05
-carries the rest.
+conformance kit (decision 8), in `sandboxpolicy-bundle`; the producer (decisions 5 to 7):
+`NOTAIO_BUNDLE_SCHEMA`, default `v3`, and the `subjects-mismatch` guard check. Not yet: the three
+releases and their notes (decision 9). Roadmap 05 carries the rest.
 
 ## Context
 
