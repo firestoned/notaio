@@ -174,3 +174,12 @@ the bundle schema is called out in the release notes and in an ADR.
     objects. Bundle versions never go
 backwards across an upgrade: the controller takes the higher of the status and the published
 ConfigMap's annotation.
+
+!!! warning "Upgrading to bundle v4 (ADR-0026)"
+    From v0.9.0, notaio can sign bundle schema v4, which adds who may use a policy (`subjects`) and
+    where a composite's entries came from. It still signs v3 unless `NOTAIO_BUNDLE_SCHEMA=v4` is
+    set on the controller, and a consumer older than v0.9.0 refuses every v4 bundle. So upgrade
+    notaio to v0.9.0 as usual, wait until every consumer (mediatore and anything else that
+    verifies bundles) runs v0.9.0 or later, and only then set `NOTAIO_BUNDLE_SCHEMA=v4`. To roll
+    back, set it to `v3` again: bundle versions keep climbing either way, so no consumer's floor
+    refuses the next bundle. A later release makes v4 the default, and the one after it removes v3.

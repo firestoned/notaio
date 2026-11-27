@@ -17,7 +17,7 @@ Pin a release tag ([ADR-0014](../adr/0014-consumer-distribution.md)):
 
 ```toml
 [dependencies]
-sandboxpolicy-bundle = { git = "https://github.com/firestoned/notaio", tag = "v0.8.0" }
+sandboxpolicy-bundle = { git = "https://github.com/firestoned/notaio", tag = "v0.9.0" }
 ```
 
 and allow the source in your `deny.toml`:
@@ -183,6 +183,13 @@ the release that does before notaio emits v4: until then everything you receive 
 is not the same as stating none. If you enforce subjects, set `min_schema: SchemaVersion::V4` in
 your `VerifyOptions` once notaio emits v4, and v3 bundles are refused (`Schema`) rather than read as
 unknown.
+
+Two API changes came with v0.9.0, the release that reads v4. A bundle's audiences, egress rules and
+tools are the bundle crate's own types (`BundleAudience`, `BundleEgress`, `BundleTool`), which add
+`from` to the shared type and dereference to it, so code that reads them is unchanged and code that
+builds a payload, in a test, writes `.into()` where it put a shared `AudienceGrant`, `EgressRule` or
+`ToolRef`. And `envelope()` takes the `SigningInput`, so the payload type follows the schema being
+signed.
 
 ## What to enforce
 
