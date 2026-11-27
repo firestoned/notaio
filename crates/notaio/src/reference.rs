@@ -583,8 +583,9 @@ fn conformance() -> String {
         "Conformance Vectors",
         "Signed bundles, each with the verdict every consumer must reach: mediatore, mediatore-guest \
 and the gateway test against these files, which notaio's own verifier passes in CI. They live in \
-`crates/sandboxpolicy-bundle/conformance/` (`vectors.json`, and `bundle-v3.schema.json`, the \
-payload's JSON Schema) and in `sandboxpolicy_bundle::conformance`. How to use them is in \
+`crates/sandboxpolicy-bundle/conformance/` (`vectors.json`, and the payload's JSON Schema, \
+`bundle-v3.schema.json` frozen and `bundle-v4.schema.json` generated) and in \
+`sandboxpolicy_bundle::conformance`. How to use them is in \
 [Consume a Bundle](../guides/consume-a-bundle.md).",
     );
     let Ok(suite) = sandboxpolicy_bundle::conformance::suite() else {
@@ -592,8 +593,10 @@ payload's JSON Schema) and in `sandboxpolicy_bundle::conformance`. How to use th
     };
     let _ = writeln!(
         out,
-        "\nBundle schema `{}`. Trusted key, for these vectors only: `{}`. Every vector concerns the \
-policy `{}/{}`; its floor is the consumer's floor for that policy before the envelope.\n",
+        "\nBundle schema `{}`, and `sandbox.firestoned.io/bundle/v4` for the vectors named `v4-...` \
+(ADR-0026): a consumer that reads both reaches every verdict. Trusted key, for these vectors only: \
+`{}`. Every vector concerns the policy `{}/{}`; its floor is the consumer's floor for that policy \
+before the envelope.\n",
         suite.bundle_schema,
         suite
             .trusted_keys

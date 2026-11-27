@@ -6,7 +6,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::{BundleError, BundlePayload};
 
-pub const PAYLOAD_TYPE: &str = "application/vnd.firestoned.sandboxpolicy.bundle.v3+json";
+/// The payload type of a v3 bundle (ADR-0013).
+pub const PAYLOAD_TYPE_V3: &str = "application/vnd.firestoned.sandboxpolicy.bundle.v3+json";
+/// The payload type of a v4 bundle (ADR-0026).
+pub const PAYLOAD_TYPE_V4: &str = "application/vnd.firestoned.sandboxpolicy.bundle.v4+json";
+/// The payload type that pairs with [`crate::SCHEMA`], the schema `BundlePayload::new` writes.
+pub const PAYLOAD_TYPE: &str = PAYLOAD_TYPE_V3;
 
 /// DSSE envelope, https://github.com/secure-systems-lab/dsse
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -88,29 +93,39 @@ impl Signer for Ed25519Signer {
 
 /// What a signer signs for one bundle, and the payload bytes the envelope will carry.
 pub struct SigningInput {
+    /// The payload type the signature covers, which the envelope must carry (ADR-0026 decision 3).
+    pub payload_type: &'static str,
     /// The serialised payload, exactly as it goes into the envelope.
     pub payload: Vec<u8>,
     /// The DSSE pre-authentication encoding of `payload`: the bytes the signature covers.
     pub message: Vec<u8>,
 }
 
-/// The bytes to sign for `payload`. For a signer that signs out of band, such as OpenBao transit
-/// (ADR-0004): sign `message`, then call [`envelope`].
+/// The bytes to sign for `payload`, under the payload type its schema pairs with. For a signer that
+/// signs out of band, such as OpenBao transit (ADR-0004): sign `message`, then call [`envelope`]
+/// with this input.
 ///
 /// # Errors
+/// `BundleError::Schema` if the payload's schema is not one this crate writes,
 /// `BundleError::Malformed` if the payload cannot be serialised.
 pub fn signing_input(payload: &BundlePayload) -> Result<SigningInput, BundleError> {
+    let version = payload
+        .schema_version()
+        .ok_or_else(|| BundleError::Schema(payload.schema.clone()))?;
+    let payload_type = version.payload_type();
     let bytes = serde_json::to_vec(payload).map_err(|e| BundleError::Malformed(e.to_string()))?;
-    let message = pae(PAYLOAD_TYPE, &bytes);
+    let message = pae(payload_type, &bytes);
     Ok(SigningInput {
+        payload_type,
         payload: bytes,
         message,
     })
 }
 
-/// The envelope for `payload` (from [`signing_input`]) with one signature by `key_id`.
-pub fn envelope(payload: &[u8], key_id: &str, signature: &[u8]) -> Envelope {
-    signed_envelope(PAYLOAD_TYPE, payload, key_id, signature)
+/// The envelope for `input` (from [`signing_input`]) with one signature by `key_id`, under the
+/// payload type the signature covers.
+pub fn envelope(input: &SigningInput, key_id: &str, signature: &[u8]) -> Envelope {
+    signed_envelope(input.payload_type, &input.payload, key_id, signature)
 }
 
 /// An envelope of `payload_type` with one signature: the shape every bundle kind shares.
@@ -137,5 +152,5 @@ pub(crate) fn signed_envelope(
 pub fn sign_bundle(payload: &BundlePayload, signer: &dyn Signer) -> Result<Envelope, BundleError> {
     let input = signing_input(payload)?;
     let sig = signer.sign(&input.message)?;
-    Ok(envelope(&input.payload, signer.key_id(), &sig))
+    Ok(envelope(&input, signer.key_id(), &sig))
 }

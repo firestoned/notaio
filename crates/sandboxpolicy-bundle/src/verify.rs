@@ -6,8 +6,9 @@ use base64::{engine::general_purpose::STANDARD, Engine as _};
 use ed25519_dalek::Verifier as _;
 use jiff::{SignedDuration, Timestamp};
 
+use crate::content::sha256_digest;
 use crate::dsse::pae;
-use crate::{BundleError, BundleMeta, BundlePayload, Envelope, PAYLOAD_TYPE, SCHEMA};
+use crate::{jcs, BundleError, BundleMeta, BundlePayload, Envelope, SchemaVersion};
 
 /// The set of public keys a consumer trusts, by key id.
 #[derive(Default)]
@@ -68,6 +69,10 @@ pub struct VerifyOptions {
     /// by a compromised or misconfigured signer, would otherwise stay valid for as long as it says.
     /// A consumer may lower it, never usefully raise it past what notaio signs.
     pub max_lifetime: SignedDuration,
+    /// The oldest schema accepted. `V3` by default, so a reader takes both during the migration
+    /// (ADR-0026 decision 4); a consumer that enforces `subjects` sets `V4`, so a bundle that does
+    /// not state them is refused rather than read as unknown.
+    pub min_schema: SchemaVersion,
 }
 
 impl VerifyOptions {
@@ -77,6 +82,7 @@ impl VerifyOptions {
             min_version: None,
             max_clock_skew: SignedDuration::from_secs(DEFAULT_MAX_CLOCK_SKEW_SECONDS),
             max_lifetime: SignedDuration::from_secs(MAX_BUNDLE_LIFETIME_SECONDS),
+            min_schema: SchemaVersion::V3,
         }
     }
 }
@@ -86,30 +92,73 @@ impl VerifyOptions {
 /// # Errors
 /// `BundleError` for a wrong payload type, no signature from a trusted key, a wrong schema, a
 /// digest that does not match the content, a lifetime over `opts.max_lifetime`, a bundle not yet
-/// valid or expired, or a version below `opts.min_version` (ADR-0002, decision 5; T5.4).
+/// valid or expired, or a version below `opts.min_version` (ADR-0002, decision 5; T5.4). Of v3 and
+/// v4 (ADR-0026 decision 4): `Schema` for a payload type and schema that do not pair, a v3 payload
+/// carrying a v4 member, or a schema older than `opts.min_schema`; `Malformed` for a v4 payload
+/// without `subjects`.
 pub fn verify_bundle(
     env: &Envelope,
     keys: &TrustedKeys,
     opts: &VerifyOptions,
 ) -> Result<BundlePayload, BundleError> {
-    if env.payload_type != PAYLOAD_TYPE {
+    let Some(by_type) = SchemaVersion::from_payload_type(&env.payload_type) else {
         return Err(BundleError::PayloadType(env.payload_type.clone()));
-    }
+    };
     let bytes = STANDARD
         .decode(&env.payload)
         .map_err(|e| BundleError::Malformed(e.to_string()))?;
     check_signature(env, &bytes, keys)?;
 
-    let payload: BundlePayload =
+    let raw: serde_json::Value =
         serde_json::from_slice(&bytes).map_err(|e| BundleError::Malformed(e.to_string()))?;
-    if payload.schema != SCHEMA {
-        return Err(BundleError::Schema(payload.schema));
-    }
-    if payload.content.digest()? != payload.content_digest {
-        return Err(BundleError::DigestMismatch);
-    }
+    let payload: BundlePayload =
+        serde_json::from_value(raw.clone()).map_err(|e| BundleError::Malformed(e.to_string()))?;
+    check_schema(&payload, by_type, opts.min_schema)?;
+    check_digest(&raw, &payload)?;
     check_window(&payload.meta, opts)?;
     Ok(payload)
+}
+
+/// The digest is taken over the content exactly as signed, as a verifier in any language takes it,
+/// and the content must be exactly what its schema models (ADR-0026 decision 8): a member written
+/// `null`, or one the types do not have, is refused rather than silently read as absent.
+fn check_digest(raw: &serde_json::Value, payload: &BundlePayload) -> Result<(), BundleError> {
+    let signed = raw
+        .get("content")
+        .ok_or_else(|| BundleError::Malformed("payload has no content".to_string()))?;
+    let signed_bytes = jcs::canonicalize(signed)?;
+    if sha256_digest(&signed_bytes) != payload.content_digest {
+        return Err(BundleError::DigestMismatch);
+    }
+    if payload.content.canonical_bytes()? != signed_bytes {
+        return Err(BundleError::Malformed(
+            "content holds members its schema does not model".to_string(),
+        ));
+    }
+    Ok(())
+}
+
+/// The schema pairs with the payload type, the content holds what that schema allows, and the
+/// schema is not older than the consumer accepts (ADR-0026 decisions 3 and 4).
+fn check_schema(
+    payload: &BundlePayload,
+    by_type: SchemaVersion,
+    min_schema: SchemaVersion,
+) -> Result<(), BundleError> {
+    let refuse = || Err(BundleError::Schema(payload.schema.clone()));
+    let Some(version) = payload.schema_version() else {
+        return refuse();
+    };
+    if version != by_type || version < min_schema {
+        return refuse();
+    }
+    match version {
+        SchemaVersion::V3 if payload.content.has_v4_members() => refuse(),
+        SchemaVersion::V4 if payload.content.subjects.is_none() => Err(BundleError::Malformed(
+            "a v4 bundle without subjects".to_string(),
+        )),
+        _ => Ok(()),
+    }
 }
 
 /// At least one signature over the DSSE encoding of `bytes`, under the envelope's payload type,

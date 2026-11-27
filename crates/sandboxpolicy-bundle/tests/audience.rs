@@ -104,6 +104,10 @@ fn policy_payload() -> BundlePayload {
                 max_wall_clock_seconds: 1,
                 max_egress_bytes: 1,
             },
+            subjects: None,
+            includes: vec![],
+            resources: None,
+            sources: None,
         },
     )
     .unwrap()

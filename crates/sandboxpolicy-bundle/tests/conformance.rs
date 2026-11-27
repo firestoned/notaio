@@ -10,9 +10,9 @@ use std::collections::BTreeSet;
 
 use sandboxpolicy_bundle::conformance::{
     audience_suite, run, run_audience, suite, Expect, AUDIENCE_PAYLOAD_SCHEMA_JSON,
-    PAYLOAD_SCHEMA_JSON,
+    PAYLOAD_SCHEMA_JSON, PAYLOAD_SCHEMA_V4_JSON,
 };
-use sandboxpolicy_bundle::{AUDIENCE_PAYLOAD_TYPE, AUDIENCE_SCHEMA, SCHEMA};
+use sandboxpolicy_bundle::{AUDIENCE_PAYLOAD_TYPE, AUDIENCE_SCHEMA, SCHEMA, SCHEMA_V4};
 
 #[test]
 fn every_vector_gets_its_verdict() {
@@ -67,6 +67,48 @@ fn the_suite_and_its_schema_are_for_this_bundle_schema() {
     // The v3 shape is in the schema: an audience's endpoints and rules.
     let text = PAYLOAD_SCHEMA_JSON;
     assert!(text.contains("\"endpoints\"") && text.contains("\"rules\""));
+}
+
+#[test]
+fn the_v4_vectors_cover_adr_0026_decision_8() {
+    let s = suite().unwrap();
+    let verdict = |name: &str| {
+        s.vectors
+            .iter()
+            .find(|v| v.name == name)
+            .map(|v| v.expect.clone())
+            .unwrap_or_else(|| panic!("no vector {name}"))
+    };
+    assert!(matches!(verdict("v4-accepted"), Expect::Accepted { .. }));
+    for (name, error) in [
+        ("v4-refused-under-v3-type", "Schema"),
+        ("v4-refused-v3-under-v4-type", "Schema"),
+        ("v4-refused-v3-with-v4-member", "Schema"),
+        ("v4-refused-without-subjects", "Malformed"),
+        ("v4-refused-null-member", "DigestMismatch"),
+        ("v4-refused-unmodelled-member", "Malformed"),
+    ] {
+        assert_eq!(
+            verdict(name),
+            Expect::Refused {
+                error: error.into()
+            },
+            "{name}"
+        );
+    }
+}
+
+#[test]
+fn the_v4_schema_requires_subjects_and_pins_the_schema() {
+    let schema: serde_json::Value = serde_json::from_str(PAYLOAD_SCHEMA_V4_JSON).unwrap();
+    assert_eq!(schema["title"], "BundlePayload");
+    assert_eq!(schema["properties"]["schema"]["const"], SCHEMA_V4);
+    let required = schema["$defs"]["BundleContent"]["required"]
+        .as_array()
+        .unwrap();
+    assert!(required.iter().any(|r| r == "subjects"));
+    // The frozen v3 schema knows nothing of v4.
+    assert!(!PAYLOAD_SCHEMA_JSON.contains("\"subjects\""));
 }
 
 // The audience bundle vectors (ADR-0020).

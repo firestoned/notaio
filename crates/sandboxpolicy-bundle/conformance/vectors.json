@@ -391,6 +391,151 @@
         "outcome": "refused",
         "error": "LifetimeTooLong"
       }
+    },
+    {
+      "name": "v4-accepted",
+      "description": "A v4 bundle of a composite (subjects, an include, a tool it supplied): accepted (ADR-0026).",
+      "now": "2026-01-01T12:00:00Z",
+      "floor": null,
+      "envelope": {
+        "payloadType": "application/vnd.firestoned.sandboxpolicy.bundle.v4+json",
+        "payload": "eyJzY2hlbWEiOiJzYW5kYm94LmZpcmVzdG9uZWQuaW8vYnVuZGxlL3Y0IiwibWV0YSI6eyJ2ZXJzaW9uIjozLCJpc3N1ZWRBdCI6IjIwMjYtMDEtMDFUMTE6MDA6MDBaIiwibm90QWZ0ZXIiOiIyMDI2LTAxLTAxVDEzOjAwOjAwWiJ9LCJjb250ZW50Ijp7InBvbGljeSI6eyJuYW1lc3BhY2UiOiJjb25mb3JtYW5jZSIsIm5hbWUiOiJhZ2VudCIsInVpZCI6IjAwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSJ9LCJwcm9maWxlIjp7Im5hbWUiOiJoYXJkZW5lZCIsImRpZ2VzdCI6InNoYTI1NjowMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwIn0sImtub2JzIjp7Iks0LjEiOiJSMCIsIks1LjEiOiJSMCIsIks1LjMiOiJSMSJ9LCJhdWRpZW5jZXMiOlt7Im5hbWUiOiJpbnRlcm5hbC1naXQiLCJhY2Nlc3MiOiJSZWFkIiwic2NvcGVzIjpbInJlcG86cmVhZCJdLCJ0dGxTZWNvbmRzIjozMDAsImVuZHBvaW50cyI6WyJnaXQuZm9vLmlvOjQ0MyJdLCJydWxlcyI6W3sibWV0aG9kIjoiR0VUIiwicGF0aCI6Ii9yZXBvcy8qKiJ9XX1dLCJlZ3Jlc3MiOltdLCJ0b29scyI6W3sibmFtZSI6ImxpbnRlciIsIm1hbmlmZXN0RGlnZXN0Ijoic2hhMjU2OjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIiLCJmcm9tIjoiYWdlbnQtdG9vbHMifV0sImxlYXNlIjp7Im1heER1cmF0aW9uU2Vjb25kcyI6MTQ0MDAsIm1heENvbmN1cnJlbnQiOjF9LCJidWRnZXRzIjp7Im1heFRvb2xDYWxscyI6NTAwLCJtYXhXYWxsQ2xvY2tTZWNvbmRzIjoxNDQwMCwibWF4RWdyZXNzQnl0ZXMiOjEwNDg1NzYwfSwic3ViamVjdHMiOnsiZ3JvdXBzIjpbIjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwYSJdfSwiaW5jbHVkZXMiOlt7Im5hbWUiOiJhZ2VudC10b29scyIsInVpZCI6IjAwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMyIsImNvbnRlbnREaWdlc3QiOiJzaGEyNTY6MTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMSJ9XX0sImNvbnRlbnREaWdlc3QiOiJzaGEyNTY6YWVhZDQ1YTQxMTFmNDUzMWIzNjU1NzY3MzIxNGVmMDAwYTdiMWU5YzQ2ZjBkMGZhYmNmMTM0ZjcyM2NlZTg1NSJ9",
+        "signatures": [
+          {
+            "keyid": "conformance:v1",
+            "sig": "2xYdAe9v7tUW0WmQXT8o/VHDxm5GlBVlmrB4Vh+qD/mXaaVH2pZgiG/pr8249Y/gHGBJjVZ5eOxh/w60YhFaBQ=="
+          }
+        ]
+      },
+      "expect": {
+        "outcome": "accepted",
+        "version": 3,
+        "floorAfter": {
+          "uid": "00000000-0000-4000-8000-000000000001",
+          "version": 3,
+          "issuedAt": "2026-01-01T11:00:00Z"
+        }
+      }
+    },
+    {
+      "name": "v4-refused-under-v3-type",
+      "description": "A v4 payload under the v3 payload type: the pair does not match, refused.",
+      "now": "2026-01-01T12:00:00Z",
+      "floor": null,
+      "envelope": {
+        "payloadType": "application/vnd.firestoned.sandboxpolicy.bundle.v3+json",
+        "payload": "eyJzY2hlbWEiOiJzYW5kYm94LmZpcmVzdG9uZWQuaW8vYnVuZGxlL3Y0IiwibWV0YSI6eyJ2ZXJzaW9uIjozLCJpc3N1ZWRBdCI6IjIwMjYtMDEtMDFUMTE6MDA6MDBaIiwibm90QWZ0ZXIiOiIyMDI2LTAxLTAxVDEzOjAwOjAwWiJ9LCJjb250ZW50Ijp7InBvbGljeSI6eyJuYW1lc3BhY2UiOiJjb25mb3JtYW5jZSIsIm5hbWUiOiJhZ2VudCIsInVpZCI6IjAwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSJ9LCJwcm9maWxlIjp7Im5hbWUiOiJoYXJkZW5lZCIsImRpZ2VzdCI6InNoYTI1NjowMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwIn0sImtub2JzIjp7Iks0LjEiOiJSMCIsIks1LjEiOiJSMCIsIks1LjMiOiJSMSJ9LCJhdWRpZW5jZXMiOlt7Im5hbWUiOiJpbnRlcm5hbC1naXQiLCJhY2Nlc3MiOiJSZWFkIiwic2NvcGVzIjpbInJlcG86cmVhZCJdLCJ0dGxTZWNvbmRzIjozMDAsImVuZHBvaW50cyI6WyJnaXQuZm9vLmlvOjQ0MyJdLCJydWxlcyI6W3sibWV0aG9kIjoiR0VUIiwicGF0aCI6Ii9yZXBvcy8qKiJ9XX1dLCJlZ3Jlc3MiOltdLCJ0b29scyI6W3sibmFtZSI6ImxpbnRlciIsIm1hbmlmZXN0RGlnZXN0Ijoic2hhMjU2OjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIiLCJmcm9tIjoiYWdlbnQtdG9vbHMifV0sImxlYXNlIjp7Im1heER1cmF0aW9uU2Vjb25kcyI6MTQ0MDAsIm1heENvbmN1cnJlbnQiOjF9LCJidWRnZXRzIjp7Im1heFRvb2xDYWxscyI6NTAwLCJtYXhXYWxsQ2xvY2tTZWNvbmRzIjoxNDQwMCwibWF4RWdyZXNzQnl0ZXMiOjEwNDg1NzYwfSwic3ViamVjdHMiOnsiZ3JvdXBzIjpbIjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwYSJdfSwiaW5jbHVkZXMiOlt7Im5hbWUiOiJhZ2VudC10b29scyIsInVpZCI6IjAwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMyIsImNvbnRlbnREaWdlc3QiOiJzaGEyNTY6MTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMSJ9XX0sImNvbnRlbnREaWdlc3QiOiJzaGEyNTY6YWVhZDQ1YTQxMTFmNDUzMWIzNjU1NzY3MzIxNGVmMDAwYTdiMWU5YzQ2ZjBkMGZhYmNmMTM0ZjcyM2NlZTg1NSJ9",
+        "signatures": [
+          {
+            "keyid": "conformance:v1",
+            "sig": "b9skwIfFZOHuOsAf12qJ+y+dFfajG0IkYKI8myO9CC4X1OzooVLbazWOAL43osNBoyDdsFGfolabN0iJvASgDA=="
+          }
+        ]
+      },
+      "expect": {
+        "outcome": "refused",
+        "error": "Schema"
+      }
+    },
+    {
+      "name": "v4-refused-v3-under-v4-type",
+      "description": "A v3 payload under the v4 payload type: the pair does not match, refused.",
+      "now": "2026-01-01T12:00:00Z",
+      "floor": null,
+      "envelope": {
+        "payloadType": "application/vnd.firestoned.sandboxpolicy.bundle.v4+json",
+        "payload": "eyJzY2hlbWEiOiJzYW5kYm94LmZpcmVzdG9uZWQuaW8vYnVuZGxlL3YzIiwibWV0YSI6eyJ2ZXJzaW9uIjozLCJpc3N1ZWRBdCI6IjIwMjYtMDEtMDFUMTE6MDA6MDBaIiwibm90QWZ0ZXIiOiIyMDI2LTAxLTAxVDEzOjAwOjAwWiJ9LCJjb250ZW50Ijp7InBvbGljeSI6eyJuYW1lc3BhY2UiOiJjb25mb3JtYW5jZSIsIm5hbWUiOiJhZ2VudCIsInVpZCI6IjAwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSJ9LCJwcm9maWxlIjp7Im5hbWUiOiJoYXJkZW5lZCIsImRpZ2VzdCI6InNoYTI1NjowMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwIn0sImtub2JzIjp7Iks0LjEiOiJSMCIsIks1LjEiOiJSMCIsIks1LjMiOiJSMSJ9LCJhdWRpZW5jZXMiOlt7Im5hbWUiOiJpbnRlcm5hbC1naXQiLCJhY2Nlc3MiOiJSZWFkIiwic2NvcGVzIjpbInJlcG86cmVhZCJdLCJ0dGxTZWNvbmRzIjozMDAsImVuZHBvaW50cyI6WyJnaXQuZm9vLmlvOjQ0MyJdLCJydWxlcyI6W3sibWV0aG9kIjoiR0VUIiwicGF0aCI6Ii9yZXBvcy8qKiJ9XX1dLCJlZ3Jlc3MiOltdLCJ0b29scyI6W10sImxlYXNlIjp7Im1heER1cmF0aW9uU2Vjb25kcyI6MTQ0MDAsIm1heENvbmN1cnJlbnQiOjF9LCJidWRnZXRzIjp7Im1heFRvb2xDYWxscyI6NTAwLCJtYXhXYWxsQ2xvY2tTZWNvbmRzIjoxNDQwMCwibWF4RWdyZXNzQnl0ZXMiOjEwNDg1NzYwfX0sImNvbnRlbnREaWdlc3QiOiJzaGEyNTY6NWQ2YmNkZGZmMDlhYWVlNTY2ZGMzMDhmMzA3YTQ1ZDFmZTk4MzM5ODM5MjY4ZGY0ZTdmZjIwZmQ2OGFlNzgxOCJ9",
+        "signatures": [
+          {
+            "keyid": "conformance:v1",
+            "sig": "VbrmBE4SUsov5EaqBOjwd//+ymRZJgaS8RyO7rWbqbZFXhxXrpSF6io20AhYEAMZHFEfaxumDsNvrpr7wiPfAw=="
+          }
+        ]
+      },
+      "expect": {
+        "outcome": "refused",
+        "error": "Schema"
+      }
+    },
+    {
+      "name": "v4-refused-v3-with-v4-member",
+      "description": "A v3 payload carrying subjects: v3 is never read as v4, refused.",
+      "now": "2026-01-01T12:00:00Z",
+      "floor": null,
+      "envelope": {
+        "payloadType": "application/vnd.firestoned.sandboxpolicy.bundle.v3+json",
+        "payload": "eyJjb250ZW50Ijp7ImF1ZGllbmNlcyI6W3siYWNjZXNzIjoiUmVhZCIsImVuZHBvaW50cyI6WyJnaXQuZm9vLmlvOjQ0MyJdLCJuYW1lIjoiaW50ZXJuYWwtZ2l0IiwicnVsZXMiOlt7Im1ldGhvZCI6IkdFVCIsInBhdGgiOiIvcmVwb3MvKioifV0sInNjb3BlcyI6WyJyZXBvOnJlYWQiXSwidHRsU2Vjb25kcyI6MzAwfV0sImJ1ZGdldHMiOnsibWF4RWdyZXNzQnl0ZXMiOjEwNDg1NzYwLCJtYXhUb29sQ2FsbHMiOjUwMCwibWF4V2FsbENsb2NrU2Vjb25kcyI6MTQ0MDB9LCJlZ3Jlc3MiOltdLCJrbm9icyI6eyJLNC4xIjoiUjAiLCJLNS4xIjoiUjAiLCJLNS4zIjoiUjEifSwibGVhc2UiOnsibWF4Q29uY3VycmVudCI6MSwibWF4RHVyYXRpb25TZWNvbmRzIjoxNDQwMH0sInBvbGljeSI6eyJuYW1lIjoiYWdlbnQiLCJuYW1lc3BhY2UiOiJjb25mb3JtYW5jZSIsInVpZCI6IjAwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSJ9LCJwcm9maWxlIjp7ImRpZ2VzdCI6InNoYTI1NjowMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwIiwibmFtZSI6ImhhcmRlbmVkIn0sInN1YmplY3RzIjp7Imdyb3VwcyI6WyIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMGEiXX0sInRvb2xzIjpbXX0sImNvbnRlbnREaWdlc3QiOiJzaGEyNTY6NWQ2YmNkZGZmMDlhYWVlNTY2ZGMzMDhmMzA3YTQ1ZDFmZTk4MzM5ODM5MjY4ZGY0ZTdmZjIwZmQ2OGFlNzgxOCIsIm1ldGEiOnsiaXNzdWVkQXQiOiIyMDI2LTAxLTAxVDExOjAwOjAwWiIsIm5vdEFmdGVyIjoiMjAyNi0wMS0wMVQxMzowMDowMFoiLCJ2ZXJzaW9uIjozfSwic2NoZW1hIjoic2FuZGJveC5maXJlc3RvbmVkLmlvL2J1bmRsZS92MyJ9",
+        "signatures": [
+          {
+            "keyid": "conformance:v1",
+            "sig": "juNFRrowogHj7j8M4/yALotIMvIe+zwLrqRMt93jyxEhZ/dmqqSimJQBGYcgcxVS8G5aSfI+OFmQurAnjd6CCQ=="
+          }
+        ]
+      },
+      "expect": {
+        "outcome": "refused",
+        "error": "Schema"
+      }
+    },
+    {
+      "name": "v4-refused-without-subjects",
+      "description": "A v4 payload without subjects, which v4 always carries: refused.",
+      "now": "2026-01-01T12:00:00Z",
+      "floor": null,
+      "envelope": {
+        "payloadType": "application/vnd.firestoned.sandboxpolicy.bundle.v4+json",
+        "payload": "eyJjb250ZW50Ijp7ImF1ZGllbmNlcyI6W3siYWNjZXNzIjoiUmVhZCIsImVuZHBvaW50cyI6WyJnaXQuZm9vLmlvOjQ0MyJdLCJuYW1lIjoiaW50ZXJuYWwtZ2l0IiwicnVsZXMiOlt7Im1ldGhvZCI6IkdFVCIsInBhdGgiOiIvcmVwb3MvKioifV0sInNjb3BlcyI6WyJyZXBvOnJlYWQiXSwidHRsU2Vjb25kcyI6MzAwfV0sImJ1ZGdldHMiOnsibWF4RWdyZXNzQnl0ZXMiOjEwNDg1NzYwLCJtYXhUb29sQ2FsbHMiOjUwMCwibWF4V2FsbENsb2NrU2Vjb25kcyI6MTQ0MDB9LCJlZ3Jlc3MiOltdLCJpbmNsdWRlcyI6W3siY29udGVudERpZ2VzdCI6InNoYTI1NjoxMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExIiwibmFtZSI6ImFnZW50LXRvb2xzIiwidWlkIjoiMDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAzIn1dLCJrbm9icyI6eyJLNC4xIjoiUjAiLCJLNS4xIjoiUjAiLCJLNS4zIjoiUjEifSwibGVhc2UiOnsibWF4Q29uY3VycmVudCI6MSwibWF4RHVyYXRpb25TZWNvbmRzIjoxNDQwMH0sInBvbGljeSI6eyJuYW1lIjoiYWdlbnQiLCJuYW1lc3BhY2UiOiJjb25mb3JtYW5jZSIsInVpZCI6IjAwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSJ9LCJwcm9maWxlIjp7ImRpZ2VzdCI6InNoYTI1NjowMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwIiwibmFtZSI6ImhhcmRlbmVkIn0sInRvb2xzIjpbeyJmcm9tIjoiYWdlbnQtdG9vbHMiLCJtYW5pZmVzdERpZ2VzdCI6InNoYTI1NjoyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyIiwibmFtZSI6ImxpbnRlciJ9XX0sImNvbnRlbnREaWdlc3QiOiJzaGEyNTY6YWVhZDQ1YTQxMTFmNDUzMWIzNjU1NzY3MzIxNGVmMDAwYTdiMWU5YzQ2ZjBkMGZhYmNmMTM0ZjcyM2NlZTg1NSIsIm1ldGEiOnsiaXNzdWVkQXQiOiIyMDI2LTAxLTAxVDExOjAwOjAwWiIsIm5vdEFmdGVyIjoiMjAyNi0wMS0wMVQxMzowMDowMFoiLCJ2ZXJzaW9uIjozfSwic2NoZW1hIjoic2FuZGJveC5maXJlc3RvbmVkLmlvL2J1bmRsZS92NCJ9",
+        "signatures": [
+          {
+            "keyid": "conformance:v1",
+            "sig": "JIeYEbWtGLbhIbe5v0iJKAZ72fAdvYQxdcrfGnkLlngvqsvNKa6SeZE3xIHYDMR7W+6rOERxvow0GEWGVTFACQ=="
+          }
+        ]
+      },
+      "expect": {
+        "outcome": "refused",
+        "error": "Malformed"
+      }
+    },
+    {
+      "name": "v4-refused-null-member",
+      "description": "A v4 payload with resources written null: only absent is canonical, so the digest of the content as signed does not match.",
+      "now": "2026-01-01T12:00:00Z",
+      "floor": null,
+      "envelope": {
+        "payloadType": "application/vnd.firestoned.sandboxpolicy.bundle.v4+json",
+        "payload": "eyJjb250ZW50Ijp7ImF1ZGllbmNlcyI6W3siYWNjZXNzIjoiUmVhZCIsImVuZHBvaW50cyI6WyJnaXQuZm9vLmlvOjQ0MyJdLCJuYW1lIjoiaW50ZXJuYWwtZ2l0IiwicnVsZXMiOlt7Im1ldGhvZCI6IkdFVCIsInBhdGgiOiIvcmVwb3MvKioifV0sInNjb3BlcyI6WyJyZXBvOnJlYWQiXSwidHRsU2Vjb25kcyI6MzAwfV0sImJ1ZGdldHMiOnsibWF4RWdyZXNzQnl0ZXMiOjEwNDg1NzYwLCJtYXhUb29sQ2FsbHMiOjUwMCwibWF4V2FsbENsb2NrU2Vjb25kcyI6MTQ0MDB9LCJlZ3Jlc3MiOltdLCJpbmNsdWRlcyI6W3siY29udGVudERpZ2VzdCI6InNoYTI1NjoxMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExIiwibmFtZSI6ImFnZW50LXRvb2xzIiwidWlkIjoiMDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAzIn1dLCJrbm9icyI6eyJLNC4xIjoiUjAiLCJLNS4xIjoiUjAiLCJLNS4zIjoiUjEifSwibGVhc2UiOnsibWF4Q29uY3VycmVudCI6MSwibWF4RHVyYXRpb25TZWNvbmRzIjoxNDQwMH0sInBvbGljeSI6eyJuYW1lIjoiYWdlbnQiLCJuYW1lc3BhY2UiOiJjb25mb3JtYW5jZSIsInVpZCI6IjAwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMSJ9LCJwcm9maWxlIjp7ImRpZ2VzdCI6InNoYTI1NjowMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwIiwibmFtZSI6ImhhcmRlbmVkIn0sInJlc291cmNlcyI6bnVsbCwic3ViamVjdHMiOnsiZ3JvdXBzIjpbIjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwYSJdfSwidG9vbHMiOlt7ImZyb20iOiJhZ2VudC10b29scyIsIm1hbmlmZXN0RGlnZXN0Ijoic2hhMjU2OjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIiLCJuYW1lIjoibGludGVyIn1dfSwiY29udGVudERpZ2VzdCI6InNoYTI1NjphZWFkNDVhNDExMWY0NTMxYjM2NTU3NjczMjE0ZWYwMDBhN2IxZTljNDZmMGQwZmFiY2YxMzRmNzIzY2VlODU1IiwibWV0YSI6eyJpc3N1ZWRBdCI6IjIwMjYtMDEtMDFUMTE6MDA6MDBaIiwibm90QWZ0ZXIiOiIyMDI2LTAxLTAxVDEzOjAwOjAwWiIsInZlcnNpb24iOjN9LCJzY2hlbWEiOiJzYW5kYm94LmZpcmVzdG9uZWQuaW8vYnVuZGxlL3Y0In0=",
+        "signatures": [
+          {
+            "keyid": "conformance:v1",
+            "sig": "zIdqmahVvXY5OUPCgBgrgpQAHYoRFLxsLcqM3RE3FEfhJ19cXxbycPivdfGxmbAQLGZGrlqq9UIsVMr4ExnwAA=="
+          }
+        ]
+      },
+      "expect": {
+        "outcome": "refused",
+        "error": "DigestMismatch"
+      }
+    },
+    {
+      "name": "v4-refused-unmodelled-member",
+      "description": "A v4 payload with a member v4 does not have, digested with it: refused rather than read without it.",
+      "now": "2026-01-01T12:00:00Z",
+      "floor": null,
+      "envelope": {
+        "payloadType": "application/vnd.firestoned.sandboxpolicy.bundle.v4+json",
+        "payload": "eyJjb250ZW50Ijp7ImF1ZGllbmNlcyI6W3siYWNjZXNzIjoiUmVhZCIsImVuZHBvaW50cyI6WyJnaXQuZm9vLmlvOjQ0MyJdLCJuYW1lIjoiaW50ZXJuYWwtZ2l0IiwicnVsZXMiOlt7Im1ldGhvZCI6IkdFVCIsInBhdGgiOiIvcmVwb3MvKioifV0sInNjb3BlcyI6WyJyZXBvOnJlYWQiXSwidHRsU2Vjb25kcyI6MzAwfV0sImJ1ZGdldHMiOnsibWF4RWdyZXNzQnl0ZXMiOjEwNDg1NzYwLCJtYXhUb29sQ2FsbHMiOjUwMCwibWF4V2FsbENsb2NrU2Vjb25kcyI6MTQ0MDB9LCJlZ3Jlc3MiOltdLCJleHRyYSI6MSwiaW5jbHVkZXMiOlt7ImNvbnRlbnREaWdlc3QiOiJzaGEyNTY6MTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMSIsIm5hbWUiOiJhZ2VudC10b29scyIsInVpZCI6IjAwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMyJ9XSwia25vYnMiOnsiSzQuMSI6IlIwIiwiSzUuMSI6IlIwIiwiSzUuMyI6IlIxIn0sImxlYXNlIjp7Im1heENvbmN1cnJlbnQiOjEsIm1heER1cmF0aW9uU2Vjb25kcyI6MTQ0MDB9LCJwb2xpY3kiOnsibmFtZSI6ImFnZW50IiwibmFtZXNwYWNlIjoiY29uZm9ybWFuY2UiLCJ1aWQiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEifSwicHJvZmlsZSI6eyJkaWdlc3QiOiJzaGEyNTY6MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMCIsIm5hbWUiOiJoYXJkZW5lZCJ9LCJzdWJqZWN0cyI6eyJncm91cHMiOlsiMDAwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDBhIl19LCJ0b29scyI6W3siZnJvbSI6ImFnZW50LXRvb2xzIiwibWFuaWZlc3REaWdlc3QiOiJzaGEyNTY6MjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMiIsIm5hbWUiOiJsaW50ZXIifV19LCJjb250ZW50RGlnZXN0Ijoic2hhMjU2OmJlMWE0MjllNWNlYmRjNGRjNTljZDU2NzUxYjg3NjA4ZGJlNGQ3NDg5YmVkYTExOWEzYWQxNWQ5M2E1MGQ3NDciLCJtZXRhIjp7Imlzc3VlZEF0IjoiMjAyNi0wMS0wMVQxMTowMDowMFoiLCJub3RBZnRlciI6IjIwMjYtMDEtMDFUMTM6MDA6MDBaIiwidmVyc2lvbiI6M30sInNjaGVtYSI6InNhbmRib3guZmlyZXN0b25lZC5pby9idW5kbGUvdjQifQ==",
+        "signatures": [
+          {
+            "keyid": "conformance:v1",
+            "sig": "PENO0pOsF4XSQYwjoSg96kztIXraHsxHH4J39uKDCreJPOA1+eLXHpHfQ5hcgR5NwAJCScEE90tgY41HhPhACw=="
+          }
+        ]
+      },
+      "expect": {
+        "outcome": "refused",
+        "error": "Malformed"
+      }
     }
   ]
 }

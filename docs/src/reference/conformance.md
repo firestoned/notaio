@@ -6,9 +6,9 @@ status: implemented
 
 # Conformance Vectors
 
-Signed bundles, each with the verdict every consumer must reach: mediatore, mediatore-guest and the gateway test against these files, which notaio's own verifier passes in CI. They live in `crates/sandboxpolicy-bundle/conformance/` (`vectors.json`, and `bundle-v3.schema.json`, the payload's JSON Schema) and in `sandboxpolicy_bundle::conformance`. How to use them is in [Consume a Bundle](../guides/consume-a-bundle.md).
+Signed bundles, each with the verdict every consumer must reach: mediatore, mediatore-guest and the gateway test against these files, which notaio's own verifier passes in CI. They live in `crates/sandboxpolicy-bundle/conformance/` (`vectors.json`, and the payload's JSON Schema, `bundle-v3.schema.json` frozen and `bundle-v4.schema.json` generated) and in `sandboxpolicy_bundle::conformance`. How to use them is in [Consume a Bundle](../guides/consume-a-bundle.md).
 
-Bundle schema `sandbox.firestoned.io/bundle/v3`. Trusted key, for these vectors only: `conformance:v1`. Every vector concerns the policy `conformance/agent`; its floor is the consumer's floor for that policy before the envelope.
+Bundle schema `sandbox.firestoned.io/bundle/v3`, and `sandbox.firestoned.io/bundle/v4` for the vectors named `v4-...` (ADR-0026): a consumer that reads both reaches every verdict. Trusted key, for these vectors only: `conformance:v1`. Every vector concerns the policy `conformance/agent`; its floor is the consumer's floor for that policy before the envelope.
 
 | Vector | Floor before | Verdict | What it checks |
 | --- | --- | --- | --- |
@@ -29,6 +29,13 @@ Bundle schema `sandbox.firestoned.io/bundle/v3`. Trusted key, for these vectors 
 | `refused-audience-envelope` | none | refused: `PayloadType` | A valid audience bundle (ADR-0020), signed by the trusted key: refused by its payload type, never read as a policy. |
 | `refused-wrong-policy` | none | refused: `WrongSubject` | A valid bundle for another policy (conformance/other-agent), where the consumer asked for conformance/agent: refused, the floor of neither touched (ADR-0008, decision 7). |
 | `refused-lifetime-too-long` | none | refused: `LifetimeTooLong` | Validly signed and inside its window, but notAfter is 25 hours after issuedAt, past the one-day maximum: refused (ADR-0002, decision 5). |
+| `v4-accepted` | none | accepted, v3 | A v4 bundle of a composite (subjects, an include, a tool it supplied): accepted (ADR-0026). |
+| `v4-refused-under-v3-type` | none | refused: `Schema` | A v4 payload under the v3 payload type: the pair does not match, refused. |
+| `v4-refused-v3-under-v4-type` | none | refused: `Schema` | A v3 payload under the v4 payload type: the pair does not match, refused. |
+| `v4-refused-v3-with-v4-member` | none | refused: `Schema` | A v3 payload carrying subjects: v3 is never read as v4, refused. |
+| `v4-refused-without-subjects` | none | refused: `Malformed` | A v4 payload without subjects, which v4 always carries: refused. |
+| `v4-refused-null-member` | none | refused: `DigestMismatch` | A v4 payload with resources written null: only absent is canonical, so the digest of the content as signed does not match. |
+| `v4-refused-unmodelled-member` | none | refused: `Malformed` | A v4 payload with a member v4 does not have, digested with it: refused rather than read without it. |
 
 ## Audience bundles
 

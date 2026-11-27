@@ -3,8 +3,8 @@
 
 # Roadmap 05: bundle schema v4, one migration, consumers first
 
-- **Status:** Phase 0 decided (ADR-0026, ADR-0024 accepted) and phase 1 (`L034`) done, 2026-11-26.
-  Opened 2026-11-26.
+- **Status:** Phases 0 to 3 done, 2026-11-26: ADR-0026, `L034`, the bundle crate verifying v3 and
+  v4, the conformance kit. The controller still emits v3. Opened 2026-11-26.
 - **Milestone:** M4 in [`ROADMAPS.md`](../../ROADMAPS.md)
 - **Related:** ADR-0002 (the bundle contract, amended by this), ADR-0005 (canonical form),
   ADR-0008 (the consumer's floor), ADR-0013 (the last schema change, v2 to v3), ADR-0014 (how
@@ -105,7 +105,9 @@ twice, once to add v4 and again to drop v3.
 **D4. Where `from` lives.** *Recommended:* in the bundle crate, not in `sandboxpolicy-types`:
 `BundleAudience { #[serde(flatten)] grant: AudienceGrant, from: Option<String> }`, and the same
 for egress and tools, with `Deref` to the grant so `content.audiences[i].name` still reads. The
-CRD does not change and mediatore's test literals still compile. *Alternative:* the field on the
+CRD does not change and mediatore's production code compiles unchanged (checked 2026-11-26 against
+the built crate); its tests that put a shared type into a bundle's content need `.into()` (ten
+sites). *Alternative:* the field on the
 shared types with `schemars(skip)`; it hides the field from the conformance JSON Schema too.
 
 **D5. How the producer switches.** *Recommended:* `NOTAIO_BUNDLE_SCHEMA`, `v3` or `v4`. In release
@@ -141,9 +143,10 @@ N; phase 6 is N+1; phase 7 is N+2.
 - [x] ADR-0026 (D1 to D8), amending ADR-0002; ADR-0024 accepted; ADR-0016, ADR-0019 and ADR-0023
       point to it for the schema half. ADR-0024's conformance path corrected
       (`crates/sandboxpolicy-bundle/conformance/vectors.json`). Done 2026-11-26.
-- [ ] mediatore: ADR-0066 cites notaio ADR-0024 (it says ADR-0022, which is the registry
+- [x] mediatore: ADR-0066 cites notaio ADR-0024 (it says ADR-0022, which is the registry
       audience), and the switch name and P-codes in `docs/design/policy-subjects.md` follow
-      ADR-0066.
+      ADR-0066. Done 2026-11-26: ADR-0066 corrected on mediatore's main, and the design page
+      defers to it in a note at its top.
 
 ### Phase 1: `L034`, alone
 
@@ -153,23 +156,28 @@ N; phase 6 is N+1; phase 7 is N+2.
 
 ### Phase 2: the bundle crate verifies v3 and v4
 
-- [ ] The v4 types (D2), the bundle-local wrappers (D4), `SCHEMA_V3`/`SCHEMA_V4` and the two payload
+- [x] The v4 types (D2), the bundle-local wrappers (D4), `SCHEMA_V3`/`SCHEMA_V4` and the two payload
       types, `BundlePayload::new_v3`/`new_v4`.
-- [ ] The payload type travels with the payload: `SigningInput` carries it and `envelope` takes it,
+- [x] The payload type travels with the payload: `SigningInput` carries it and `envelope` takes it,
       so the OpenBao path signs v4 under the v4 type.
-- [ ] `verify_bundle` with the pairing and absence rules of D3; `schema_version()`; the
+- [x] `verify_bundle` with the pairing and absence rules of D3; `schema_version()`; the
       `VerifyOptions` switch to refuse v3.
-- [ ] Tests first: the v3 golden bytes and digest unchanged; the v0.5.2 fixture still verifies; a
+- [x] Tests first: the v3 golden bytes and digest unchanged; the v0.5.2 fixture still verifies; a
       v4 golden computed independently; each refusal of D3; a v4 payload with a `null` optional
-      refused (`DigestMismatch`). `make bundle-deps-check` stays green.
+      refused (`DigestMismatch`). `make bundle-deps-check` stays green. Done 2026-11-26 (`tests/v4.rs`).
+      The tests found that a digest recomputed from the parsed types reads a `null` member as
+      absent; the digest is now taken over the content as signed, and a member the types do not
+      model is `Malformed` (ADR-0026, amended).
 
 ### Phase 3: the conformance kit
 
-- [ ] v4 vectors: accepted; a v3 payload under the v4 type and the reverse (`Schema`); a v3
+- [x] v4 vectors: accepted; a v3 payload under the v4 type and the reverse (`Schema`); a v3
       payload with a v4 member (`Schema`); a v4 payload without `subjects` (`Malformed`); a `null`
-      optional (`DigestMismatch`). The v3 vectors stay.
-- [ ] `bundle-v3.schema.json` frozen, `bundle-v4.schema.json` generated with `subjects` required;
-      the generated conformance reference and `guides/consume-a-bundle.md` name both.
+      optional (`DigestMismatch`); a member v4 does not have, digested with it (`Malformed`). The v3
+      vectors stay, byte for byte. Done 2026-11-26: 24 vectors.
+- [x] `bundle-v3.schema.json` frozen, `bundle-v4.schema.json` generated with `subjects` required;
+      the generated conformance reference and `guides/consume-a-bundle.md` name both. Done
+      2026-11-26.
 
 ### Phase 4: the producer, still emitting v3
 
@@ -188,7 +196,9 @@ N; phase 6 is N+1; phase 7 is N+2.
 ### Phase 5: consumers take release N
 
 - [ ] mediatore: the pin moves to N, its conformance tests pass on both schemas, and its broker
-      admits v3 and v4. Nothing enforced yet.
+      admits v3 and v4. Nothing enforced yet. Its production code needs no change; ten test sites
+      need `.into()` (or `.grant`) where a shared `EgressRule` or `AudienceGrant` goes into a
+      bundle's content (`mediatore-api`, `mediatore-claims`, the gateway e2e).
 - [ ] mediatore: ADR-0066's eligibility check in shadow against v4 bundles on the test cluster.
 
 ### Phase 6: notaio emits v4

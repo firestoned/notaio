@@ -31,7 +31,8 @@ fn content() -> BundleContent {
             ttl_seconds: Some(300),
             endpoints: vec!["git.internal.example:443".into()],
             rules: vec![],
-        }],
+        }
+        .into()],
         egress: vec![],
         tools: vec![],
         lease: Lease {
@@ -43,6 +44,10 @@ fn content() -> BundleContent {
             max_wall_clock_seconds: 14_400,
             max_egress_bytes: 10 * 1024 * 1024,
         },
+        subjects: None,
+        includes: vec![],
+        resources: None,
+        sources: None,
     }
 }
 
@@ -337,7 +342,7 @@ fn split_signing_produces_the_same_envelope() {
     let p = payload(3);
     let input = signing_input(&p).unwrap();
     let sig = s.sign(&input.message).unwrap();
-    let env = envelope(&input.payload, s.key_id(), &sig);
+    let env = envelope(&input, s.key_id(), &sig);
     assert_eq!(env, sign_bundle(&p, &s).unwrap());
     verify_bundle(&env, &trusted(&s), &VerifyOptions::at(now())).unwrap();
 }

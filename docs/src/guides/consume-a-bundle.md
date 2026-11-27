@@ -160,13 +160,33 @@ for v in &s.vectors {
 ```
 
 A consumer in another language reads `crates/sandboxpolicy-bundle/conformance/vectors.json` from
-the tag it pins, and the payload's JSON Schema beside it, `bundle-v3.schema.json`. Run them in
-your CI, so a change to your relay, your key configuration or your floor store that would accept
-what notaio refuses fails there first.
+the tag it pins, and the payload's JSON Schemas beside it: `bundle-v3.schema.json` and
+`bundle-v4.schema.json`. Run them in your CI, so a change to your relay, your key configuration or
+your floor store that would accept what notaio refuses fails there first. Two rules such a
+verifier must follow to agree with notaio's:
+
+- **The digest is taken over `content` exactly as signed**, in its RFC 8785 form, not over the
+  content after your types have read it. A member written `null` is not the same as an absent one
+  (`DigestMismatch`), and a member your schema does not have is refused (`Malformed`), even when
+  the digest covers it.
+- **The payload type and the schema pair:** v3 with v3, v4 with v4. A v3 payload carrying any v4
+  member is refused (`Schema`), and a v4 payload without `subjects` is `Malformed`.
+
+## Bundle schema v4
+
+notaio is moving from bundle schema v3 to v4 ([ADR-0026](../adr/0026-bundle-schema-v4-and-its-rollout.md)),
+which adds who may use the policy (`subjects`), a composite's includes and the include behind each
+entry (`includes`, `from`), and places for `resources` and `sources`. The crate reads both, so take
+the release that does before notaio emits v4: until then everything you receive is v3.
+
+`payload.schema_version()` says which one you have. A v3 bundle does not state its subjects, which
+is not the same as stating none. If you enforce subjects, set `min_schema: SchemaVersion::V4` in
+your `VerifyOptions` once notaio emits v4, and v3 bundles are refused (`Schema`) rather than read as
+unknown.
 
 ## What to enforce
 
 Everything in `payload.content`: every knob's step (all of them are present, grants applied), the
 audiences with their access and token lifetime, the egress allowlist, the pinned tools, the lease
-and the budgets. The schema is checked exactly, so a bundle with a different layout is refused
-before your code sees it.
+and the budgets; in v4, `subjects.groups` (matched exactly, `[]` meaning nobody). The schema is
+checked exactly, so a bundle with a different layout is refused before your code sees it.

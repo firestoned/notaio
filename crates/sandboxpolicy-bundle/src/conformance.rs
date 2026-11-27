@@ -25,8 +25,11 @@ use crate::{verify_audience_bundle, BundleError, Envelope, TrustedKeys, VerifyOp
 /// The vectors, as generated: the [`Suite`] in JSON.
 pub const VECTORS_JSON: &str = include_str!("../conformance/vectors.json");
 
-/// The JSON Schema of the bundle payload these vectors are signed over.
+/// The JSON Schema of a v3 bundle payload, frozen as v3 left it (ADR-0026 decision 8).
 pub const PAYLOAD_SCHEMA_JSON: &str = include_str!("../conformance/bundle-v3.schema.json");
+
+/// The JSON Schema of a v4 bundle payload (ADR-0026): `subjects` required, the schema pinned.
+pub const PAYLOAD_SCHEMA_V4_JSON: &str = include_str!("../conformance/bundle-v4.schema.json");
 
 /// The audience bundle vectors (ADR-0020), as generated: the [`AudienceSuite`] in JSON.
 pub const AUDIENCE_VECTORS_JSON: &str = include_str!("../conformance/audience-vectors.json");
@@ -41,7 +44,8 @@ pub const AUDIENCE_PAYLOAD_SCHEMA_JSON: &str =
 pub struct Suite {
     /// What this file is: `sandbox.firestoned.io/conformance/v1`.
     pub schema: String,
-    /// The bundle schema the vectors exercise.
+    /// The bundle schema most vectors exercise, v3. The vectors named `v4-...` are schema v4
+    /// (ADR-0026), and a consumer that reads both must reach their verdicts too.
     pub bundle_schema: String,
     /// The keys a consumer trusts for these vectors: key id and standard base64 public key.
     pub trusted_keys: Vec<TrustedKey>,

@@ -22,6 +22,7 @@ mod dsse;
 mod error;
 pub mod floor;
 pub mod jcs;
+mod members;
 mod verify;
 
 pub use audience::{
@@ -29,10 +30,16 @@ pub use audience::{
     AudienceBundleContent, AudienceBundlePayload, AudienceRef, AUDIENCE_PAYLOAD_TYPE,
     AUDIENCE_SCHEMA,
 };
-pub use content::{BundleContent, BundleMeta, BundlePayload, PolicyRef, ProfileRef, SCHEMA};
+pub use content::{
+    BundleContent, BundleMeta, BundlePayload, PolicyRef, ProfileRef, SchemaVersion, SCHEMA,
+    SCHEMA_V3, SCHEMA_V4,
+};
 pub use dsse::{
     envelope, sign_bundle, signing_input, Ed25519Signer, Envelope, Signature, Signer, SigningInput,
-    PAYLOAD_TYPE,
+    PAYLOAD_TYPE, PAYLOAD_TYPE_V3, PAYLOAD_TYPE_V4,
 };
 pub use error::BundleError;
+pub use members::{
+    BundleAudience, BundleEgress, BundleTool, IncludeRef, Resources, Sources, Subjects,
+};
 pub use verify::{verify_bundle, TrustedKeys, VerifyOptions, MAX_BUNDLE_LIFETIME_SECONDS};

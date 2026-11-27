@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-11-26T21:12:09.742Z
-> Files: 99 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-11-27T03:16:41.530Z
+> Files: 101 tracked | Anatomy hits: 0 | Misses: 0
 
 > Project structure index. Auto-maintained by OpenWolf hooks and daemon.
 > Run `openwolf scan` to generate, or wait for the first Claude Code session.
@@ -21,7 +21,7 @@
 
 ## .claude/
 
-- `CHANGELOG.md` — Changelog (~30978 tok)
+- `CHANGELOG.md` — Changelog (~31890 tok)
 
 ## .claude/rules/
 
@@ -86,12 +86,14 @@
 - `dsse.rs` — DSSE envelope, https://github.com/secure-systems-lab/dsse (~929 tok)
 - `error.rs` — [derive(Debug, Error, PartialEq, Eq)] (~235 tok)
 - `lib.rs` — The signed policy bundle: the contract between sicario (producer) and mediatore, (~327 tok)
+- `members.rs` — The members bundle schema v4 adds (ADR-0026 decision 1), and the bundle's own entry types, (~1024 tok)
 - `verify.rs` — The set of public keys a consumer trusts, by key id. (~895 tok)
 
 ## crates/sandboxpolicy-bundle/tests/
 
 - `audience.rs` — ".into(), (~2584 tok)
 - `bundle.rs` (~1688 tok)
+- `v4.rs` — Bundle schema v4 beside v3 (ADR-0026): the v4 members, the pairing of payload type and schema, (~3293 tok)
 
 ## crates/sandboxpolicy-core/
 

@@ -103,6 +103,7 @@ pub fn audience_signing_input(
     let bytes = serde_json::to_vec(payload).map_err(|e| BundleError::Malformed(e.to_string()))?;
     let message = pae(AUDIENCE_PAYLOAD_TYPE, &bytes);
     Ok(SigningInput {
+        payload_type: AUDIENCE_PAYLOAD_TYPE,
         payload: bytes,
         message,
     })
