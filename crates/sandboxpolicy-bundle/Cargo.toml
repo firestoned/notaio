@@ -9,7 +9,7 @@ publish.workspace = true
 
 [dependencies]
 base64 = "0.23.1"
-jiff = { version = "0.2.39", default-features = false, features = ["std", "serde"] }
+jiff = { version = "1.0.1", default-features = false, features = ["std", "serde"] }
 ed25519-dalek = "3.0.0"
 schemars = { version = "1.2.3", features = ["jiff02"], optional = true }
 sandboxpolicy-types = { path = "../sandboxpolicy-types" }
