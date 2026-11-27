@@ -79,6 +79,8 @@ schema v4. The content gains `subjects` (always), `includes` and a per-entry `fr
 composite), and places for `resources` and `sources`; a payload type pairs with its own schema
 only. For two releases a consumer verifies v3 and v4 and refuses a v3 payload carrying any v4
 member; the producer switches with `NOTAIO_BUNDLE_SCHEMA`, and a third release removes v3.
+Decision 5's digest check is taken over the content exactly as signed, and content its schema
+does not model is refused (built 2026-11-26, with the v4 verifier).
 
 ## Consequences
 

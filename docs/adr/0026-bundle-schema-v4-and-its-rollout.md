@@ -3,6 +3,8 @@
 - **Status:** Accepted
 - **Date:** 2026-11-26
 - **Deciders:** Erick Bourgeois
+- **Amended:** 2026-11-26 (decisions 4 and 8: the digest is taken over the content as signed, and
+  a member the schema does not model is refused; found by the tests of the build)
 - **Related:** Amends [ADR-0002](0002-bundle-contract.md) (the bundle contract: decisions 1, 2
   and 5); carries the schema half of [ADR-0016](0016-source-in-the-bundle.md) (`sources`),
   [ADR-0019](0019-resource-sizes.md) (`resources`), [ADR-0023](0023-composed-policies.md)
@@ -14,7 +16,9 @@
   [ADR-0018](0018-tightening-latency.md); roadmap 05. In mediatore: ADR-0026, ADR-0061, ADR-0066.
   Threat model K7.2, T5.4.
 
-Not implemented. Roadmap 05 carries the work.
+Partly implemented (2026-11-26): the verifier and the types (decisions 1 to 4) and the
+conformance kit (decision 8), in `sandboxpolicy-bundle`; the controller still emits v3. Roadmap 05
+carries the rest.
 
 ## Context
 
@@ -75,6 +79,13 @@ What the code says (surveyed 2026-11-26, roadmap 05 section 2):
    schema it is (`schema_version()`), and `VerifyOptions` can refuse v3, for a consumer that
    enforces subjects. No new error variant.
 
+   *Amended:* the content digest is taken over the content exactly as signed, as a verifier in
+   any language takes it, and the parsed content must re-serialise to the same bytes. Recomputed
+   from the parsed types alone, a member written `null` would read as absent and verify, where a
+   verifier hashing what was signed refuses it; and a member the types do not model, digested
+   with it, would be dropped and the rest accepted. The first is `DigestMismatch`, the second
+   `Malformed`, in every verifier.
+
 5. **The producer switches with a setting.** `NOTAIO_BUNDLE_SCHEMA` is `v3` or `v4`, and anything
    else is refused at startup. Release N introduces it with default `v3`; N+1 changes the default to
    `v4`; N+2 removes it, with v3 itself. An operator turns `v4` on after every consumer runs N, and
@@ -95,7 +106,8 @@ What the code says (surveyed 2026-11-26, roadmap 05 section 2):
 8. **Conformance.** The vectors gain v4 cases every consumer's verifier must agree with: a v4 bundle
    accepted; a v3 payload under the v4 type and the reverse (`Schema`); a v3 payload with a v4 member
    (`Schema`); a v4 payload without `subjects` (`Malformed`); a v4 payload with an optional member
-   written `null` (`DigestMismatch`). The v3 vectors stay until N+2. `bundle-v3.schema.json` is
+   written `null` (`DigestMismatch`); a v4 payload with a member v4 does not have, digested with it
+   (`Malformed`). The v3 vectors stay until N+2. `bundle-v3.schema.json` is
    frozen and `bundle-v4.schema.json` is generated beside it, with `subjects` required.
 
 9. **Three releases, each with notes written for consumers.** N: both schemas verify, the producer

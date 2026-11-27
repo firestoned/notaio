@@ -58,7 +58,8 @@ fn bundle(uid: &str, version: u64, issued: Timestamp) -> Envelope {
             ttl_seconds: Some(300),
             endpoints: vec!["git.internal.example:443".into()],
             rules: vec![],
-        }],
+        }
+        .into()],
         egress: vec![],
         tools: vec![],
         lease: Lease {
@@ -70,6 +71,10 @@ fn bundle(uid: &str, version: u64, issued: Timestamp) -> Envelope {
             max_wall_clock_seconds: 14_400,
             max_egress_bytes: 10 * 1024 * 1024,
         },
+        subjects: None,
+        includes: vec![],
+        resources: None,
+        sources: None,
     };
     let meta = BundleMeta {
         version,

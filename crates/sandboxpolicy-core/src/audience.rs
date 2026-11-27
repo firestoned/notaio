@@ -419,8 +419,8 @@ pub fn lint_grants(
 /// egress Security did not approve by writing it into an audience it owns. A missing ceiling, or
 /// an audience missing from it, is reported by `lint_exposure` (L015, L014) and not repeated here,
 /// nor is an unresolved grant (L027).
-pub fn lint_definitions_against_ceiling(
-    grants: &[AudienceGrant],
+pub fn lint_definitions_against_ceiling<'g>(
+    grants: impl IntoIterator<Item = &'g AudienceGrant>,
     policy_ns: &str,
     catalog: &AudienceCatalog<'_>,
     ceiling: Option<&ExposureCeilingSpec>,

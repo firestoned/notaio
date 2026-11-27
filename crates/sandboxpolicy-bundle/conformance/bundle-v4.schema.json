@@ -1,0 +1,464 @@
+{
+  "$defs": {
+    "Access": {
+      "enum": [
+        "Read",
+        "Write"
+      ],
+      "type": "string"
+    },
+    "Budgets": {
+      "properties": {
+        "maxEgressBytes": {
+          "description": "The most bytes of egress per lease.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "maxToolCalls": {
+          "description": "The most tool calls per lease.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "maxWallClockSeconds": {
+          "description": "The most wall-clock time per lease, in seconds.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "maxToolCalls",
+        "maxWallClockSeconds",
+        "maxEgressBytes"
+      ],
+      "type": "object"
+    },
+    "BundleAudience": {
+      "description": "An audience grant in a bundle.",
+      "properties": {
+        "access": {
+          "$ref": "#/$defs/Access",
+          "default": "Read",
+          "description": "`Read` or `Write`. `Write` needs K5.2 above R0 (lint L006)."
+        },
+        "endpoints": {
+          "default": [],
+          "description": "Where the audience is reached, `host:port`, through the broker's proxy, which injects the\ntoken: brokered calls, allowed at any K4.1 step. Exact names only (lint L017).",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "from": {
+          "description": "The include that supplied this entry; absent for the policy's own (ADR-0023).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "The audience: the downstream service.",
+          "type": "string"
+        },
+        "rules": {
+          "default": [],
+          "description": "What may be called at those endpoints. None means every method and path.",
+          "items": {
+            "$ref": "#/$defs/EndpointRule"
+          },
+          "type": "array"
+        },
+        "scopes": {
+          "default": [],
+          "description": "Scopes requested for the token.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "ttlSeconds": {
+          "description": "Requested token lifetime. Defaults to the K5.1 ceiling when omitted.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "type": "object"
+    },
+    "BundleContent": {
+      "description": "Everything that decides what a sandbox may do. The canonical form is RFC 8785 (ADR-0005), which\nsorts members, so field order here does not affect the digest; adding, removing, renaming or\nretyping a field still does, and is a schema change.",
+      "properties": {
+        "audiences": {
+          "items": {
+            "$ref": "#/$defs/BundleAudience"
+          },
+          "type": "array"
+        },
+        "budgets": {
+          "$ref": "#/$defs/Budgets"
+        },
+        "egress": {
+          "items": {
+            "$ref": "#/$defs/BundleEgress"
+          },
+          "type": "array"
+        },
+        "includes": {
+          "description": "v4 only: a composite's includes, sorted by name (ADR-0023 decision 7).",
+          "items": {
+            "$ref": "#/$defs/IncludeRef"
+          },
+          "type": "array"
+        },
+        "knobs": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Step"
+          },
+          "description": "Effective knob steps after applying active grants. Every registry knob is present.",
+          "type": "object"
+        },
+        "lease": {
+          "$ref": "#/$defs/Lease"
+        },
+        "policy": {
+          "$ref": "#/$defs/PolicyRef"
+        },
+        "profile": {
+          "$ref": "#/$defs/ProfileRef"
+        },
+        "resources": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Resources"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "v4 only, once ADR-0019 is built."
+        },
+        "sources": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Sources"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "v4 only, once ADR-0016 is built."
+        },
+        "subjects": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Subjects"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "v4 only, and always there in v4 (ADR-0024)."
+        },
+        "tools": {
+          "items": {
+            "$ref": "#/$defs/BundleTool"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "policy",
+        "profile",
+        "knobs",
+        "audiences",
+        "egress",
+        "tools",
+        "lease",
+        "budgets",
+        "subjects"
+      ],
+      "type": "object"
+    },
+    "BundleEgress": {
+      "description": "A direct egress rule in a bundle.",
+      "properties": {
+        "endpoint": {
+          "description": "`host:port`, a DNS name. IP literals are refused; a wildcard host needs K4.1 R3 (lint L007).",
+          "type": "string"
+        },
+        "from": {
+          "description": "The include that supplied this entry; absent for the policy's own (ADR-0023).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "rules": {
+          "default": [],
+          "description": "What may be called there. Only accepted at K4.1 R2 and above. None means anything.",
+          "items": {
+            "$ref": "#/$defs/EndpointRule"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "endpoint"
+      ],
+      "type": "object"
+    },
+    "BundleMeta": {
+      "properties": {
+        "issuedAt": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "notAfter": {
+          "description": "The bundle is worthless after this instant. Bounded by the earliest active grant expiry, so a\nrelaxation lapses without any revocation mechanism.",
+          "format": "date-time",
+          "type": "string"
+        },
+        "version": {
+          "description": "Monotonic. Bumps only when `contentDigest` changes.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "version",
+        "issuedAt",
+        "notAfter"
+      ],
+      "type": "object"
+    },
+    "BundleTool": {
+      "description": "A pinned tool in a bundle.",
+      "properties": {
+        "from": {
+          "description": "The include that supplied this entry; absent for the policy's own (ADR-0023).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "manifestDigest": {
+          "description": "`sha256:<hex>` of the tool manifest.",
+          "type": "string"
+        },
+        "name": {
+          "description": "The tool or MCP server's name.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "manifestDigest"
+      ],
+      "type": "object"
+    },
+    "EndpointRule": {
+      "description": "One HTTP rule for an endpoint (ADR-0013): a method, or `*` for any, and a path glob in which `*`\nmatches one segment and `**` zero or more, matched against the path without the query. The\nshape mediatore's egress proxy uses (its ADR-0025).",
+      "properties": {
+        "method": {
+          "description": "An HTTP method, or `*`.",
+          "type": "string"
+        },
+        "path": {
+          "description": "A path glob starting with `/`.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "method",
+        "path"
+      ],
+      "type": "object"
+    },
+    "IncludeRef": {
+      "description": "One policy a composite includes (ADR-0023 decision 7), as its `status.includes` records it.",
+      "properties": {
+        "contentDigest": {
+          "description": "`sha256:` of the RFC 8785 form of what the include contributes.",
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "uid": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "uid",
+        "contentDigest"
+      ],
+      "type": "object"
+    },
+    "Lease": {
+      "properties": {
+        "maxConcurrent": {
+          "description": "How many sandboxes one person may run at once.",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "maxDurationSeconds": {
+          "description": "The longest a sandbox may run, in seconds.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "maxDurationSeconds",
+        "maxConcurrent"
+      ],
+      "type": "object"
+    },
+    "PolicyRef": {
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "namespace": {
+          "type": "string"
+        },
+        "uid": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "namespace",
+        "name",
+        "uid"
+      ],
+      "type": "object"
+    },
+    "ProfileRef": {
+      "properties": {
+        "digest": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "digest"
+      ],
+      "type": "object"
+    },
+    "Resources": {
+      "description": "The sandbox's size for K2.4 (ADR-0019). Not filled until ADR-0019 is built.",
+      "properties": {
+        "diskGiB": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "memoryMiB": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "vcpus": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "vcpus",
+        "memoryMiB",
+        "diskGiB"
+      ],
+      "type": "object"
+    },
+    "Sources": {
+      "description": "Where the policy, its ceiling and its grants came from, as the delivery pipeline claimed it\n(ADR-0016). Copied, never verified. Not filled until ADR-0016 is built.",
+      "properties": {
+        "ceiling": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "grants": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "By grant name.",
+          "type": "object"
+        },
+        "policy": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "Step": {
+      "description": "A relaxation step for a knob. `R0` is the locked default; higher steps are progressively looser.",
+      "enum": [
+        "R0",
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "type": "string"
+    },
+    "Subjects": {
+      "description": "Who may claim a sandbox under the policy (ADR-0024): identity provider groups, matched\nexactly, sorted by byte order. `[]` means nobody.",
+      "properties": {
+        "groups": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "groups"
+      ],
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "properties": {
+    "content": {
+      "$ref": "#/$defs/BundleContent"
+    },
+    "contentDigest": {
+      "type": "string"
+    },
+    "meta": {
+      "$ref": "#/$defs/BundleMeta"
+    },
+    "schema": {
+      "const": "sandbox.firestoned.io/bundle/v4",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema",
+    "meta",
+    "content",
+    "contentDigest"
+  ],
+  "title": "BundlePayload",
+  "type": "object"
+}

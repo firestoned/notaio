@@ -1,9 +1,11 @@
 // Copyright (c) 2026 Erick Bourgeois, notaio
 // SPDX-License-Identifier: Apache-2.0
 //! Writes the conformance kit (roadmap 00, phase 0) into a directory: `vectors.json`, signed
-//! bundles with the verdict each consumer must reach, and `bundle-v3.schema.json`, the payload's
-//! JSON Schema; and the same for audience bundles (ADR-0020), `audience-vectors.json` and
-//! `audience-bundle-v1.schema.json`.
+//! bundles of schema v3 and v4 with the verdict each consumer must reach, and
+//! `bundle-v4.schema.json`, the v4 payload's JSON Schema; and the same for audience bundles
+//! (ADR-0020), `audience-vectors.json` and `audience-bundle-v1.schema.json`. The v3 payload's
+//! schema, `bundle-v3.schema.json`, is frozen as checked in (ADR-0026 decision 8): the payload type
+//! now models both schemas, so it is not generated again.
 //!
 //! ```sh
 //! make conformance          # writes crates/sandboxpolicy-bundle/conformance/
@@ -25,13 +27,16 @@ use sandboxpolicy_bundle::conformance::{
 use sandboxpolicy_bundle::floor::FloorEntry;
 use sandboxpolicy_bundle::{
     sign_audience_bundle, sign_bundle, AudienceBundleContent, AudienceBundlePayload, AudienceRef,
-    BundleContent, BundleMeta, BundlePayload, Ed25519Signer, Envelope, PolicyRef, ProfileRef,
-    AUDIENCE_SCHEMA, MAX_BUNDLE_LIFETIME_SECONDS, SCHEMA,
+    BundleContent, BundleMeta, BundlePayload, BundleTool, Ed25519Signer, Envelope, IncludeRef,
+    PolicyRef, ProfileRef, Signature, Signer as _, Subjects, AUDIENCE_SCHEMA,
+    MAX_BUNDLE_LIFETIME_SECONDS, PAYLOAD_TYPE_V3, PAYLOAD_TYPE_V4, SCHEMA, SCHEMA_V4,
 };
 use sandboxpolicy_types::{
     Access, AudienceCredential, AudienceDefinition, AudienceGrant, Backend, Budgets,
     CredentialFormat, CredentialSource, EndpointRule, KnobId, Lease, Placement, SecretRef, Step,
+    ToolRef,
 };
+use serde_json::{json, Value};
 
 const KEY_ID: &str = "conformance:v1";
 /// The trusted key's seed. Published on purpose: it signs these vectors and nothing else.
@@ -75,7 +80,8 @@ fn content(uid: &str) -> BundleContent {
                 method: "GET".into(),
                 path: "/repos/**".into(),
             }],
-        }],
+        }
+        .into()],
         egress: vec![],
         tools: vec![],
         lease: Lease {
@@ -87,7 +93,46 @@ fn content(uid: &str) -> BundleContent {
             max_wall_clock_seconds: 14_400,
             max_egress_bytes: 10_485_760,
         },
+        subjects: None,
+        includes: vec![],
+        resources: None,
+        sources: None,
     }
+}
+
+/// The same policy as a composite in schema v4 (ADR-0026): its groups, one include, and a tool the
+/// include supplied.
+fn content_v4(uid: &str) -> BundleContent {
+    let mut c = content(uid);
+    c.subjects = Some(Subjects {
+        groups: vec!["00000000-0000-0000-0000-00000000000a".into()],
+    });
+    c.includes = vec![IncludeRef {
+        name: "agent-tools".into(),
+        uid: "00000000-0000-4000-8000-000000000003".into(),
+        content_digest: format!("sha256:{}", "1".repeat(64)),
+    }];
+    c.tools = vec![BundleTool {
+        tool: ToolRef {
+            name: "linter".into(),
+            manifest_digest: format!("sha256:{}", "2".repeat(64)),
+        },
+        from: Some("agent-tools".into()),
+    }];
+    c
+}
+
+/// Version 3 of the composite at 11:00, valid until 13:00, in schema v4.
+fn payload_v4() -> Result<BundlePayload, String> {
+    BundlePayload::new_v4(
+        BundleMeta {
+            version: 3,
+            issued_at: at(11, 0),
+            not_after: at(13, 0),
+        },
+        content_v4(UID),
+    )
+    .map_err(|e| e.to_string())
 }
 
 /// Version 3 of the policy's first incarnation, issued 11:00, valid until 13:00.
@@ -138,6 +183,109 @@ fn overlong() -> Result<BundlePayload, String> {
 
 fn sign(p: &BundlePayload, seed: [u8; 32]) -> Result<Envelope, String> {
     sign_bundle(p, &Ed25519Signer::from_seed(KEY_ID, seed)).map_err(|e| e.to_string())
+}
+
+/// An envelope of `payload_type` around exactly `bytes`, signed by the trusted key: what a
+/// misbehaving signer could produce, which `sign_bundle` will not. DSSE's pre-authentication
+/// encoding, written out.
+fn forge(payload_type: &str, bytes: &[u8]) -> Result<Envelope, String> {
+    let mut message = format!(
+        "DSSEv1 {} {payload_type} {} ",
+        payload_type.len(),
+        bytes.len()
+    )
+    .into_bytes();
+    message.extend_from_slice(bytes);
+    let sig = Ed25519Signer::from_seed(KEY_ID, TRUSTED_SEED)
+        .sign(&message)
+        .map_err(|e| e.to_string())?;
+    Ok(Envelope {
+        payload_type: payload_type.into(),
+        payload: STANDARD.encode(bytes),
+        signatures: vec![Signature {
+            keyid: KEY_ID.into(),
+            sig: STANDARD.encode(sig),
+        }],
+    })
+}
+
+fn forge_payload(payload_type: &str, p: &BundlePayload) -> Result<Envelope, String> {
+    forge(
+        payload_type,
+        &serde_json::to_vec(p).map_err(|e| e.to_string())?,
+    )
+}
+
+fn forge_json(payload_type: &str, v: &Value) -> Result<Envelope, String> {
+    forge(
+        payload_type,
+        &serde_json::to_vec(v).map_err(|e| e.to_string())?,
+    )
+}
+
+fn to_json(p: &BundlePayload) -> Result<Value, String> {
+    serde_json::to_value(p).map_err(|e| e.to_string())
+}
+
+/// `sha256:` of the RFC 8785 form of `v`, as a signer that digests what it signs would compute it.
+fn digest_of(v: &Value) -> Result<String, String> {
+    use sha2::{Digest, Sha256};
+    let bytes = sandboxpolicy_bundle::jcs::canonicalize(v).map_err(|e| e.to_string())?;
+    let hex: String = Sha256::digest(&bytes)
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect();
+    Ok(format!("sha256:{hex}"))
+}
+
+/// The v4 vectors (ADR-0026 decision 8). The vectors before them stay v3 until v3 is dropped.
+fn v4_vectors(v3_good: &BundlePayload) -> Result<Vec<Vector>, String> {
+    let good = payload_v4()?;
+    let env = sign(&good, TRUSTED_SEED)?;
+    let v4 = to_json(&good)?;
+    let mut v3_with_member = to_json(v3_good)?;
+    v3_with_member["content"]["subjects"] =
+        json!({ "groups": ["00000000-0000-0000-0000-00000000000a"] });
+    let mut no_subjects = v4.clone();
+    if let Some(c) = no_subjects["content"].as_object_mut() {
+        c.remove("subjects");
+    }
+    let mut null_member = v4.clone();
+    null_member["content"]["resources"] = Value::Null;
+    let mut unmodelled = v4.clone();
+    unmodelled["content"]["extra"] = json!(1);
+    unmodelled["contentDigest"] = json!(digest_of(&unmodelled["content"])?);
+    #[rustfmt::skip]
+    let vectors = vec![
+        accepted("v4-accepted", "A v4 bundle of a composite (subjects, an include, a tool it supplied): accepted (ADR-0026).",
+            None, &env, entry(UID, 3, at(11, 0))),
+        refused("v4-refused-under-v3-type", "A v4 payload under the v3 payload type: the pair does not match, refused.",
+            at(12, 0), None, forge_payload(PAYLOAD_TYPE_V3, &good)?, "Schema"),
+        refused("v4-refused-v3-under-v4-type", "A v3 payload under the v4 payload type: the pair does not match, refused.",
+            at(12, 0), None, forge_payload(PAYLOAD_TYPE_V4, v3_good)?, "Schema"),
+        refused("v4-refused-v3-with-v4-member", "A v3 payload carrying subjects: v3 is never read as v4, refused.",
+            at(12, 0), None, forge_json(PAYLOAD_TYPE_V3, &v3_with_member)?, "Schema"),
+        refused("v4-refused-without-subjects", "A v4 payload without subjects, which v4 always carries: refused.",
+            at(12, 0), None, forge_json(PAYLOAD_TYPE_V4, &no_subjects)?, "Malformed"),
+        refused("v4-refused-null-member", "A v4 payload with resources written null: only absent is canonical, so the digest of the content as signed does not match.",
+            at(12, 0), None, forge_json(PAYLOAD_TYPE_V4, &null_member)?, "DigestMismatch"),
+        refused("v4-refused-unmodelled-member", "A v4 payload with a member v4 does not have, digested with it: refused rather than read without it.",
+            at(12, 0), None, forge_json(PAYLOAD_TYPE_V4, &unmodelled)?, "Malformed"),
+    ];
+    Ok(vectors)
+}
+
+/// The v4 payload's JSON Schema: the payload type's, with `subjects` required and the schema
+/// pinned, since the type models v3 as well (ADR-0026 decision 8).
+fn v4_schema() -> Result<Value, String> {
+    let mut schema =
+        serde_json::to_value(schemars::schema_for!(BundlePayload)).map_err(|e| e.to_string())?;
+    schema["properties"]["schema"]["const"] = json!(SCHEMA_V4);
+    let required = schema["$defs"]["BundleContent"]["required"]
+        .as_array_mut()
+        .ok_or("BundleContent has no required list")?;
+    required.push(json!("subjects"));
+    Ok(schema)
 }
 
 fn entry(uid: &str, version: u64, issued_at: Timestamp) -> FloorEntry {
@@ -212,7 +360,7 @@ fn suite() -> Result<Suite, String> {
     let mut malformed = env.clone();
     malformed.payload = "not base64 at all!".into();
 
-    let vectors = vec![
+    let mut vectors = vec![
         accepted("accepted-first-sight", "No floor yet: a valid bundle is accepted and becomes the floor.",
             None, &env, entry(UID, 3, at(11, 0))),
         accepted("accepted-same-version", "The floor's own version again: accepted, the floor unchanged.",
@@ -236,7 +384,7 @@ fn suite() -> Result<Suite, String> {
         refused("refused-digest-mismatch", "Validly signed, but contentDigest is not the digest of the content: refused.",
             at(12, 0), None, sign(&digest, TRUSTED_SEED)?, "DigestMismatch"),
         refused("refused-old-schema", "Validly signed, but schema v2: refused, never read as v3.",
-            at(12, 0), None, sign(&old_schema, TRUSTED_SEED)?, "Schema"),
+            at(12, 0), None, forge_payload(PAYLOAD_TYPE_V3, &old_schema)?, "Schema"),
         refused("refused-payload-type", "The envelope's payload type is v2: refused before anything else is read.",
             at(12, 0), None, payload_type, "PayloadType"),
         refused("refused-malformed", "The payload is not base64: refused.",
@@ -248,6 +396,7 @@ fn suite() -> Result<Suite, String> {
         refused("refused-lifetime-too-long", "Validly signed and inside its window, but notAfter is 25 hours after issuedAt, past the one-day maximum: refused (ADR-0002, decision 5).",
             at(12, 0), None, sign(&overlong()?, TRUSTED_SEED)?, "LifetimeTooLong"),
     ];
+    vectors.extend(v4_vectors(&good)?);
     Ok(Suite {
         schema: "sandbox.firestoned.io/conformance/v1".into(),
         bundle_schema: SCHEMA.into(),
@@ -423,9 +572,8 @@ fn main() -> ExitCode {
         let suite = suite()?;
         let vectors = serde_json::to_string_pretty(&suite).map_err(|e| e.to_string())?;
         std::fs::write(dir.join("vectors.json"), vectors + "\n").map_err(|e| e.to_string())?;
-        let schema = schemars::schema_for!(BundlePayload);
-        let schema = serde_json::to_string_pretty(&schema).map_err(|e| e.to_string())?;
-        std::fs::write(dir.join("bundle-v3.schema.json"), schema + "\n")
+        let schema = serde_json::to_string_pretty(&v4_schema()?).map_err(|e| e.to_string())?;
+        std::fs::write(dir.join("bundle-v4.schema.json"), schema + "\n")
             .map_err(|e| e.to_string())?;
         let audience =
             serde_json::to_string_pretty(&audience_suite()?).map_err(|e| e.to_string())?;

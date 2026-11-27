@@ -2,6 +2,59 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-26 22:16] - The bundle crate reads schema v3 and v4 (roadmap 05 phases 2 and 3)
+
+**Author:** Erick Bourgeois
+
+### Added
+- `crates/sandboxpolicy-bundle/src/members.rs`: the v4 members (`Subjects`, `IncludeRef`,
+  `Resources`, `Sources`) and the bundle's entry types `BundleAudience`, `BundleEgress` and
+  `BundleTool`: the shared type flattened with an optional `from`, dereferencing to it, so the CRD
+  is unchanged and an entry without `from` serialises exactly as before (ADR-0026 decisions 1, 2).
+- `SCHEMA_V3`, `SCHEMA_V4`, `PAYLOAD_TYPE_V3`, `PAYLOAD_TYPE_V4`, `SchemaVersion`;
+  `BundlePayload::new_v3` (refuses content with a v4 member), `new_v4` (refuses content without
+  `subjects`), `schema_version()`; `BundleContent::has_v4_members()`; `VerifyOptions::min_schema`.
+  `SCHEMA`, `PAYLOAD_TYPE` and `BundlePayload::new` still mean v3.
+- `tests/v4.rs` (14 tests, first): a v4 round trip, out-of-band signing under the v4 type, each
+  refusal, the constructors, `min_schema`, and a v4 golden digest computed outside the crate.
+- Conformance kit: seven `v4-` vectors appended (24 in all; the 17 v3 vectors byte for byte as
+  before) and `bundle-v4.schema.json`, generated with `subjects` required and the schema pinned.
+  `bundle-v3.schema.json` is frozen as checked in. `PAYLOAD_SCHEMA_V4_JSON`.
+
+### Changed
+- `verify_bundle` reads v3 and v4: the payload type and schema must pair, a v3 payload carrying a
+  v4 member is `Schema`, a v4 payload without `subjects` is `Malformed`, a schema older than
+  `min_schema` is `Schema`. The content digest is now taken over the content exactly as signed,
+  and content that does not re-serialise to those bytes is `Malformed`: recomputed from the parsed
+  types, a member written `null` read as absent and verified, where any other verifier would
+  refuse it. Tightens; every bundle notaio has signed verifies as before (the v3 golden, the
+  v0.5.2 fixture, the v3 vectors).
+- `signing_input` derives the payload type from the payload's schema and `SigningInput` carries
+  it; `envelope(&SigningInput, key_id, signature)` uses it, so the OpenBao path cannot envelope a
+  v4 payload under the v3 type. `signing_input` refuses a schema this crate does not write.
+- The generator forges its refusal vectors itself rather than through `sign_bundle`, which will
+  no longer sign an unknown schema.
+- `sandboxpolicy-core`: `compile_content` builds the entry types, with every v4 member empty (the
+  controller still emits v3); `lint_definitions_against_ceiling` takes any iterator of grants.
+- `crates/notaio/src/signer.rs`: the OpenBao signer passes the signing input to `envelope`.
+- Docs: ADR-0026 amended (decisions 4 and 8) and partly implemented; ADR-0002's amendment note;
+  `guides/consume-a-bundle.md` (both schemas, the two rules another verifier must follow,
+  `min_schema`); the generated conformance reference; `docs/architecture.md`'s bundle row (it said
+  "schema v2, frozen"); the T5.4 row of the threat model mapping; roadmap 05 phases 0 to 3;
+  `ROADMAPS.md` row 05.
+
+### Why
+Roadmap 05: consumers must read v4 before notaio emits it (ADR-0026). Release N carries this.
+
+### Impact
+- [x] Breaking change (public API): `envelope` takes the `SigningInput`; `BundleContent` gains
+      four members and its entries are the bundle's own types (`.into()` from the shared ones);
+      `VerifyOptions` gains `min_schema`. mediatore's tests that put an `EgressRule` or
+      `AudienceGrant` into a bundle's content need `.into()` when it takes this release.
+- [ ] Requires cluster rollout (CRDs, profiles or controller)
+- [ ] Config or examples change only
+- [ ] Documentation only
+
 ## [2026-11-26 16:11] - L034: a subject group a consumer could not match exactly (roadmap 05 phase 1)
 
 **Author:** Erick Bourgeois

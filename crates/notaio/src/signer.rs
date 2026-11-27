@@ -35,7 +35,7 @@ impl BundleSigner {
             BundleSigner::OpenBao(t) => {
                 let input = signing_input(payload)?;
                 let (key_id, sig) = t.sign(&input.message).await?;
-                Ok(envelope(&input.payload, &key_id, &sig))
+                Ok(envelope(&input, &key_id, &sig))
             }
         }
     }

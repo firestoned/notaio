@@ -197,9 +197,9 @@ fn compile_content(
             digest: profile_digest,
         },
         knobs: full_knobs(effective),
-        audiences,
-        egress,
-        tools,
+        audiences: audiences.into_iter().map(Into::into).collect(),
+        egress: egress.into_iter().map(Into::into).collect(),
+        tools: tools.into_iter().map(Into::into).collect(),
         lease: spec
             .lease
             .clone()
@@ -208,6 +208,11 @@ fn compile_content(
             .budgets
             .clone()
             .unwrap_or_else(|| ceilings.default_budgets(k73, k43)),
+        // The v4 members (ADR-0026): filled when the producer emits v4 (roadmap 05 phase 4).
+        subjects: None,
+        includes: vec![],
+        resources: None,
+        sources: None,
     }
 }
 
@@ -524,7 +529,7 @@ pub fn evaluate(input: &EvalInput<'_>) -> EvalOutput {
     // A definition opens nothing on its own: its endpoints and lifetime need the ceiling too.
     if let Some(catalog) = input.audiences {
         gate.extend(lint_definitions_against_ceiling(
-            &content.audiences,
+            content.audiences.iter().map(|a| &a.grant),
             policy_ns,
             catalog,
             input.exposure_ceiling.map(|c| &c.spec),
