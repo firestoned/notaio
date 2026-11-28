@@ -2,6 +2,27 @@
 
 Newest first. Every entry carries `**Author:**` (`update-changelog` skill).
 
+## [2026-11-28 16:20] - v0.9.0 released, release N of roadmap 05
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `.github/community/05-bundle-schema-v4.md` and `ROADMAPS.md` row 05: release N done. v0.9.0 is
+  tagged at `f2dc781` (rc.1 plus #128 and #129, no code change), with the "For consumers" notes of
+  ADR-0026 D8. Before the tag: the local gate, the strict docs build and the nine kind e2e suites
+  at that commit. rc.1 and v0.9.0 ran on the test cluster with the default v3: every bundle
+  re-signed, verified and admitted by mediatore on the previous release's crate, nothing refused.
+  Next: phase 5, mediatore takes v0.9.0.
+
+### Why
+ADR-0026 decision 4: consumers take the release that reads v4 before notaio emits it.
+
+### Impact
+- [ ] Breaking change (CRD schema, bundle schema, public API)
+- [ ] Requires cluster rollout (CRDs, profiles or controller)
+- [ ] Config or examples change only
+- [x] Documentation only
+
 ## [2026-11-27 10:00] - Release prep v0.9.0, release N of roadmap 05
 
 **Author:** Erick Bourgeois
