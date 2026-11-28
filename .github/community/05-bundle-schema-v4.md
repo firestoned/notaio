@@ -5,7 +5,7 @@
 
 - **Status:** Phases 0 to 4 done, 2026-11-26: ADR-0026, `L034`, the bundle crate verifying v3 and
   v4, the conformance kit, and the controller able to emit v4 behind `NOTAIO_BUNDLE_SCHEMA` (default
-  v3). Next: release N, v0.9.0, prepared 2026-11-27. Opened 2026-11-26.
+  v3). Release N (v0.9.0) out 2026-11-28. Next: phase 5, mediatore takes v0.9.0. Opened 2026-11-26.
 - **Milestone:** M4 in [`ROADMAPS.md`](../../ROADMAPS.md)
 - **Related:** ADR-0002 (the bundle contract, amended by this), ADR-0005 (canonical form),
   ADR-0008 (the consumer's floor), ADR-0013 (the last schema change, v2 to v3), ADR-0014 (how
@@ -195,9 +195,11 @@ N; phase 6 is N+1; phase 7 is N+2.
       climbing each time and the payload type following. Every kind suite signs with OpenBao
       transit, so this is v4 signed by transit, verified against its key. The reorder digest is a
       unit test (`reordering_includes_keeps_the_v4_digest`). Done 2026-11-26.
-- [ ] **Release N** (v0.9.0), with the notes of D8. Prepared 2026-11-27: the workspace at 0.9.0,
+- [x] **Release N**, v0.9.0, with the notes of D8. Done 2026-11-28: the workspace at 0.9.0 (#127),
       the consumer guide pinning it and naming its two API changes, the install guide's
-      "Upgrading to bundle v4" box. Done when the tag is cut.
+      "Upgrading to bundle v4" box, the "For consumers" notes on the GitHub release. rc.1 and the
+      release ran on the test cluster with the default v3: every bundle re-signed and admitted by
+      mediatore on the previous release's crate, nothing refused.
 
 ### Phase 5: consumers take release N
 
